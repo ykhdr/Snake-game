@@ -2,6 +2,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     kotlin("jvm")
+    id("com.google.protobuf") version "0.8.19"
     id("org.jetbrains.compose")
 }
 
@@ -20,6 +21,24 @@ dependencies {
     // (in a separate module for demo project and in testMain).
     // With compose.desktop.common you will also lose @Preview functionality
     implementation(compose.desktop.currentOs)
+    implementation("com.google.protobuf:protobuf-kotlin:3.24.3")
+    // https://mvnrepository.com/artifact/com.google.protobuf/protobuf-gradle-plugin
+    runtimeOnly("com.google.protobuf:protobuf-gradle-plugin:0.9.4")
+}
+
+val protobufGenPath = "build/generated/source/proto"
+
+sourceSets {
+    main {
+        proto {
+            srcDir("src/main/proto")
+        }
+        kotlin.srcDirs += File(protobufGenPath)
+    }
+}
+
+tasks.processResources {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 compose.desktop {
