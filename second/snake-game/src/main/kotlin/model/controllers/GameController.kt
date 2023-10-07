@@ -1,4 +1,5 @@
 package model.controllers
 
-class GameController {
+interface GameController {
+
 }
