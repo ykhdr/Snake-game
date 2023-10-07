@@ -5,7 +5,7 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 
-object MessageSender {
+object SenderController {
     private val datagramSocket = DatagramSocket()
     fun sendMessage(byteArray: ByteArray, address: InetAddress, port: Int) {
         val packet = DatagramPacket(byteArray, byteArray.size, address, port)
