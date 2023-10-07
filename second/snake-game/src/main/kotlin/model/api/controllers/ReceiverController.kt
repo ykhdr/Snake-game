@@ -4,6 +4,7 @@ import me.ippolitov.fit.snakes.SnakesProto.GameMessage
 import model.dto.messages.Message
 import model.exceptions.UndefinedMessageTypeError
 import model.mappers.ProtoMapper
+import mu.KotlinLogging
 import java.net.DatagramPacket
 import java.net.MulticastSocket
 
@@ -13,6 +14,8 @@ object ReceiverController {
 
     private val protoMapper = ProtoMapper
     private val buffer = ByteArray(BUFFER_SIZE)
+
+    private val logger = KotlinLogging.logger {}
 
     fun receive(socket: MulticastSocket): Result<Message> {
         val datagramPacket = DatagramPacket(buffer, buffer.size)

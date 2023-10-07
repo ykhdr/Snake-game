@@ -4,7 +4,9 @@ import config.ApiConfig
 import me.ippolitov.fit.snakes.SnakesProto.GameMessage
 import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
-import model.mappers.ProtoMapper
+import model.api.utils.MessageDispatcher
+import model.controllers.GameController
+import mu.KotlinLogging
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
@@ -15,30 +17,41 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class MessageManager(
     private val config: ApiConfig,
-    private val mapper: ProtoMapper
+    private val gameController: GameController
 ) {
-    val messageReceiver: ReceiverController = ReceiverController
-    val messageSender: SenderController = SenderController
+    private val receiverController: ReceiverController = ReceiverController
+    private val senderController: SenderController = SenderController
+    private val messageDispatcher :MessageDispatcher = MessageDispatcher(gameController)
 
-    val receiveExecutor = Executors.newSingleThreadExecutor()
-    val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
+    private val receiveExecutor = Executors.newSingleThreadExecutor()
+    private val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
 
-    val isReceiveTaskRunning = AtomicBoolean(true)
+    private val isReceiveTaskRunning = AtomicBoolean(true)
 
-    //TODO сделать ресивер синглтоном и без ранабл таски, прописать таску отдельно
-    init {
-        receiveExecutor
-    }
+    private val logger = KotlinLogging.logger {}
+
 
     private val receiveTask = {
-        val socket =  MulticastSocket()
-        while (isReceiveTaskRunning.get()){
-
+        val socket = MulticastSocket()
+        while (isReceiveTaskRunning.get()) {
+            val result = receiverController.receive(socket)
+            if (result.isFailure) {
+                logger.warn("Receiving data has not any message type", result.exceptionOrNull())
+            }
+            result.getOrNull()?.let { messageDispatcher.dispatchMessage(it) }
         }
     }
 
+
     private val pingTask = {
 
+    }
+
+    init {
+        receiveExecutor.execute(receiveTask)
+
+
+        logger.info("All tasks are running ")
     }
 
     private fun initSocket(): MulticastSocket {
@@ -53,12 +66,6 @@ class MessageManager(
 
     fun sendMessage(gameMessage: GameMessage, address: InetAddress, port: Int) {
         SenderController.sendMessage(gameMessage.toByteArray(), address, port)
-    }
-
-    private fun handleReceiveMessage(byteArray: ByteArray) {
-        val message = GameMessage.parseFrom(byteArray)
-        //TODO куда то положить
-        val gameMessage = mapper.toMessage(message)
     }
 }
 

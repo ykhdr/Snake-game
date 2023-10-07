@@ -16,13 +16,12 @@ repositories {
 }
 
 dependencies {
-    // Note, if you develop a library, you should use compose.desktop.common.
-    // compose.desktop.currentOs should be used in launcher-sourceSet
-    // (in a separate module for demo project and in testMain).
-    // With compose.desktop.common you will also lose @Preview functionality
     implementation(compose.desktop.currentOs)
     implementation("com.google.protobuf:protobuf-kotlin:3.24.3")
-    // https://mvnrepository.com/artifact/com.google.protobuf/protobuf-gradle-plugin
+
+    implementation("io.github.microutils:kotlin-logging-jvm:2.0.11")
+    implementation(group = "ch.qos.logback", name = "logback-classic", version = "1.2.6")
+
     runtimeOnly("com.google.protobuf:protobuf-gradle-plugin:0.9.4")
 }
 
