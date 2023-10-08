@@ -67,5 +67,10 @@ class MessageManager(
     fun sendMessage(gameMessage: GameMessage, address: InetAddress, port: Int) {
         SenderController.sendMessage(gameMessage.toByteArray(), address, port)
     }
+
+    fun stopTasks(){
+        isReceiveTaskRunning.set(false)
+
+    }
 }
 
