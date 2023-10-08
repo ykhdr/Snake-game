@@ -1,7 +1,7 @@
 package model.dto.messages
 
-import java.net.InetAddress
+import java.net.InetSocketAddress
 
 class Ping(
-    address: InetAddress,
+    address: InetSocketAddress,
 ) : Message(address)

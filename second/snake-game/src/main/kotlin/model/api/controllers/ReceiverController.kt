@@ -5,6 +5,7 @@ import model.dto.messages.Message
 import model.mappers.ProtoMapper
 import mu.KotlinLogging
 import java.net.DatagramPacket
+import java.net.InetSocketAddress
 import java.net.MulticastSocket
 
 
@@ -22,7 +23,7 @@ object ReceiverController {
         logger.info("Message received")
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
         // TODO проверить какой адресс приходит
-        return runCatching { protoMapper.toMessage(GameMessage.parseFrom(protoBytes), datagramPacket.address) }
+        return runCatching { protoMapper.toMessage(GameMessage.parseFrom(protoBytes), InetSocketAddress(datagramPacket.address,datagramPacket.port)) }
     }
 
 }

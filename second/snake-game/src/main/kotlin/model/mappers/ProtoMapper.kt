@@ -4,11 +4,15 @@ import me.ippolitov.fit.snakes.SnakesProto
 import model.dto.core.*
 import model.dto.messages.*
 import model.exceptions.UndefinedMessageTypeError
-import java.net.InetAddress
+import java.net.InetSocketAddress
 
 object ProtoMapper {
 
-    fun toMessage(message: SnakesProto.GameMessage, address: InetAddress): Message {
+    fun toProtoMessage(message: Message) : SnakesProto.GameMessage{
+
+    }
+
+    fun toMessage(message: SnakesProto.GameMessage, address: InetSocketAddress): Message {
         return if (message.hasAck())
             toAck(message, address)
         else if (message.hasAnnouncement())
@@ -31,7 +35,7 @@ object ProtoMapper {
             throw UndefinedMessageTypeError(message = "No match type of message")
     }
 
-    private fun toAck(proto: SnakesProto.GameMessage, address: InetAddress): Ack {
+    private fun toAck(proto: SnakesProto.GameMessage, address: InetSocketAddress): Ack {
         if (!proto.hasAck()) {
             throw UndefinedMessageTypeError(message = "Passed argument is not ack message")
         }
@@ -44,16 +48,16 @@ object ProtoMapper {
         )
     }
 
-    private fun toAnnouncement(proto: SnakesProto.GameMessage.AnnouncementMsg, address: InetAddress) = Announcement(
+    private fun toAnnouncement(proto: SnakesProto.GameMessage.AnnouncementMsg, address: InetSocketAddress) = Announcement(
         address = address,
         games = proto.gamesList.map { game -> toGameAnnouncement(game) }
     )
 
-    private fun toDiscover(address: InetAddress) = Discover(
+    private fun toDiscover(address: InetSocketAddress) = Discover(
         address = address,
     )
 
-    private fun toJoin(proto: SnakesProto.GameMessage.JoinMsg, address: InetAddress) = Join(
+    private fun toJoin(proto: SnakesProto.GameMessage.JoinMsg, address: InetSocketAddress) = Join(
         address = address,
         playerType = toPlayerType(proto.playerType),
         playerName = proto.playerName,
@@ -61,16 +65,16 @@ object ProtoMapper {
         requestedRole = toNodeRole(proto.requestedRole),
     )
 
-    private fun toError(proto: SnakesProto.GameMessage.ErrorMsg, address: InetAddress) = Error(
+    private fun toError(proto: SnakesProto.GameMessage.ErrorMsg, address: InetSocketAddress) = Error(
         address = address,
         errorMessage = proto.errorMessage
     )
 
-    private fun toPing(address: InetAddress) = Ping(
+    private fun toPing(address: InetSocketAddress) = Ping(
         address = address
     )
 
-    private fun toRoleChange(proto: SnakesProto.GameMessage, address: InetAddress): RoleChange {
+    private fun toRoleChange(proto: SnakesProto.GameMessage, address: InetSocketAddress): RoleChange {
         if (!proto.hasRoleChange()) {
             throw UndefinedMessageTypeError(message = "Passed argument is nor role change message")
         }
@@ -85,12 +89,12 @@ object ProtoMapper {
         )
     }
 
-    private fun toState(proto: SnakesProto.GameMessage.StateMsg, address: InetAddress) = State(
+    private fun toState(proto: SnakesProto.GameMessage.StateMsg, address: InetSocketAddress) = State(
         address = address,
         state = toGameState(proto.state)
     )
 
-    private fun toSteer(proto: SnakesProto.GameMessage.SteerMsg, address: InetAddress) = Steer(
+    private fun toSteer(proto: SnakesProto.GameMessage.SteerMsg, address: InetSocketAddress) = Steer(
         address = address,
         direction = toDirection(proto.direction)
     )

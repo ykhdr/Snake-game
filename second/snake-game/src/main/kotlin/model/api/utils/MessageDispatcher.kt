@@ -8,7 +8,7 @@ class MessageDispatcher(
 ) {
 
     //TODO реализовать методы
-    fun dispatchMessage(message: Message){
+    fun dispatchMessageToGameController(message: Message){
         when(message){
             is Ack -> println("ack")
             is Announcement -> println("announcement")
@@ -21,5 +21,6 @@ class MessageDispatcher(
             is Steer -> println("steer")
         }
     }
+
 
 }

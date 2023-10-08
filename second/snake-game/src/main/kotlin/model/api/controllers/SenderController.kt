@@ -1,20 +1,19 @@
 package model.api.controllers
 
-import me.ippolitov.fit.snakes.SnakesProto
+import model.dto.messages.Message
+import model.mappers.ProtoMapper
 import java.net.DatagramPacket
 import java.net.DatagramSocket
-import java.net.InetAddress
 
 object SenderController {
+    private const val BUFFER_SIZE = 1024
+
     private val datagramSocket = DatagramSocket()
-    fun sendMessage(byteArray: ByteArray, address: InetAddress, port: Int) {
-        val packet = DatagramPacket(byteArray, byteArray.size, address, port)
-        datagramSocket.send(packet)
+    private val mapper = ProtoMapper
+    private val buffer = ByteArray(BUFFER_SIZE)
+    fun sendMessage(message: Message){
+        val address = message.address
+        DatagramPacket(buffer, BUFFER_SIZE, address)
+        mapper.toProtoMessage(message)
     }
-
-    fun sendGameMessage(message: SnakesProto.GameMessage){
-
-    }
-
-
 }

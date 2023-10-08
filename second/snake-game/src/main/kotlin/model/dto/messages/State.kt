@@ -1,9 +1,9 @@
 package model.dto.messages
 
 import model.dto.core.GameState
-import java.net.InetAddress
+import java.net.InetSocketAddress
 
 class State(
-    address: InetAddress,
+    address: InetSocketAddress,
     val state: GameState
 ) : Message(address)

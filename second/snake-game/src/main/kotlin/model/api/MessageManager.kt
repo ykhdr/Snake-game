@@ -1,13 +1,12 @@
 package model.api
 
 import config.ApiConfig
-import me.ippolitov.fit.snakes.SnakesProto.GameMessage
 import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
 import model.api.utils.MessageDispatcher
 import model.controllers.GameController
+import model.dto.messages.Message
 import mu.KotlinLogging
-import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
 import java.net.NetworkInterface
@@ -38,7 +37,7 @@ class MessageManager(
             if (result.isFailure) {
                 logger.warn("Receiving data has not any message type", result.exceptionOrNull())
             }
-            result.getOrNull()?.let { messageDispatcher.dispatchMessage(it) }
+            result.getOrNull()?.let { messageDispatcher.dispatchMessageToGameController(it) }
         }
     }
 
@@ -64,8 +63,8 @@ class MessageManager(
         return socket
     }
 
-    fun sendMessage(gameMessage: GameMessage, address: InetAddress, port: Int) {
-        SenderController.sendMessage(gameMessage.toByteArray(), address, port)
+    fun sendMessage(message: Message) {
+        senderController.sendMessage(message)
     }
 
     fun stopTasks(){

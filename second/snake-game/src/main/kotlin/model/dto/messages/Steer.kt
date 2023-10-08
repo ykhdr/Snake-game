@@ -1,10 +1,10 @@
 package model.dto.messages
 
 import model.dto.core.Direction
-import java.net.InetAddress
+import java.net.InetSocketAddress
 
 
 class Steer(
-    address: InetAddress,
+    address: InetSocketAddress,
     val direction: Direction
 ) : Message(address)

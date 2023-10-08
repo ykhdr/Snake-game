@@ -1,9 +1,9 @@
 package model.dto.messages
 
-import java.net.InetAddress
+import java.net.InetSocketAddress
 
 class Ack(
-    address: InetAddress,
+    address: InetSocketAddress,
     msgSeq: Long = DEFAULT_MESSAGE_SEQUENCE,
     receiverId: Int,
     senderId: Int

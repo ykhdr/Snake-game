@@ -1,10 +1,10 @@
 package model.dto.messages
 
 import model.dto.core.NodeRole
-import java.net.InetAddress
+import java.net.InetSocketAddress
 
 class RoleChange(
-    address: InetAddress,
+    address: InetSocketAddress,
     senderId: Int,
     receiverId: Int,
     val senderRole: NodeRole = NodeRole.EMPTY,

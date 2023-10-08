@@ -1,8 +1,8 @@
 package model.dto.messages
 
-import java.net.InetAddress
+import java.net.InetSocketAddress
 
 class Error(
-    address: InetAddress,
+    address: InetSocketAddress,
     val errorMessage: String,
 ) : Message(address)

@@ -2,10 +2,10 @@ package model.dto.messages
 
 import model.dto.core.NodeRole
 import model.dto.core.PlayerType
-import java.net.InetAddress
+import java.net.InetSocketAddress
 
 class Join(
-    address: InetAddress,
+    address: InetSocketAddress,
     val playerType: PlayerType = PlayerType.HUMAN,
     val playerName: String,
     val gameName: String,
