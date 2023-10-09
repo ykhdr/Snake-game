@@ -12,61 +12,65 @@ object ProtoMapper {
         return when (message) {
             is Ack -> toProtoAck(message)
             is Announcement -> toProtoAnnouncement(message)
-            is Discover -> toProtoDiscover()
+            is Discover -> toProtoDiscover(message)
             is Error -> toProtoError(message)
             is Join -> toProtoJoin(message)
-            is Ping -> toProtoPing()
+            is Ping -> toProtoPing(message)
             is RoleChange -> toProtoRoleChange(message)
             is State -> toProtoState(message)
             is Steer -> toProtoSteer(message)
         }
     }
 
-    private fun toProtoAck(message: Ack): SnakesProto.GameMessage {
+    private fun toProtoAck(ack: Ack): SnakesProto.GameMessage {
         return SnakesProto.GameMessage.newBuilder()
             .setAck(SnakesProto.GameMessage.AckMsg.newBuilder().build())
-            .setSenderId(message.senderId)
-            .setReceiverId(message.receiverId)
-            .setMsgSeq(message.msgSeq)
+            .setSenderId(ack.senderId)
+            .setReceiverId(ack.receiverId)
+            .setMsgSeq(ack.msgSeq)
             .build()
     }
 
-    private fun toProtoAnnouncement(message: Announcement): SnakesProto.GameMessage {
+    private fun toProtoAnnouncement(announcement: Announcement): SnakesProto.GameMessage {
         return SnakesProto.GameMessage.newBuilder()
             .setAnnouncement(
                 SnakesProto.GameMessage.AnnouncementMsg.newBuilder()
-                    .addAllGames(message.games.map { game -> toProtoGameAnnouncement(game) })
+                    .addAllGames(announcement.games.map { game -> toProtoGameAnnouncement(game) })
                     .build()
             )
+            .setMsgSeq(announcement.msgSeq)
             .build()
     }
 
-    private fun toProtoError(message: Error): SnakesProto.GameMessage {
+    private fun toProtoError(error: Error): SnakesProto.GameMessage {
         return SnakesProto.GameMessage.newBuilder()
             .setError(
                 SnakesProto.GameMessage.ErrorMsg.newBuilder()
-                    .setErrorMessage(message.errorMessage)
+                    .setErrorMessage(error.errorMessage)
                     .build()
             )
+            .setMsgSeq(error.msgSeq)
             .build()
     }
 
-    private fun toProtoJoin(message: Join): SnakesProto.GameMessage {
+    private fun toProtoJoin(join: Join): SnakesProto.GameMessage {
         return SnakesProto.GameMessage.newBuilder()
             .setJoin(
                 SnakesProto.GameMessage.JoinMsg.newBuilder()
-                    .setPlayerType(toProtoPlayerType(message.playerType))
-                    .setPlayerName(message.playerName)
-                    .setGameName(message.gameName)
-                    .setRequestedRole(toProtoNodeRole(message.requestedRole))
+                    .setPlayerType(toProtoPlayerType(join.playerType))
+                    .setPlayerName(join.playerName)
+                    .setGameName(join.gameName)
+                    .setRequestedRole(toProtoNodeRole(join.requestedRole))
                     .build()
             )
+            .setMsgSeq(join.msgSeq)
             .build()
     }
 
-    private fun toProtoPing(): SnakesProto.GameMessage {
+    private fun toProtoPing(ping: Ping): SnakesProto.GameMessage {
         return SnakesProto.GameMessage.newBuilder()
             .setPing(SnakesProto.GameMessage.PingMsg.newBuilder().build())
+            .setMsgSeq(ping.msgSeq)
             .build()
     }
 
@@ -78,15 +82,17 @@ object ProtoMapper {
                     .setReceiverRole(toProtoNodeRole(message.receiverRole))
                     .build()
             )
+            .setMsgSeq(message.msgSeq)
             .build()
     }
 
-    private fun toProtoDiscover(): SnakesProto.GameMessage {
+    private fun toProtoDiscover(discover: Discover): SnakesProto.GameMessage {
         return SnakesProto.GameMessage.newBuilder()
             .setDiscover(
                 SnakesProto.GameMessage.DiscoverMsg.newBuilder()
                     .build()
             )
+            .setMsgSeq(discover.msgSeq)
             .build()
     }
 
@@ -97,6 +103,7 @@ object ProtoMapper {
                     .setState(toProtoGameState(state.state))
                     .build()
             )
+            .setMsgSeq(state.msgSeq)
             .build()
     }
 
@@ -107,6 +114,7 @@ object ProtoMapper {
                     .setDirection(toProtoDirection(steer.direction))
                     .build()
             )
+            .setMsgSeq(steer.msgSeq)
             .build()
     }
 
