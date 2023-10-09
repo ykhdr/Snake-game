@@ -1,24 +1,24 @@
 package model.api.utils
 
-import model.controllers.GameController
+import model.controllers.MessageHandlingController
 import model.dto.messages.*
 
 class MessageDispatcher(
-    val gameController: GameController
+    private val messageHandlingController: MessageHandlingController
 ) {
 
     //TODO реализовать методы
     fun dispatchMessageToGameController(message: Message){
         when(message){
-            is Ack -> println("ack")
-            is Announcement -> println("announcement")
-            is Discover -> println("discover")
-            is Error -> println("error")
-            is Join -> println("join")
-            is Ping -> println("ping")
-            is RoleChange -> println("role change")
-            is State -> println("state")
-            is Steer -> println("steer")
+            is Ack -> messageHandlingController.acceptAck(message)
+            is Announcement -> messageHandlingController.acceptAnnouncement(message)
+            is Discover -> messageHandlingController.acceptDiscover(message)
+            is Error -> messageHandlingController.acceptError(message)
+            is Join -> messageHandlingController.acceptJoin(message)
+            is Ping -> messageHandlingController.acceptPing(message)
+            is RoleChange -> messageHandlingController.acceptRoleChange(message)
+            is State -> messageHandlingController.acceptState(message)
+            is Steer -> messageHandlingController.acceptSteer(message)
         }
     }
 

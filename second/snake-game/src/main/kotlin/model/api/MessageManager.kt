@@ -5,6 +5,7 @@ import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
 import model.api.utils.MessageDispatcher
 import model.controllers.GameController
+import model.controllers.MessageHandlingController
 import model.dto.messages.Message
 import mu.KotlinLogging
 import java.net.InetSocketAddress
@@ -15,20 +16,27 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 
 class MessageManager(
+    messageHandlingController: MessageHandlingController,
     private val config: ApiConfig,
     private val gameController: GameController
 ) {
     private val receiverController: ReceiverController = ReceiverController
     private val senderController: SenderController = SenderController
-    private val messageDispatcher :MessageDispatcher = MessageDispatcher(gameController)
+    private val messageDispatcher: MessageDispatcher = MessageDispatcher(messageHandlingController)
 
     private val receiveExecutor = Executors.newSingleThreadExecutor()
     private val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
 
     private val isReceiveTaskRunning = AtomicBoolean(true)
 
+    private val isMasterNode = AtomicBoolean(false)
+
     private val logger = KotlinLogging.logger {}
 
+
+    companion object{
+        const val ANNOUNCEMENT_DELAY_MS = 1000
+    }
 
     private val receiveTask = {
         val socket = MulticastSocket()
@@ -44,6 +52,12 @@ class MessageManager(
 
     private val pingTask = {
 
+    }
+
+    private val announcementTask = {
+        if(isMasterNode.get()){
+            val announcement =
+        }
     }
 
     init {
@@ -67,7 +81,9 @@ class MessageManager(
         senderController.sendMessage(message)
     }
 
-    fun stopTasks(){
+    fun announceGame()
+
+    fun stopTasks() {
         isReceiveTaskRunning.set(false)
 
     }

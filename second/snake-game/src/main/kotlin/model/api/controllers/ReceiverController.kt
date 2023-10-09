@@ -23,7 +23,12 @@ object ReceiverController {
         logger.info("Message received")
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
         // TODO проверить какой адресс приходит
-        return runCatching { protoMapper.toMessage(GameMessage.parseFrom(protoBytes), InetSocketAddress(datagramPacket.address,datagramPacket.port)) }
+        return runCatching {
+            protoMapper.toMessage(
+                GameMessage.parseFrom(protoBytes),
+                InetSocketAddress(datagramPacket.address, datagramPacket.port)
+            )
+        }
     }
 
 }
