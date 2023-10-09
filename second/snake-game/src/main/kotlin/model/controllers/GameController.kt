@@ -1,5 +1,8 @@
 package model.controllers
 
-interface GameController {
+import model.dto.core.GameAnnouncement
+import java.util.*
 
+interface GameController {
+    fun getGameAnnouncement() : Optional<GameAnnouncement>
 }
