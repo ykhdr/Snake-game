@@ -2,7 +2,7 @@ package model.dto.messages
 
 import java.net.InetSocketAddress
 
-open class Message(
+sealed class Message(
     open val address: InetSocketAddress,
     open val senderId: Int = DEFAULT_SENDER_ID,
     open val msgSeq: Long = DEFAULT_MESSAGE_SEQUENCE,
