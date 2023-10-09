@@ -8,9 +8,186 @@ import java.net.InetSocketAddress
 
 object ProtoMapper {
 
-    fun toProtoMessage(message: Message) : SnakesProto.GameMessage{
-
+    fun toProtoMessage(message: Message): SnakesProto.GameMessage {
+        return when (message) {
+            is Ack -> toProtoAck(message)
+            is Announcement -> toProtoAnnouncement(message)
+            is Discover -> toProtoDiscover()
+            is Error -> toProtoError(message)
+            is Join -> toProtoJoin(message)
+            is Ping -> toProtoPing()
+            is RoleChange -> toProtoRoleChange(message)
+            is State -> toProtoState(message)
+            is Steer -> toProtoSteer(message)
+        }
     }
+
+    private fun toProtoAck(message: Ack): SnakesProto.GameMessage {
+        return SnakesProto.GameMessage.newBuilder()
+            .setAck(SnakesProto.GameMessage.AckMsg.newBuilder().build())
+            .setSenderId(message.senderId)
+            .setReceiverId(message.receiverId)
+            .setMsgSeq(message.msgSeq)
+            .build()
+    }
+
+    private fun toProtoAnnouncement(message: Announcement): SnakesProto.GameMessage {
+        return SnakesProto.GameMessage.newBuilder()
+            .setAnnouncement(
+                SnakesProto.GameMessage.AnnouncementMsg.newBuilder()
+                    .addAllGames(message.games.map { game -> toProtoGameAnnouncement(game) })
+                    .build()
+            )
+            .build()
+    }
+
+    private fun toProtoError(message: Error): SnakesProto.GameMessage {
+        return SnakesProto.GameMessage.newBuilder()
+            .setError(
+                SnakesProto.GameMessage.ErrorMsg.newBuilder()
+                    .setErrorMessage(message.errorMessage)
+                    .build()
+            )
+            .build()
+    }
+
+    private fun toProtoJoin(message: Join): SnakesProto.GameMessage {
+        return SnakesProto.GameMessage.newBuilder()
+            .setJoin(
+                SnakesProto.GameMessage.JoinMsg.newBuilder()
+                    .setPlayerType(toProtoPlayerType(message.playerType))
+                    .setPlayerName(message.playerName)
+                    .setGameName(message.gameName)
+                    .setRequestedRole(toProtoNodeRole(message.requestedRole))
+                    .build()
+            )
+            .build()
+    }
+
+    private fun toProtoPing(): SnakesProto.GameMessage {
+        return SnakesProto.GameMessage.newBuilder()
+            .setPing(SnakesProto.GameMessage.PingMsg.newBuilder().build())
+            .build()
+    }
+
+    private fun toProtoRoleChange(message: RoleChange): SnakesProto.GameMessage {
+        return SnakesProto.GameMessage.newBuilder()
+            .setRoleChange(
+                SnakesProto.GameMessage.RoleChangeMsg.newBuilder()
+                    .setSenderRole(toProtoNodeRole(message.senderRole))
+                    .setReceiverRole(toProtoNodeRole(message.receiverRole))
+                    .build()
+            )
+            .build()
+    }
+
+    private fun toProtoDiscover(): SnakesProto.GameMessage {
+        return SnakesProto.GameMessage.newBuilder()
+            .setDiscover(
+                SnakesProto.GameMessage.DiscoverMsg.newBuilder()
+                    .build()
+            )
+            .build()
+    }
+
+    private fun toProtoState(state: State): SnakesProto.GameMessage {
+        return SnakesProto.GameMessage.newBuilder()
+            .setState(
+                SnakesProto.GameMessage.StateMsg.newBuilder()
+                    .setState(toProtoGameState(state.state))
+                    .build()
+            )
+            .build()
+    }
+
+    private fun toProtoSteer(steer: Steer) : SnakesProto.GameMessage{
+        return SnakesProto.GameMessage.newBuilder()
+            .setSteer(
+                SnakesProto.GameMessage.SteerMsg.newBuilder()
+                    .setDirection(toProtoDirection(steer.direction))
+                    .build()
+            )
+            .build()
+    }
+
+    private fun toProtoGameState(gameState: GameState): SnakesProto.GameState {
+        return SnakesProto.GameState.newBuilder()
+            .setStateOrder(gameState.stateOrder)
+            .addAllSnakes(gameState.snakes.map { snake -> toProtoSnake(snake) })
+            .addAllFoods(gameState.foods.map { food -> toProtoCoord(food) })
+            .setPlayers(toProtoGamePlayers(gameState.players))
+            .build()
+    }
+
+    private fun toProtoCoord(coord: Coord): SnakesProto.GameState.Coord {
+        return SnakesProto.GameState.Coord.newBuilder()
+            .setX(coord.x)
+            .setY(coord.y)
+            .build()
+    }
+
+    private fun toProtoSnake(snake: Snake): SnakesProto.GameState.Snake {
+        return SnakesProto.GameState.Snake.newBuilder()
+            .setPlayerId(snake.playerId)
+            .addAllPoints(snake.points.map { coord -> toProtoCoord(coord) })
+            .setState(toProtoSnakeState(snake.snakeState))
+            .setHeadDirection(toProtoDirection(snake.headDirection))
+            .build()
+    }
+
+    private fun toProtoDirection(direction: Direction): SnakesProto.Direction {
+        return SnakesProto.Direction.valueOf(direction.name)
+    }
+
+    private fun toProtoSnakeState(snakeState: SnakeState): SnakesProto.GameState.Snake.SnakeState {
+        return SnakesProto.GameState.Snake.SnakeState.valueOf(snakeState.name)
+    }
+
+    private fun toProtoGameAnnouncement(announcement: GameAnnouncement): SnakesProto.GameAnnouncement {
+        return SnakesProto.GameAnnouncement.newBuilder()
+            .setPlayers(toProtoGamePlayers(announcement.players))
+            .setConfig(toProtoConfig(announcement.config))
+            .setCanJoin(announcement.canJoin)
+            .setGameName(announcement.gameName)
+            .build()
+    }
+
+
+    private fun toProtoConfig(config: GameConfig): SnakesProto.GameConfig {
+        return SnakesProto.GameConfig.newBuilder()
+            .setWidth(config.width)
+            .setHeight(config.height)
+            .setFoodStatic(config.foodStatic)
+            .setStateDelayMs(config.stateDelayMs)
+            .build()
+    }
+
+    private fun toProtoGamePlayers(gamePlayers: GamePlayers): SnakesProto.GamePlayers {
+        return SnakesProto.GamePlayers.newBuilder()
+            .addAllPlayers(gamePlayers.players.map { player -> toProtoPlayer(player) })
+            .build()
+    }
+
+    private fun toProtoPlayer(player: GamePlayer): SnakesProto.GamePlayer {
+        return SnakesProto.GamePlayer.newBuilder()
+            .setName(player.name)
+            .setId(player.id)
+            .setIpAddress(player.ip)
+            .setPort(player.port)
+            .setRole(toProtoNodeRole(player.role))
+            .setType(toProtoPlayerType(player.type))
+            .setScore(player.score)
+            .build()
+    }
+
+    private fun toProtoNodeRole(nodeRole: NodeRole): SnakesProto.NodeRole {
+        return SnakesProto.NodeRole.valueOf(nodeRole.name)
+    }
+
+    private fun toProtoPlayerType(playerType: PlayerType): SnakesProto.PlayerType {
+        return SnakesProto.PlayerType.valueOf(playerType.name)
+    }
+
 
     fun toMessage(message: SnakesProto.GameMessage, address: InetSocketAddress): Message {
         return if (message.hasAck())
@@ -48,10 +225,11 @@ object ProtoMapper {
         )
     }
 
-    private fun toAnnouncement(proto: SnakesProto.GameMessage.AnnouncementMsg, address: InetSocketAddress) = Announcement(
-        address = address,
-        games = proto.gamesList.map { game -> toGameAnnouncement(game) }
-    )
+    private fun toAnnouncement(proto: SnakesProto.GameMessage.AnnouncementMsg, address: InetSocketAddress) =
+        Announcement(
+            address = address,
+            games = proto.gamesList.map { game -> toGameAnnouncement(game) }
+        )
 
     private fun toDiscover(address: InetSocketAddress) = Discover(
         address = address,
