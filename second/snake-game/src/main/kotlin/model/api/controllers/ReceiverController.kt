@@ -15,6 +15,8 @@ object ReceiverController {
     private val protoMapper = ProtoMapper
     private val buffer = ByteArray(BUFFER_SIZE)
 
+    private val waitingForAck = mutableMapOf<InetSocketAddress, Long>()
+
     private val logger = KotlinLogging.logger {}
 
     fun receive(socket: MulticastSocket): Result<Message> {
@@ -22,13 +24,36 @@ object ReceiverController {
         socket.receive(datagramPacket)
         logger.info("Message received")
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
+        val gameMessage = GameMessage.parseFrom(protoBytes)
+        val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
+        if (gameMessage.hasAck()) {
+            synchronized(waitingForAck) {
+                val seq = waitingForAck[address] ?: -1
+                if (seq == gameMessage.msgSeq) {
+                    waitingForAck.remove(address)
+                }
+            }
+        }
         // TODO проверить какой адресс приходит
+
         return runCatching {
             protoMapper.toMessage(
-                GameMessage.parseFrom(protoBytes),
-                InetSocketAddress(datagramPacket.address, datagramPacket.port)
+                gameMessage,
+                address
             )
         }
     }
 
+
+    fun addNodeForWaitingAck(address: InetSocketAddress, msqSeq: Long) {
+        synchronized(waitingForAck) {
+            waitingForAck.put(address, msqSeq)
+        }
+    }
+
+    fun isAckInWaitingList(address: InetSocketAddress): Boolean {
+        synchronized(waitingForAck) {
+            return waitingForAck.containsKey(address)
+        }
+    }
 }

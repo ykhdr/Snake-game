@@ -1,6 +1,6 @@
 package model.api
 
-import config.ApiConfig
+import config.NetworkConfig
 import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
 import model.controllers.GameController
@@ -9,16 +9,14 @@ import model.dto.messages.Announcement
 import model.dto.messages.Message
 import model.dto.messages.State
 import mu.KotlinLogging
-import java.net.InetSocketAddress
 import java.net.MulticastSocket
-import java.net.NetworkInterface
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 
 class MessageManager(
-    private val config: ApiConfig,
+    private val config: NetworkConfig,
     private val gameController: GameController
 ) {
     private val receiverController: ReceiverController = ReceiverController
@@ -69,6 +67,7 @@ class MessageManager(
 
     // Здесь мы смотрим является ли наша нода Deputy и после спрашиваем у нее
     // какие ноды просят вместо mastera у нас инфу об игре (GameState)
+    //
     private val deputyListenersTask = {
         if (gameController.nodeRole.isPresent
             && gameController.nodeRole.get() == NodeRole.DEPUTY
@@ -76,8 +75,11 @@ class MessageManager(
         ) {
             val gameState = gameController.gameState.get()
             for (address in gameController.deputyListenersAddresses) {
+
                 sendMessage(State(address, gameState))
             }
+
+
             logger.info("Sent state to deputy listeners")
         }
     }
@@ -109,8 +111,8 @@ class MessageManager(
         //TODO добавить проверки на валидность адреса
         val socket = MulticastSocket(config.groupAddress.port)
         socket.joinGroup(
-            InetSocketAddress(config.groupAddress.address, config.groupAddress.port),
-            NetworkInterface.getByInetAddress(config.groupAddress.address)
+            config.groupAddress,
+            config.localInterface
         )
         return socket
     }

@@ -1,6 +1,6 @@
 package model.controllers
 
-import config.ApiConfig
+import config.NetworkConfig
 import model.api.MessageManager
 import model.dto.core.*
 import java.net.InetSocketAddress
@@ -12,7 +12,7 @@ class GameController {
         private const val DEFAULT_GAME_STATE_DELAY = 1000L
     }
 
-    private val messageManager = MessageManager(ApiConfig(), this)
+    private val messageManager = MessageManager(NetworkConfig(), this)
 
     val config: Optional<GameConfig> = Optional.empty()
     val gameState: Optional<GameState> = Optional.empty()
