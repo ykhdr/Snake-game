@@ -11,6 +11,7 @@ object SenderController {
     private val datagramSocket = DatagramSocket()
     private val mapper = ProtoMapper
     private val buffer = ByteArray(BUFFER_SIZE)
+
     fun sendMessage(message: Message){
         val address = message.address
         val packet = DatagramPacket(buffer, BUFFER_SIZE, address)
@@ -18,4 +19,5 @@ object SenderController {
         packet.setData(protoMessage.toByteArray())
         datagramSocket.send(packet)
     }
+
 }
