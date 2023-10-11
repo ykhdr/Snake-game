@@ -20,6 +20,7 @@ class GameController {
     val players: Optional<GamePlayers> = Optional.empty()
     val gameName: Optional<String> = Optional.empty()
     val deputyListenersAddresses: List<InetSocketAddress> = listOf()
+    val gameConfig: Optional<GameConfig> = Optional.empty()
 
     fun getGameStateDelay(): Long {
         return if (config.isPresent) config.get().stateDelayMs.toLong() else DEFAULT_GAME_STATE_DELAY

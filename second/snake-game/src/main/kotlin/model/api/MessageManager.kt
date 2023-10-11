@@ -25,7 +25,10 @@ class MessageManager(
     private val receiveExecutor = Executors.newSingleThreadExecutor()
     private val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
 
+    private val ackConfirmations = mutableListOf<AckConfirmation>()
+
     private val isReceiveTaskRunning = AtomicBoolean(true)
+    private val isAckConfirmationTaskRunning = AtomicBoolean(true)
 
     private val logger = KotlinLogging.logger {}
 
@@ -44,8 +47,31 @@ class MessageManager(
             }
             // сделать здесь обработку
         }
+        socket.close()
     }
 
+    // Подтерждения только в рамках игры
+    private val ackConfirmationTask = {
+        while(isAckConfirmationTaskRunning.get()) {
+            if (gameController.gameConfig.isPresent
+                && gameController.nodeRole.isPresent
+                && gameController.nodeRole.get() != NodeRole.VIEWER
+            ) {
+                val ackDelay = gameController.gameConfig.get().stateDelayMs / 10
+                synchronized(ackConfirmations) {
+                    for (ackConfirmation in ackConfirmations) {
+                        if (receiverController.isAckInWaitingList(ackConfirmation.message.address)) {
+                            val currentTime = System.currentTimeMillis()
+                            if (ackDelay > ackConfirmation.messageSentTime - currentTime) {
+                                sendMessage(ackConfirmation.message)
+                                ackConfirmation.messageSentTime = currentTime
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     private val pingTask = {
 
@@ -74,18 +100,25 @@ class MessageManager(
             && gameController.gameState.isPresent
         ) {
             val gameState = gameController.gameState.get()
-            for (address in gameController.deputyListenersAddresses) {
+            val messages = gameController.deputyListenersAddresses.map { address -> State(address, gameState) }
 
-                sendMessage(State(address, gameState))
+            for (message in messages) {
+                sendMessage(message)
+                val messageSentTime = System.currentTimeMillis()
+                synchronized(ackConfirmations) {
+                    ackConfirmations.add(AckConfirmation(messageSentTime, message))
+                }
+                receiverController.addNodeForWaitingAck(message.address, message.msgSeq)
+                logger.info("Sent state to deputy listeners")
             }
 
 
-            logger.info("Sent state to deputy listeners")
         }
     }
 
     init {
         receiveExecutor.execute(receiveTask)
+        receiveExecutor.execute(ackConfirmationTask)
 
         scheduledExecutor.scheduleWithFixedDelay(
             announcementTask,
@@ -123,6 +156,7 @@ class MessageManager(
 
     fun stopTasks() {
         isReceiveTaskRunning.set(false)
+        isAckConfirmationTaskRunning.set(false)
         receiveExecutor.shutdown()
     }
 }
