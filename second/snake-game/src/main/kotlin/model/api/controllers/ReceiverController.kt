@@ -2,6 +2,7 @@ package model.api.controllers
 
 import me.ippolitov.fit.snakes.SnakesProto.GameMessage
 import model.dto.messages.Ack
+import model.dto.messages.Error
 import model.dto.messages.Message
 import model.mappers.ProtoMapper
 import mu.KotlinLogging
@@ -18,6 +19,7 @@ object ReceiverController {
 
     private val waitingForAck = mutableMapOf<InetSocketAddress, Long>()
     private val receivedAck = mutableMapOf<InetSocketAddress, Ack>()
+    private val receivedErrors = mutableMapOf<InetSocketAddress, Error>()
 
     private val logger = KotlinLogging.logger {}
 
@@ -25,30 +27,54 @@ object ReceiverController {
         val datagramPacket = DatagramPacket(buffer, buffer.size)
         socket.receive(datagramPacket)
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
-        val gameMessage = GameMessage.parseFrom(protoBytes)
+        val protoMessage = GameMessage.parseFrom(protoBytes)
         val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
 
         logger.info("Message received from ${address.address}")
 
         val result = runCatching {
             protoMapper.toMessage(
-                gameMessage,
+                protoMessage,
                 address
             )
         }
 
-        if (result.isSuccess && result.getOrThrow() is Ack) {
+        if (result.isFailure) return result
+
+        val message = result.getOrThrow()
+
+        checkOnAck(message, protoMessage.msgSeq, address)
+        checkOnError(message, protoMessage.msgSeq, address)
+
+        return result
+    }
+
+    private fun checkOnAck(message: Message, msgSeq: Long, address: InetSocketAddress) {
+        if (message is Ack) {
             synchronized(waitingForAck) {
-                if (waitingForAck.containsKey(address) && waitingForAck[address] == gameMessage.msgSeq) {
+                if (waitingForAck.containsKey(address) && waitingForAck[address] == msgSeq) {
                     waitingForAck.remove(address)
-                    logger.info { "Ack confirmed from ${address.address}" }
+                    logger.info("Ack confirmed from ${address.address}")
                     synchronized(receivedAck) {
-                        receivedAck[address] = result.getOrThrow() as Ack
+                        receivedAck[address] = message as Ack
                     }
                 }
             }
         }
-        return result
+    }
+
+    private fun checkOnError(message: Message, msgSeq: Long, address: InetSocketAddress) {
+        if (message is Error) {
+            synchronized(waitingForAck) {
+                if (waitingForAck.containsKey(address) && waitingForAck[address] == msgSeq) {
+                    waitingForAck.remove(address)
+                    logger.info("Error message confirmed from ${address.address}")
+                    synchronized(receivedErrors) {
+                        receivedErrors[address] = message as Error
+                    }
+                }
+            }
+        }
     }
 
     fun addNodeForWaitingAck(address: InetSocketAddress, msqSeq: Long) {
@@ -69,6 +95,15 @@ object ReceiverController {
             receivedAck.remove(address)
             return ack?.let { Result.success(ack) }
                 ?: Result.failure(NoSuchElementException("Ack with this address has not in received Ack"))
+        }
+    }
+
+    fun getReceivedErrorByAddress(address: InetSocketAddress): Result<Error> {
+        synchronized(receivedErrors) {
+            val error = receivedErrors[address]
+            receivedErrors.remove(address)
+            return error?.let { Result.success(error) }
+                ?: Result.failure(NoSuchElementException("Error message with this address has not in received Errors"))
         }
     }
 }

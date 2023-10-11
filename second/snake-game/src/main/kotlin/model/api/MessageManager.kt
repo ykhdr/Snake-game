@@ -4,6 +4,7 @@ import config.NetworkConfig
 import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
 import model.controllers.GameController
+import model.dto.core.GameConfig
 import model.dto.core.NodeRole
 import model.dto.messages.*
 import mu.KotlinLogging
@@ -71,25 +72,32 @@ class MessageManager(
                     logger.warn("Game config is empty", gameConfigRes.exceptionOrNull())
                 }
 
-                val gameConfig = gameConfigRes.getOrThrow()
+                ackConfirm(gameConfigRes.getOrThrow())
+            }
+        }
+    }
 
-                val ackDelay = gameConfig.stateDelayMs / 10
-                synchronized(ackConfirmations) {
-                    for (ackConfirmation in ackConfirmations) {
-                        if (receiverController.isAckInWaitingList(ackConfirmation.message.address)) {
-                            val currentTime = System.currentTimeMillis()
-                            if (ackDelay > ackConfirmation.messageSentTime - currentTime) {
-                                sendMessage(ackConfirmation.message)
-                                ackConfirmation.messageSentTime = currentTime
-                            }
-                        } else {
-                            val ackResult = receiverController.getReceivedAckByAddress(ackConfirmation.message.address)
-                            if (ackResult.isFailure) {
-                                logger.warn("Error in ack receiving", ackResult.exceptionOrNull())
-                                continue
-                            }
-                            handleAckOnMessage(ackConfirmation.message, ackResult.getOrThrow())
+    private fun ackConfirm(gameConfig: GameConfig) {
+        val ackDelay = gameConfig.stateDelayMs / 10
+        synchronized(ackConfirmations) {
+            for (ackConfirmation in ackConfirmations) {
+                if (receiverController.isAckInWaitingList(ackConfirmation.message.address)) {
+                    val currentTime = System.currentTimeMillis()
+                    if (ackDelay > ackConfirmation.messageSentTime - currentTime) {
+                        sendMessage(ackConfirmation.message)
+                        ackConfirmation.messageSentTime = currentTime
+                    }
+                } else {
+                    val ackResult = receiverController.getReceivedAckByAddress(ackConfirmation.message.address)
+                    if (ackResult.isFailure) {
+                        val errorResult = receiverController.getReceivedErrorByAddress(ackConfirmation.message.address)
+                        if (errorResult.isFailure){
+                            logger.warn("Error in ack receiving", ackResult.exceptionOrNull())
+                            continue
                         }
+                        handleMessage(errorResult.getOrThrow())
+                    } else {
+                        handleAckOnMessage(ackConfirmation.message, ackResult.getOrThrow())
                     }
                 }
             }
@@ -226,7 +234,7 @@ class MessageManager(
 
             is Announcement -> TODO()
             is Discover -> TODO()
-            is Error -> TODO()
+            is Error -> gameController.acceptError(message.errorMessage)
             is Join -> TODO()
             is Ping -> TODO()
             is RoleChange -> TODO()

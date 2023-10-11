@@ -14,7 +14,7 @@ class GameController {
     }
 
     private val messageManager = MessageManager(NetworkConfig(), this)
-
+    private val viewGameController = ViewGameController()
 
     //TODO прописать для каждого геттер и возвращать конкретно экземлпяр + сделать поля приватынми
     private var config: Optional<GameConfig> = Optional.empty()
@@ -43,46 +43,53 @@ class GameController {
         return Result.success(GameAnnouncement(players, config, canJoin, gameName))
     }
 
-    fun addAvailableGame(game : GameAnnouncement){
+    fun addAvailableGame(game: GameAnnouncement) {
         availableGames.add(game)
     }
 
-    fun joinGame(address: InetSocketAddress,playerName : String, gameName: String, role: NodeRole){
-        messageManager.sendJoinMessage(address, playerName,gameName,role)
+    fun joinGame(address: InetSocketAddress, playerName: String, gameName: String, role: NodeRole) {
+        messageManager.sendJoinMessage(address, playerName, gameName, role)
     }
 
-    fun acceptJoin(id: Int){
+    fun acceptJoin(id: Int) {
         playerId = Optional.of(id)
     }
 
+    fun acceptError(message : String){
+        viewGameController.showErrorMessage(message)
+    }
+
     //TODO Rename
-    private fun countCanJoin() : Boolean{
+    private fun countCanJoin(): Boolean {
         TODO("not implemented yet")
     }
 
-    fun isGameRunning() : Boolean{
+    fun isGameRunning(): Boolean {
         return isGameRunning.get()
     }
 
-    fun getConfig() : Result<GameConfig>{
-        return if(config.isPresent) Result.success(config.get()) else Result.failure(NoSuchElementException("Field is empty"))
+    fun getConfig(): Result<GameConfig> {
+        return if (config.isPresent) Result.success(config.get()) else Result.failure(NoSuchElementException("Field is empty"))
     }
 
-    fun getGameState() : Result<GameState>{
-        return if(gameState.isPresent) Result.success(gameState.get()) else Result.failure(NoSuchElementException("Field is empty"))
+    fun getGameState(): Result<GameState> {
+        return if (gameState.isPresent) Result.success(gameState.get()) else Result.failure(NoSuchElementException("Field is empty"))
     }
 
-    fun getNodeRole() : Result<NodeRole>{
-        return if(nodeRole.isPresent) Result.success(nodeRole.get()) else Result.failure(NoSuchElementException("Field is empty"))
+    fun getNodeRole(): Result<NodeRole> {
+        return if (nodeRole.isPresent) Result.success(nodeRole.get()) else Result.failure(NoSuchElementException("Field is empty"))
     }
-    fun getPlayers() : Result<GamePlayers>{
-        return if(players.isPresent) Result.success(players.get()) else Result.failure(NoSuchElementException("Field is empty"))
+
+    fun getPlayers(): Result<GamePlayers> {
+        return if (players.isPresent) Result.success(players.get()) else Result.failure(NoSuchElementException("Field is empty"))
     }
-    fun getGameName() : Result<String>{
-        return if(gameName.isPresent) Result.success(gameName.get()) else Result.failure(NoSuchElementException("Field is empty"))
+
+    fun getGameName(): Result<String> {
+        return if (gameName.isPresent) Result.success(gameName.get()) else Result.failure(NoSuchElementException("Field is empty"))
     }
-    fun getPlayerId() : Result<Int>{
-        return if(playerId.isPresent) Result.success(playerId.get()) else Result.failure(NoSuchElementException("Field is empty"))
+
+    fun getPlayerId(): Result<Int> {
+        return if (playerId.isPresent) Result.success(playerId.get()) else Result.failure(NoSuchElementException("Field is empty"))
     }
 
     fun getDeputyListenersAddresses() = deputyListenersAddresses
