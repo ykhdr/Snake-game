@@ -28,23 +28,22 @@ class GameController {
 
     private var deputyListenersAddresses = mutableListOf<InetSocketAddress>()
 
-    private val availableGames = mutableListOf<GameAnnouncement>()
+    private val availableGames = mutableMapOf<InetSocketAddress, GameAnnouncement>()
 
     fun getGameStateDelay(): Long {
         return if (config.isPresent) config.get().stateDelayMs.toLong() else DEFAULT_GAME_STATE_DELAY
     }
 
-    fun getGameAnnouncement(): Result<GameAnnouncement> {
+    /**
+     * @throws NullPointerException если текущая нода не состоит ни в одной из игр
+     **/
+    fun getGameAnnouncement(): GameAnnouncement {
         val players = players.orElseThrow()
         val config = config.orElseThrow()
         val canJoin = countCanJoin()
         val gameName = gameName.orElseThrow()
 
-        return Result.success(GameAnnouncement(players, config, canJoin, gameName))
-    }
-
-    fun addAvailableGame(game: GameAnnouncement) {
-        availableGames.add(game)
+        return GameAnnouncement(players, config, canJoin, gameName)
     }
 
     fun joinGame(address: InetSocketAddress, playerName: String, gameName: String, role: NodeRole) {
@@ -55,9 +54,20 @@ class GameController {
         playerId = Optional.of(id)
     }
 
-    fun acceptError(message : String){
+    fun acceptError(message: String) {
         viewGameController.showErrorMessage(message)
     }
+
+    fun acceptAnnouncement(masterAddress: InetSocketAddress, announcements: List<GameAnnouncement>) {
+        for (announcement in announcements) {
+            if (availableGames.containsKey(masterAddress)) {
+                availableGames.replace(masterAddress, announcement)
+            } else {
+                availableGames[masterAddress] = announcement
+            }
+        }
+    }
+
 
     //TODO Rename
     private fun countCanJoin(): Boolean {

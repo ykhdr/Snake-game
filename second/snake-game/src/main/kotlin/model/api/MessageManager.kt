@@ -77,6 +77,7 @@ class MessageManager(
         }
     }
 
+    // TODO надо подумаьт над тем, что будет, когда ресивер отпадет и не будет отвечать совсем
     private fun ackConfirm(gameConfig: GameConfig) {
         val ackDelay = gameConfig.stateDelayMs / 10
         synchronized(ackConfirmations) {
@@ -91,7 +92,7 @@ class MessageManager(
                     val ackResult = receiverController.getReceivedAckByAddress(ackConfirmation.message.address)
                     if (ackResult.isFailure) {
                         val errorResult = receiverController.getReceivedErrorByAddress(ackConfirmation.message.address)
-                        if (errorResult.isFailure){
+                        if (errorResult.isFailure) {
                             logger.warn("Error in ack receiving", ackResult.exceptionOrNull())
                             continue
                         }
@@ -111,7 +112,7 @@ class MessageManager(
                 logger.warn("Node role is empty", nodeRoleRes.exceptionOrNull())
             } else if (nodeRoleRes.getOrThrow() == NodeRole.MASTER) {
 
-                val result = gameController.getGameAnnouncement()
+                val result = runCatching { gameController.getGameAnnouncement() }
                 if (result.isFailure) {
                     logger.warn("Game Announcement is empty", result.exceptionOrNull())
                 } else {
@@ -200,6 +201,22 @@ class MessageManager(
         return socket
     }
 
+    private fun sendAnnouncement(address: InetSocketAddress) {
+        if (gameController.isGameRunning()
+            && gameController.getNodeRole().isSuccess
+            && gameController.getNodeRole().getOrThrow() == NodeRole.MASTER
+        ) {
+            val result = runCatching { gameController.getGameAnnouncement() }
+            if (result.isFailure) {
+                logger.warn("Game Announcement error", result.exceptionOrNull())
+                return
+            }
+
+            val message = Announcement(address, listOf(result.getOrThrow()))
+            sendMessage(message)
+        }
+    }
+
     private fun sendMessage(message: Message) {
         senderController.sendMessage(message)
     }
@@ -211,6 +228,7 @@ class MessageManager(
         }
         receiverController.addNodeForWaitingAck(message.address, message.msgSeq)
     }
+
 
     private fun handleAckOnMessage(message: Message, ack: Message) {
         when (message) {
@@ -228,12 +246,11 @@ class MessageManager(
 
     private fun handleMessage(message: Message) {
         when (message) {
-            is Ack -> {
-                // за это отвечает специальная таска, никак не обрабатываем
+            is Ack -> { /* за это отвечает специальная таска, никак не обрабатываем */
             }
 
-            is Announcement -> TODO()
-            is Discover -> TODO()
+            is Announcement -> gameController.acceptAnnouncement(message.address, message.games)
+            is Discover -> sendAnnouncement(message.address)
             is Error -> gameController.acceptError(message.errorMessage)
             is Join -> TODO()
             is Ping -> TODO()
