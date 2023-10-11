@@ -1,6 +1,7 @@
 package model.api.controllers
 
 import me.ippolitov.fit.snakes.SnakesProto.GameMessage
+import model.dto.messages.Ack
 import model.dto.messages.Message
 import model.mappers.ProtoMapper
 import mu.KotlinLogging
@@ -16,34 +17,39 @@ object ReceiverController {
     private val buffer = ByteArray(BUFFER_SIZE)
 
     private val waitingForAck = mutableMapOf<InetSocketAddress, Long>()
+    private val receivedAck = mutableMapOf<InetSocketAddress, Ack>()
 
     private val logger = KotlinLogging.logger {}
 
     fun receive(socket: MulticastSocket): Result<Message> {
         val datagramPacket = DatagramPacket(buffer, buffer.size)
         socket.receive(datagramPacket)
-        logger.info("Message received")
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
         val gameMessage = GameMessage.parseFrom(protoBytes)
         val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
-        if (gameMessage.hasAck()) {
-            synchronized(waitingForAck) {
-                val seq = waitingForAck[address] ?: -1
-                if (seq == gameMessage.msgSeq) {
-                    waitingForAck.remove(address)
-                }
-            }
-        }
-        // TODO проверить какой адресс приходит
 
-        return runCatching {
+        logger.info("Message received from ${address.address}")
+
+        val result = runCatching {
             protoMapper.toMessage(
                 gameMessage,
                 address
             )
         }
-    }
 
+        if (result.isSuccess && result.getOrThrow() is Ack) {
+            synchronized(waitingForAck) {
+                if (waitingForAck.containsKey(address) && waitingForAck[address] == gameMessage.msgSeq) {
+                    waitingForAck.remove(address)
+                    logger.info { "Ack confirmed from ${address.address}" }
+                    synchronized(receivedAck) {
+                        receivedAck[address] = result.getOrThrow() as Ack
+                    }
+                }
+            }
+        }
+        return result
+    }
 
     fun addNodeForWaitingAck(address: InetSocketAddress, msqSeq: Long) {
         synchronized(waitingForAck) {
@@ -54,6 +60,15 @@ object ReceiverController {
     fun isAckInWaitingList(address: InetSocketAddress): Boolean {
         synchronized(waitingForAck) {
             return waitingForAck.containsKey(address)
+        }
+    }
+
+    fun getReceivedAckByAddress(address: InetSocketAddress): Result<Ack> {
+        synchronized(receivedAck) {
+            val ack = receivedAck[address]
+            receivedAck.remove(address)
+            return ack?.let { Result.success(ack) }
+                ?: Result.failure(NoSuchElementException("Ack with this address has not in received Ack"))
         }
     }
 }

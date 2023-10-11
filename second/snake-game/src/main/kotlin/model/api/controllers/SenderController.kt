@@ -6,7 +6,7 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 
 object SenderController {
-    private const val BUFFER_SIZE = 1024
+    private const val BUFFER_SIZE = 4 * 1024
 
     private val datagramSocket = DatagramSocket()
     private val mapper = ProtoMapper

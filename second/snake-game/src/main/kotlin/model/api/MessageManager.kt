@@ -5,10 +5,9 @@ import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
 import model.controllers.GameController
 import model.dto.core.NodeRole
-import model.dto.messages.Announcement
-import model.dto.messages.Message
-import model.dto.messages.State
+import model.dto.messages.*
 import mu.KotlinLogging
+import java.net.InetSocketAddress
 import java.net.MulticastSocket
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -27,6 +26,7 @@ class MessageManager(
 
     private val ackConfirmations = mutableListOf<AckConfirmation>()
 
+
     private val isReceiveTaskRunning = AtomicBoolean(true)
     private val isAckConfirmationTaskRunning = AtomicBoolean(true)
 
@@ -44,20 +44,36 @@ class MessageManager(
             val result = receiverController.receive(socket)
             if (result.isFailure) {
                 logger.warn("Receiving data has not any message type", result.exceptionOrNull())
+                continue
             }
-            // сделать здесь обработку
+            val message = result.getOrThrow()
+            handleMessage(message)
         }
         socket.close()
     }
 
     // Подтерждения только в рамках игры
     private val ackConfirmationTask = {
-        while(isAckConfirmationTaskRunning.get()) {
-            if (gameController.gameConfig.isPresent
-                && gameController.nodeRole.isPresent
-                && gameController.nodeRole.get() != NodeRole.VIEWER
-            ) {
-                val ackDelay = gameController.gameConfig.get().stateDelayMs / 10
+        while (isAckConfirmationTaskRunning.get()) {
+            if (gameController.isGameRunning()) {
+                val nodeRoleRes = gameController.getNodeRole()
+                if (nodeRoleRes.isFailure) {
+                    logger.warn("Node role is empty", nodeRoleRes.exceptionOrNull())
+                    continue
+                }
+
+                if (nodeRoleRes.getOrThrow() == NodeRole.VIEWER) {
+                    continue
+                }
+
+                val gameConfigRes = gameController.getConfig()
+                if (gameConfigRes.isFailure) {
+                    logger.warn("Game config is empty", gameConfigRes.exceptionOrNull())
+                }
+
+                val gameConfig = gameConfigRes.getOrThrow()
+
+                val ackDelay = gameConfig.stateDelayMs / 10
                 synchronized(ackConfirmations) {
                     for (ackConfirmation in ackConfirmations) {
                         if (receiverController.isAckInWaitingList(ackConfirmation.message.address)) {
@@ -66,6 +82,13 @@ class MessageManager(
                                 sendMessage(ackConfirmation.message)
                                 ackConfirmation.messageSentTime = currentTime
                             }
+                        } else {
+                            val ackResult = receiverController.getReceivedAckByAddress(ackConfirmation.message.address)
+                            if (ackResult.isFailure) {
+                                logger.warn("Error in ack receiving", ackResult.exceptionOrNull())
+                                continue
+                            }
+                            handleAckOnMessage(ackConfirmation.message, ackResult.getOrThrow())
                         }
                     }
                 }
@@ -73,21 +96,22 @@ class MessageManager(
         }
     }
 
-    private val pingTask = {
-
-    }
-
     private val announcementTask = {
-        if (gameController.nodeRole.isPresent
-            && gameController.nodeRole.get() == NodeRole.MASTER
-        ) {
-            val result = gameController.getGameAnnouncement()
-            if (result.isFailure) {
-                logger.warn("Error in game Announcement", result.exceptionOrNull())
+        if (gameController.isGameRunning()) {
+            val nodeRoleRes = gameController.getNodeRole()
+            if (nodeRoleRes.isFailure) {
+                logger.warn("Node role is empty", nodeRoleRes.exceptionOrNull())
+            } else if (nodeRoleRes.getOrThrow() == NodeRole.MASTER) {
+
+                val result = gameController.getGameAnnouncement()
+                if (result.isFailure) {
+                    logger.warn("Game Announcement is empty", result.exceptionOrNull())
+                } else {
+                    val announcement = result.getOrThrow()
+                    sendMessage(Announcement(config.groupAddress, listOf(announcement)))
+                    logger.info("Sent announcement to nodes")
+                }
             }
-            val announcement = result.getOrThrow()
-            sendMessage(Announcement(config.groupAddress, listOf(announcement)))
-            logger.info("Sent announcement to nodes")
         }
     }
 
@@ -95,24 +119,26 @@ class MessageManager(
     // какие ноды просят вместо mastera у нас инфу об игре (GameState)
     //
     private val deputyListenersTask = {
-        if (gameController.nodeRole.isPresent
-            && gameController.nodeRole.get() == NodeRole.DEPUTY
-            && gameController.gameState.isPresent
+        if (gameController.isGameRunning()
         ) {
-            val gameState = gameController.gameState.get()
-            val messages = gameController.deputyListenersAddresses.map { address -> State(address, gameState) }
+            val nodeRoleRes = gameController.getNodeRole()
+            if (nodeRoleRes.isFailure) {
+                logger.warn("Node role is empty", nodeRoleRes.exceptionOrNull())
+            } else if (nodeRoleRes.getOrThrow() == NodeRole.DEPUTY) {
+                val gameStateRes = gameController.getGameState()
+                if (gameStateRes.isFailure) {
+                    logger.warn("Game state is empty", gameStateRes.exceptionOrNull())
+                } else {
+                    val messages = gameController.getDeputyListenersAddresses()
+                        .map { address -> State(address, gameStateRes.getOrThrow()) }
 
-            for (message in messages) {
-                sendMessage(message)
-                val messageSentTime = System.currentTimeMillis()
-                synchronized(ackConfirmations) {
-                    ackConfirmations.add(AckConfirmation(messageSentTime, message))
+                    for (message in messages) {
+                        sendMessage(message)
+                        waitAckOnMessage(message)
+                    }
+                    logger.info("Sent state to deputy listeners")
                 }
-                receiverController.addNodeForWaitingAck(message.address, message.msgSeq)
-                logger.info("Sent state to deputy listeners")
             }
-
-
         }
     }
 
@@ -135,9 +161,25 @@ class MessageManager(
             TimeUnit.MILLISECONDS
         )
 
-
-
         logger.info("All tasks are running ")
+    }
+
+    fun stopTasks() {
+        isReceiveTaskRunning.set(false)
+        isAckConfirmationTaskRunning.set(false)
+        receiveExecutor.shutdown()
+    }
+
+
+    fun sendJoinMessage(address: InetSocketAddress, playerName: String, gameName: String, role: NodeRole) {
+        val message = Join(
+            address = address,
+            playerName = playerName,
+            gameName = gameName,
+            requestedRole = role
+        )
+        sendMessage(message)
+        waitAckOnMessage(message)
     }
 
     private fun initSocket(): MulticastSocket {
@@ -150,14 +192,47 @@ class MessageManager(
         return socket
     }
 
-    fun sendMessage(message: Message) {
+    private fun sendMessage(message: Message) {
         senderController.sendMessage(message)
     }
 
-    fun stopTasks() {
-        isReceiveTaskRunning.set(false)
-        isAckConfirmationTaskRunning.set(false)
-        receiveExecutor.shutdown()
+    private fun waitAckOnMessage(message: Message) {
+        val messageSentTime = System.currentTimeMillis()
+        synchronized(ackConfirmations) {
+            ackConfirmations.add(AckConfirmation(messageSentTime, message))
+        }
+        receiverController.addNodeForWaitingAck(message.address, message.msgSeq)
+    }
+
+    private fun handleAckOnMessage(message: Message, ack: Message) {
+        when (message) {
+            is Ack -> TODO()
+            is Announcement -> TODO()
+            is Discover -> TODO()
+            is Error -> TODO()
+            is Join -> gameController.acceptJoin(ack.receiverId)
+            is Ping -> TODO()
+            is RoleChange -> TODO()
+            is State -> TODO()
+            is Steer -> TODO()
+        }
+    }
+
+    private fun handleMessage(message: Message) {
+        when (message) {
+            is Ack -> {
+                // за это отвечает специальная таска, никак не обрабатываем
+            }
+
+            is Announcement -> TODO()
+            is Discover -> TODO()
+            is Error -> TODO()
+            is Join -> TODO()
+            is Ping -> TODO()
+            is RoleChange -> TODO()
+            is State -> TODO()
+            is Steer -> TODO()
+        }
     }
 }
 
