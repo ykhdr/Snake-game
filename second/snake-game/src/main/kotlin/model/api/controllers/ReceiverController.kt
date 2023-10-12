@@ -4,6 +4,7 @@ import me.ippolitov.fit.snakes.SnakesProto.GameMessage
 import model.dto.messages.Ack
 import model.dto.messages.Error
 import model.dto.messages.Message
+import model.exceptions.UndefinedMessageTypeError
 import model.mappers.ProtoMapper
 import mu.KotlinLogging
 import java.net.DatagramPacket
@@ -23,7 +24,10 @@ object ReceiverController {
 
     private val logger = KotlinLogging.logger {}
 
-    fun receive(socket: MulticastSocket): Result<Message> {
+    /**
+     * @throws UndefinedMessageTypeError если полученное сообщение явялется неизвестным
+     */
+    fun receive(socket: MulticastSocket): Message {
         val datagramPacket = DatagramPacket(buffer, buffer.size)
         socket.receive(datagramPacket)
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
@@ -32,21 +36,15 @@ object ReceiverController {
 
         logger.info("Message received from ${address.address}")
 
-        val result = runCatching {
-            protoMapper.toMessage(
+        val message = protoMapper.toMessage(
                 protoMessage,
                 address
             )
-        }
-
-        if (result.isFailure) return result
-
-        val message = result.getOrThrow()
 
         checkOnAck(message, protoMessage.msgSeq, address)
         checkOnError(message, protoMessage.msgSeq, address)
 
-        return result
+        return message
     }
 
     private fun checkOnAck(message: Message, msgSeq: Long, address: InetSocketAddress) {
@@ -89,21 +87,25 @@ object ReceiverController {
         }
     }
 
-    fun getReceivedAckByAddress(address: InetSocketAddress): Result<Ack> {
+    /**
+     * @throws NoSuchElementException если такой Ack не пришел
+     */
+    fun getReceivedAckByAddress(address: InetSocketAddress): Ack {
         synchronized(receivedAck) {
             val ack = receivedAck[address]
             receivedAck.remove(address)
-            return ack?.let { Result.success(ack) }
-                ?: Result.failure(NoSuchElementException("Ack with this address has not in received Ack"))
+            return ack ?: throw NoSuchElementException("Ack with this address has not in received Ack")
         }
     }
 
-    fun getReceivedErrorByAddress(address: InetSocketAddress): Result<Error> {
+    /**
+     * @throws NoSuchElementException если такой Error не пришел
+     */
+    fun getReceivedErrorByAddress(address: InetSocketAddress): Error {
         synchronized(receivedErrors) {
             val error = receivedErrors[address]
             receivedErrors.remove(address)
-            return error?.let { Result.success(error) }
-                ?: Result.failure(NoSuchElementException("Error message with this address has not in received Errors"))
+            return error ?: throw NoSuchElementException("Error message with this address has not in received Errors")
         }
     }
 }

@@ -197,6 +197,9 @@ object ProtoMapper {
     }
 
 
+    /**
+     * @throws UndefinedMessageTypeError если переданное сообщение является неизвестным
+     */
     fun toMessage(message: SnakesProto.GameMessage, address: InetSocketAddress): Message {
         return if (message.hasAck())
             toAck(message, address)

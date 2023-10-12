@@ -68,7 +68,7 @@ class GameController {
             messageManager.sendErrorMessage(address, ErrorMessages.NO_AVAILABLE_GAME_ON_NODE_MESSAGE)
             return
         }
-        
+
         val playerCoordRes = findCoordsForNewPlayer()
         playerCoordRes.onFailure {
             messageManager.sendErrorMessage(address, ErrorMessages.NO_SPACE_ON_FIELD_MESSAGE)
@@ -94,7 +94,7 @@ class GameController {
     }
 
 
-    private fun canJoin() : Boolean{
+    private fun canJoin(): Boolean {
         TODO("not implemented yet")
     }
 
@@ -106,28 +106,28 @@ class GameController {
         return isGameRunning.get()
     }
 
-    fun getConfig(): Result<GameConfig> {
-        return if (config.isPresent) Result.success(config.get()) else Result.failure(NoSuchElementException("Field is empty"))
+    fun getConfig(): GameConfig {
+        return config.orElseThrow { NoSuchElementException("Field is empty") }
     }
 
-    fun getGameState(): Result<GameState> {
-        return if (gameState.isPresent) Result.success(gameState.get()) else Result.failure(NoSuchElementException("Field is empty"))
+    fun getGameState():GameState {
+        return gameState.orElseThrow { NoSuchElementException("Field is empty") }
     }
 
-    fun getNodeRole(): Result<NodeRole> {
-        return if (nodeRole.isPresent) Result.success(nodeRole.get()) else Result.failure(NoSuchElementException("Field is empty"))
+    fun getNodeRole(): NodeRole {
+        return nodeRole.orElseThrow { NoSuchElementException("Field is empty") }
     }
 
-    fun getPlayers(): Result<GamePlayers> {
-        return if (players.isPresent) Result.success(players.get()) else Result.failure(NoSuchElementException("Field is empty"))
+    fun getPlayers(): GamePlayers {
+        return players.orElseThrow { NoSuchElementException("Field is empty") }
     }
 
-    fun getGameName(): Result<String> {
-        return if (gameName.isPresent) Result.success(gameName.get()) else Result.failure(NoSuchElementException("Field is empty"))
+    fun getGameName(): String {
+        return gameName.orElseThrow { NoSuchElementException("Field is empty") }
     }
 
-    fun getPlayerId(): Result<Int> {
-        return if (playerId.isPresent) Result.success(playerId.get()) else Result.failure(NoSuchElementException("Field is empty"))
+    fun getPlayerId(): Int {
+        return playerId.orElseThrow { NoSuchElementException("Field is empty") }
     }
 
     fun getDeputyListenersAddresses() = deputyListenersAddresses
