@@ -193,6 +193,7 @@ class MessageManager(
         receiveExecutor.shutdown()
     }
 
+
     fun sendErrorMessage(address: InetSocketAddress, errorMessage: String) {
         val message = Error(
             address = address,
@@ -294,6 +295,7 @@ class MessageManager(
             is Join -> gameController.acceptAnotherNodeJoin(
                 message.address,
                 message.playerType,
+                message.playerName,
                 message.gameName,
                 message.requestedRole
             )

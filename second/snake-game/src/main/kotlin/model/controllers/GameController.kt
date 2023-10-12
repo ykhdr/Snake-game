@@ -11,11 +11,24 @@ class GameController {
 
     companion object {
         private const val DEFAULT_GAME_STATE_DELAY = 1000L
+        private const val DEFAULT_SCORE = 0
     }
 
     private object ErrorMessages {
         const val NO_SPACE_ON_FIELD_MESSAGE = "No free space on field"
         const val NO_AVAILABLE_GAME_ON_NODE_MESSAGE = "No available game on this node"
+        const val ROLE_DENIAL_MESSAGE = "The requested role is not available to join the game with it"
+    }
+
+    object IdSequence {
+        private var currentId = 0
+
+        fun getNextId(): Int {
+            if (currentId == Int.MAX_VALUE) {
+                currentId = 0
+            }
+            return currentId++
+        }
     }
 
     private val messageManager = MessageManager(NetworkConfig(), this)
@@ -31,8 +44,9 @@ class GameController {
     private var isGameRunning = AtomicBoolean(false)
 
     private var deputyListenersAddresses = mutableListOf<InetSocketAddress>()
-
     private val availableGames = mutableMapOf<InetSocketAddress, GameAnnouncement>()
+
+    private val idSequence = IdSequence
 
     fun getGameStateDelay(): Long {
         return if (config.isPresent) config.get().stateDelayMs.toLong() else DEFAULT_GAME_STATE_DELAY
@@ -61,6 +75,7 @@ class GameController {
     fun acceptAnotherNodeJoin(
         address: InetSocketAddress,
         playerType: PlayerType,
+        playerName: String,
         gameName: String,
         requestedRole: NodeRole
     ) {
@@ -68,15 +83,32 @@ class GameController {
             messageManager.sendErrorMessage(address, ErrorMessages.NO_AVAILABLE_GAME_ON_NODE_MESSAGE)
             return
         }
+        if (requestedRole == NodeRole.DEPUTY || requestedRole == NodeRole.MASTER) {
+            messageManager.sendErrorMessage(address, ErrorMessages.ROLE_DENIAL_MESSAGE)
+        }
 
-        val playerCoordRes = findCoordsForNewPlayer()
-        playerCoordRes.onFailure {
+        val playerCoordRes = runCatching { findCoordsForNewPlayer() }
+        playerCoordRes.onSuccess { coord ->
+            addNewPlayerToGameState(
+                GamePlayer(
+                    playerName,
+                    idSequence.getNextId(),
+                    address.address.toString(),
+                    address.port,
+                    requestedRole,
+                    playerType,
+                    DEFAULT_SCORE
+                ),
+                coord
+            )
+            //TODO реализовать обновление gameState и отправку Ack
+        }.onFailure {
             messageManager.sendErrorMessage(address, ErrorMessages.NO_SPACE_ON_FIELD_MESSAGE)
-            return
         }
-        playerCoordRes.onSuccess {
+    }
 
-        }
+    private fun addNewPlayerToGameState(player: GamePlayer, playerCoord: Coord) {
+
     }
 
     fun acceptError(message: String) {
@@ -98,7 +130,7 @@ class GameController {
         TODO("not implemented yet")
     }
 
-    private fun findCoordsForNewPlayer(): Result<Coord> {
+    private fun findCoordsForNewPlayer(): Coord {
         TODO("not implemented yet")
     }
 
@@ -106,26 +138,44 @@ class GameController {
         return isGameRunning.get()
     }
 
+    /**
+     * @throws NoSuchElementException если поле пустое (в случае если текущая нода не в игре)
+     */
     fun getConfig(): GameConfig {
         return config.orElseThrow { NoSuchElementException("Field is empty") }
     }
 
-    fun getGameState():GameState {
+    /**
+     * @throws NoSuchElementException если поле пустое (в случае если текущая нода не в игре)
+     */
+    fun getGameState(): GameState {
         return gameState.orElseThrow { NoSuchElementException("Field is empty") }
     }
 
+    /**
+     * @throws NoSuchElementException если поле пустое (в случае если текущая нода не в игре)
+     */
     fun getNodeRole(): NodeRole {
         return nodeRole.orElseThrow { NoSuchElementException("Field is empty") }
     }
 
+    /**
+     * @throws NoSuchElementException если поле пустое (в случае если текущая нода не в игре)
+     */
     fun getPlayers(): GamePlayers {
         return players.orElseThrow { NoSuchElementException("Field is empty") }
     }
 
+    /**
+     * @throws NoSuchElementException если поле пустое (в случае если текущая нода не в игре)
+     */
     fun getGameName(): String {
         return gameName.orElseThrow { NoSuchElementException("Field is empty") }
     }
 
+    /**
+     * @throws NoSuchElementException если поле пустое (в случае если текущая нода не в игре)
+     */
     fun getPlayerId(): Int {
         return playerId.orElseThrow { NoSuchElementException("Field is empty") }
     }
