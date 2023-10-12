@@ -13,10 +13,14 @@ class GameController {
         private const val DEFAULT_GAME_STATE_DELAY = 1000L
     }
 
+    private object ErrorMessages {
+        const val NO_SPACE_ON_FIELD_MESSAGE = "No free space on field"
+        const val NO_AVAILABLE_GAME_ON_NODE_MESSAGE = "No available game on this node"
+    }
+
     private val messageManager = MessageManager(NetworkConfig(), this)
     private val viewGameController = ViewGameController()
 
-    //TODO прописать для каждого геттер и возвращать конкретно экземлпяр + сделать поля приватынми
     private var config: Optional<GameConfig> = Optional.empty()
     private var gameState: Optional<GameState> = Optional.empty()
     private var nodeRole: Optional<NodeRole> = Optional.empty()
@@ -40,7 +44,7 @@ class GameController {
     fun getGameAnnouncement(): GameAnnouncement {
         val players = players.orElseThrow()
         val config = config.orElseThrow()
-        val canJoin = countCanJoin()
+        val canJoin = canJoin()
         val gameName = gameName.orElseThrow()
 
         return GameAnnouncement(players, config, canJoin, gameName)
@@ -50,8 +54,29 @@ class GameController {
         messageManager.sendJoinMessage(address, playerName, gameName, role)
     }
 
-    fun acceptJoin(id: Int) {
+    fun acceptOurNodeJoin(id: Int) {
         playerId = Optional.of(id)
+    }
+
+    fun acceptAnotherNodeJoin(
+        address: InetSocketAddress,
+        playerType: PlayerType,
+        gameName: String,
+        requestedRole: NodeRole
+    ) {
+        if (!isGameRunning.get()) {
+            messageManager.sendErrorMessage(address, ErrorMessages.NO_AVAILABLE_GAME_ON_NODE_MESSAGE)
+            return
+        }
+        
+        val playerCoordRes = findCoordsForNewPlayer()
+        playerCoordRes.onFailure {
+            messageManager.sendErrorMessage(address, ErrorMessages.NO_SPACE_ON_FIELD_MESSAGE)
+            return
+        }
+        playerCoordRes.onSuccess {
+
+        }
     }
 
     fun acceptError(message: String) {
@@ -69,8 +94,11 @@ class GameController {
     }
 
 
-    //TODO Rename
-    private fun countCanJoin(): Boolean {
+    private fun canJoin() : Boolean{
+        TODO("not implemented yet")
+    }
+
+    private fun findCoordsForNewPlayer(): Result<Coord> {
         TODO("not implemented yet")
     }
 

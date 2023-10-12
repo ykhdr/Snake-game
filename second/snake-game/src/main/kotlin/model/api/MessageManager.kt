@@ -179,6 +179,15 @@ class MessageManager(
         receiveExecutor.shutdown()
     }
 
+    fun sendErrorMessage(address: InetSocketAddress, errorMessage: String) {
+        val message = Error(
+            address = address,
+            errorMessage = errorMessage
+        )
+
+        sendMessage(message)
+        waitAckOnMessage(message)
+    }
 
     fun sendJoinMessage(address: InetSocketAddress, playerName: String, gameName: String, role: NodeRole) {
         val message = Join(
@@ -187,6 +196,7 @@ class MessageManager(
             gameName = gameName,
             requestedRole = role
         )
+
         sendMessage(message)
         waitAckOnMessage(message)
     }
@@ -217,6 +227,10 @@ class MessageManager(
         }
     }
 
+    private fun sendAckOnJoin(address: InetSocketAddress) {
+
+    }
+
     private fun sendMessage(message: Message) {
         senderController.sendMessage(message)
     }
@@ -230,13 +244,16 @@ class MessageManager(
     }
 
 
+    /**
+     * Обрабатывает приходящие Ack-и на сообщения
+     */
     private fun handleAckOnMessage(message: Message, ack: Message) {
         when (message) {
             is Ack -> TODO()
             is Announcement -> TODO()
             is Discover -> TODO()
             is Error -> TODO()
-            is Join -> gameController.acceptJoin(ack.receiverId)
+            is Join -> gameController.acceptOurNodeJoin(ack.receiverId)
             is Ping -> TODO()
             is RoleChange -> TODO()
             is State -> TODO()
@@ -244,6 +261,9 @@ class MessageManager(
         }
     }
 
+    /**
+     * Обрабатывает приходящие от других людей сообщения
+     */
     private fun handleMessage(message: Message) {
         when (message) {
             is Ack -> { /* за это отвечает специальная таска, никак не обрабатываем */
@@ -252,7 +272,13 @@ class MessageManager(
             is Announcement -> gameController.acceptAnnouncement(message.address, message.games)
             is Discover -> sendAnnouncement(message.address)
             is Error -> gameController.acceptError(message.errorMessage)
-            is Join -> TODO()
+            is Join -> gameController.acceptAnotherNodeJoin(
+                message.address,
+                message.playerType,
+                message.gameName,
+                message.requestedRole
+            )
+
             is Ping -> TODO()
             is RoleChange -> TODO()
             is State -> TODO()

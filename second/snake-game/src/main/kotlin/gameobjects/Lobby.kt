@@ -1,4 +1,4 @@
-package data
+package gameobjects
 
 data class Lobby(val masterName: String,
                  val masterIp: String,
