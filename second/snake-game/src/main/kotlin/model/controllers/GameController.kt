@@ -20,6 +20,7 @@ class GameController {
         const val NO_SPACE_ON_FIELD_MESSAGE = "No free space on field"
         const val NO_AVAILABLE_GAME_ON_NODE_MESSAGE = "No available game on this node"
         const val ROLE_DENIAL_MESSAGE = "The requested role is not available to join the game with it"
+        const val NODE_ERROR_MESSAGE = "Error on this node side"
     }
 
     object IdSequence {
@@ -41,7 +42,7 @@ class GameController {
     private var nodeRole: Optional<NodeRole> = Optional.empty()
     private var players: Optional<GamePlayers> = Optional.empty()
     private var gameName: Optional<String> = Optional.empty()
-    private var playerId: Optional<Int> = Optional.empty()
+    private var nodeId: Optional<Int> = Optional.empty()
 
     private var isGameRunning = AtomicBoolean(false)
 
@@ -73,17 +74,18 @@ class GameController {
     }
 
     fun acceptOurNodeJoin(id: Int) {
-        playerId = Optional.of(id)
+        nodeId = Optional.of(id)
     }
 
     fun acceptAnotherNodeJoin(
         address: InetSocketAddress,
+        msgSeq: Long,
         playerType: PlayerType,
         playerName: String,
         gameName: String,
         requestedRole: NodeRole
     ) {
-        if (!isGameRunning.get()) {
+        if (!isGameRunning.get() || gameName == getGameName()) {
             messageManager.sendErrorMessage(address, ErrorMessages.NO_AVAILABLE_GAME_ON_NODE_MESSAGE)
             return
         }
@@ -104,8 +106,14 @@ class GameController {
                 DEFAULT_SCORE
             )
 
-            addNewPlayerToGameState(player, coord)
-            //TODO реализовать обновление gameState и отправку Ack
+            runCatching { getNodeId() }
+                .onSuccess { nodeId ->
+                    addNewPlayerToGameState(player, coord)
+                    messageManager.sendAckOnJoin(address, msgSeq, nodeId, playerId)
+                }.onFailure { e ->
+                    logger.warn("Node id error", e)
+                    messageManager.sendErrorMessage(address, ErrorMessages.NODE_ERROR_MESSAGE)
+                }
         }.onFailure {
             messageManager.sendErrorMessage(address, ErrorMessages.NO_SPACE_ON_FIELD_MESSAGE)
         }
@@ -217,8 +225,8 @@ class GameController {
     /**
      * @throws NoSuchElementException если поле пустое (в случае если текущая нода не в игре)
      */
-    fun getPlayerId(): Int {
-        return playerId.orElseThrow { NoSuchElementException("Field is empty") }
+    fun getNodeId(): Int {
+        return nodeId.orElseThrow { NoSuchElementException("Field is empty") }
     }
 
     fun getDeputyListenersAddresses() = deputyListenersAddresses

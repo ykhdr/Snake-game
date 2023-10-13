@@ -247,8 +247,15 @@ class MessageManager(
         }
     }
 
-    private fun sendAckOnJoin(address: InetSocketAddress) {
+    fun sendAckOnJoin(address: InetSocketAddress, msgSeq: Long, senderId: Int, receiverId: Int) {
+        val ack = Ack(
+            address = address,
+            msgSeq = msgSeq,
+            senderId = senderId,
+            receiverId = receiverId
+        )
 
+        sendMessage(ack)
     }
 
     private fun sendMessage(message: Message) {
@@ -294,6 +301,7 @@ class MessageManager(
             is Error -> gameController.acceptError(message.errorMessage)
             is Join -> gameController.acceptAnotherNodeJoin(
                 message.address,
+                message.msgSeq,
                 message.playerType,
                 message.playerName,
                 message.gameName,
