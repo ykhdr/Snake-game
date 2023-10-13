@@ -138,7 +138,7 @@ object ProtoMapper {
         return SnakesProto.GameState.Snake.newBuilder()
             .setPlayerId(snake.playerId)
             .addAllPoints(snake.points.map { coord -> toProtoCoord(coord) })
-            .setState(toProtoSnakeState(snake.snakeState))
+            .setState(toProtoSnakeState(snake.state))
             .setHeadDirection(toProtoDirection(snake.headDirection))
             .build()
     }
@@ -313,7 +313,7 @@ object ProtoMapper {
     private fun toSnake(proto: SnakesProto.GameState.Snake) = Snake(
         playerId = proto.playerId,
         points = proto.pointsList.map { point -> toCoord(point) },
-        snakeState = toSnakeState(proto.state),
+        state = toSnakeState(proto.state),
         headDirection = toDirection(proto.headDirection)
     )
 

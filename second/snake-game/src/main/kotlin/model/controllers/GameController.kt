@@ -3,9 +3,11 @@ package model.controllers
 import config.NetworkConfig
 import model.api.MessageManager
 import model.dto.core.*
+import mu.KotlinLogging
 import java.net.InetSocketAddress
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.random.Random
 
 class GameController {
 
@@ -48,6 +50,8 @@ class GameController {
 
     private val idSequence = IdSequence
 
+    private val logger = KotlinLogging.logger { }
+
     fun getGameStateDelay(): Long {
         return if (config.isPresent) config.get().stateDelayMs.toLong() else DEFAULT_GAME_STATE_DELAY
     }
@@ -89,26 +93,63 @@ class GameController {
 
         val playerCoordRes = runCatching { findCoordsForNewPlayer() }
         playerCoordRes.onSuccess { coord ->
-            addNewPlayerToGameState(
-                GamePlayer(
-                    playerName,
-                    idSequence.getNextId(),
-                    address.address.toString(),
-                    address.port,
-                    requestedRole,
-                    playerType,
-                    DEFAULT_SCORE
-                ),
-                coord
+            val playerId = idSequence.getNextId()
+            val player = GamePlayer(
+                playerName,
+                playerId,
+                address.address.toString(),
+                address.port,
+                requestedRole,
+                playerType,
+                DEFAULT_SCORE
             )
+
+            addNewPlayerToGameState(player, coord)
             //TODO реализовать обновление gameState и отправку Ack
         }.onFailure {
             messageManager.sendErrorMessage(address, ErrorMessages.NO_SPACE_ON_FIELD_MESSAGE)
         }
     }
 
-    private fun addNewPlayerToGameState(player: GamePlayer, playerCoord: Coord) {
 
+    /**
+     * @throws NoSuchElementException если gameState пуст
+     */
+    private fun addNewPlayerToGameState(player: GamePlayer, playerCoord: Coord) {
+        val state = gameState.get()
+        synchronized(state) {
+            state.players.players.add(player)
+            state.snakes.add(createSnake(player, playerCoord))
+        }
+    }
+
+    private fun createSnake(player: GamePlayer, headCoord: Coord): Snake {
+        val bodyCoord = getRandomSecondSnakeCoord(headCoord)
+        return Snake(
+            playerId = player.id,
+            points = mutableListOf(headCoord, bodyCoord),
+            state = SnakeState.ALIVE,
+            headDirection =
+            if (bodyCoord.x > headCoord.x) {
+                Direction.LEFT
+            } else if (bodyCoord.x < headCoord.x) {
+                Direction.RIGHT
+            } else if (bodyCoord.y > headCoord.y) {
+                Direction.DOWN
+            } else {
+                Direction.UP
+            }
+        )
+    }
+
+    private fun getRandomSecondSnakeCoord(headCoord: Coord): Coord {
+        return when (Random.nextInt(0, 4)) {
+            0 -> Coord(headCoord.x - 1, headCoord.y)
+            1 -> Coord(headCoord.x + 1, headCoord.y)
+            2 -> Coord(headCoord.x, headCoord.y + 1)
+            3 -> Coord(headCoord.x, headCoord.y - 1)
+            else -> Coord(-1, -1)
+        }
     }
 
     fun acceptError(message: String) {

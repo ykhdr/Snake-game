@@ -2,7 +2,7 @@ package model.dto.core
 
 data class GameState(
     val stateOrder: Int,
-    val snakes: List<Snake>,
-    val foods: List<Coord>,
+    val snakes: MutableList<Snake>,
+    val foods: MutableList<Coord>,
     val players: GamePlayers
 )
