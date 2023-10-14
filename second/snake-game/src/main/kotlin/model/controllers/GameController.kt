@@ -3,6 +3,9 @@ package model.controllers
 import config.NetworkConfig
 import model.api.MessageManager
 import model.dto.core.*
+import model.exceptions.NoSpaceOnFieldError
+import model.exceptions.NodeError
+import model.exceptions.NodeRoleHasNotPrivilegesError
 import mu.KotlinLogging
 import java.net.InetSocketAddress
 import java.util.*
@@ -77,20 +80,23 @@ class GameController {
         nodeId = Optional.of(id)
     }
 
+    fun acceptRoleChange(senderRole: NodeRole, receiverRole: NodeRole) {
+
+    }
+
+    // TODO сделать, чтобы функция прокидывала ошибку и уже сам MM решал отправлять ли ack или error message
     fun acceptAnotherNodeJoin(
         address: InetSocketAddress,
-        msgSeq: Long,
         playerType: PlayerType,
         playerName: String,
         gameName: String,
         requestedRole: NodeRole
-    ) {
+    ): RolesLinkage {
         if (!isGameRunning.get() || gameName == getGameName()) {
-            messageManager.sendErrorMessage(address, ErrorMessages.NO_AVAILABLE_GAME_ON_NODE_MESSAGE)
-            return
+            throw NodeRoleHasNotPrivilegesError(ErrorMessages.NO_AVAILABLE_GAME_ON_NODE_MESSAGE)
         }
         if (requestedRole == NodeRole.DEPUTY || requestedRole == NodeRole.MASTER) {
-            messageManager.sendErrorMessage(address, ErrorMessages.ROLE_DENIAL_MESSAGE)
+            throw NodeRoleHasNotPrivilegesError(ErrorMessages.ROLE_DENIAL_MESSAGE)
         }
 
         val playerCoordRes = runCatching { findCoordsForNewPlayer() }
@@ -109,14 +115,17 @@ class GameController {
             runCatching { getNodeId() }
                 .onSuccess { nodeId ->
                     addNewPlayerToGameState(player, coord)
-                    messageManager.sendAckOnJoin(address, msgSeq, nodeId, playerId)
+                    return RolesLinkage(nodeId, playerId)
                 }.onFailure { e ->
                     logger.warn("Node id error", e)
-                    messageManager.sendErrorMessage(address, ErrorMessages.NODE_ERROR_MESSAGE)
+                    throw NodeError("This Node exception")
                 }
         }.onFailure {
-            messageManager.sendErrorMessage(address, ErrorMessages.NO_SPACE_ON_FIELD_MESSAGE)
+            throw NoSpaceOnFieldError(ErrorMessages.NO_SPACE_ON_FIELD_MESSAGE)
         }
+        //TODO как то пофиксить?
+        logger.warn("Unknown error")
+        throw NodeError("Unknown error")
     }
 
 

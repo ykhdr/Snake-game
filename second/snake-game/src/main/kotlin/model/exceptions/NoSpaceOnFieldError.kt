@@ -1,6 +1,6 @@
 package model.exceptions
 
-class UndefinedMessageTypeError(
+class NoSpaceOnFieldError(
     message: String? = null,
     cause: Throwable? = null,
 ) : BusinessError(message, cause)

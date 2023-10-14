@@ -144,8 +144,11 @@ class MessageManager(
 
                 val gameStateRes = runCatching { gameController.getGameState() }
                 gameStateRes.onSuccess { gameState ->
-                    val messages = gameController.getDeputyListenersAddresses()
-                        .map { address -> State(address, gameState) }
+                    val messages: List<State>
+                    synchronized(gameState) {
+                        messages = gameController.getDeputyListenersAddresses()
+                            .map { address -> State(address, gameState) }
+                    }
 
                     for (message in messages) {
                         sendMessage(message)
@@ -247,7 +250,7 @@ class MessageManager(
         }
     }
 
-    fun sendAckOnJoin(address: InetSocketAddress, msgSeq: Long, senderId: Int, receiverId: Int) {
+    fun sendAck(address: InetSocketAddress, msgSeq: Long, senderId: Int, receiverId: Int) {
         val ack = Ack(
             address = address,
             msgSeq = msgSeq,
@@ -299,17 +302,36 @@ class MessageManager(
             is Announcement -> gameController.acceptAnnouncement(message.address, message.games)
             is Discover -> sendAnnouncement(message.address)
             is Error -> gameController.acceptError(message.errorMessage)
-            is Join -> gameController.acceptAnotherNodeJoin(
+            is Join -> runCatching {
+                gameController.acceptAnotherNodeJoin(
+                    message.address,
+                    message.playerType,
+                    message.playerName,
+                    message.gameName,
+                    message.requestedRole
+                )
+            }.onSuccess {
+                sendAck(message.address, message.msgSeq, message.senderId, message.receiverId)
+            }.onFailure { e ->
+                sendErrorMessage(message.address, e.message ?: "error")
+            }
+
+            is Ping -> sendAck(
                 message.address,
                 message.msgSeq,
-                message.playerType,
-                message.playerName,
-                message.gameName,
-                message.requestedRole
+                message.senderId,
+                message.receiverId
             )
 
-            is Ping -> TODO()
-            is RoleChange -> TODO()
+            is RoleChange -> runCatching {
+                gameController.acceptRoleChange(message.senderRole, message.receiverRole)
+            }.onSuccess {
+                sendAck(message.address, message.msgSeq, message.senderId, message.receiverId)
+            }.onFailure { e ->
+                sendErrorMessage(message.address, e.message ?: "error")
+            }
+
+
             is State -> TODO()
             is Steer -> TODO()
         }
