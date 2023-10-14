@@ -6,6 +6,7 @@ import model.dto.core.*
 import model.exceptions.NoSpaceOnFieldError
 import model.exceptions.NodeError
 import model.exceptions.NodeRoleHasNotPrivilegesError
+import model.exceptions.UnknownPlayerError
 import mu.KotlinLogging
 import java.net.InetSocketAddress
 import java.util.*
@@ -24,6 +25,7 @@ class GameController {
         const val NO_AVAILABLE_GAME_ON_NODE_MESSAGE = "No available game on this node"
         const val ROLE_DENIAL_MESSAGE = "The requested role is not available to join the game with it"
         const val NODE_ERROR_MESSAGE = "Error on this node side"
+        const val UNKNOWN_PLAYER_MESSAGE = "Player with this id isn't in game"
     }
 
     object IdSequence {
@@ -92,15 +94,17 @@ class GameController {
         gameName: String,
         requestedRole: NodeRole
     ): RolesLinkage {
-        if (!isGameRunning.get() || gameName == getGameName()) {
-            throw NodeRoleHasNotPrivilegesError(ErrorMessages.NO_AVAILABLE_GAME_ON_NODE_MESSAGE)
+        val currentGameName = getGameName()
+        synchronized(currentGameName) {
+            if (!isGameRunning.get() || gameName == currentGameName) {
+                throw NodeRoleHasNotPrivilegesError(ErrorMessages.NO_AVAILABLE_GAME_ON_NODE_MESSAGE)
+            }
         }
         if (requestedRole == NodeRole.DEPUTY || requestedRole == NodeRole.MASTER) {
             throw NodeRoleHasNotPrivilegesError(ErrorMessages.ROLE_DENIAL_MESSAGE)
         }
 
-        val playerCoordRes = runCatching { findCoordsForNewPlayer() }
-        playerCoordRes.onSuccess { coord ->
+        runCatching { findCoordsForNewPlayer() }.onSuccess { coord ->
             val playerId = idSequence.getNextId()
             val player = GamePlayer(
                 playerName,
@@ -112,17 +116,17 @@ class GameController {
                 DEFAULT_SCORE
             )
 
-            runCatching { getNodeId() }
-                .onSuccess { nodeId ->
-                    addNewPlayerToGameState(player, coord)
-                    return RolesLinkage(nodeId, playerId)
-                }.onFailure { e ->
-                    logger.warn("Node id error", e)
-                    throw NodeError("This Node exception")
-                }
+            runCatching { getNodeId() }.onSuccess { nodeId ->
+                addNewPlayerToGameState(player, coord)
+                return RolesLinkage(nodeId, playerId)
+            }.onFailure { e ->
+                logger.warn("Node id error", e)
+                throw NodeError("This Node exception")
+            }
         }.onFailure {
             throw NoSpaceOnFieldError(ErrorMessages.NO_SPACE_ON_FIELD_MESSAGE)
         }
+
         //TODO как то пофиксить?
         logger.warn("Unknown error")
         throw NodeError("Unknown error")
@@ -141,6 +145,7 @@ class GameController {
     }
 
     private fun createSnake(player: GamePlayer, headCoord: Coord): Snake {
+        //TODO добавить проверку на координаты (прокидывать исключение)
         val bodyCoord = getRandomSecondSnakeCoord(headCoord)
         return Snake(
             playerId = player.id,
@@ -169,6 +174,41 @@ class GameController {
         }
     }
 
+    /**
+     * @throws UnknownPlayerError если игрок с таким id не был найден
+     * @throws NodeError если во время обновления направления змейки произошла ошибка
+     */
+    fun acceptSteer(playerId: Int, direction: Direction) {
+        runCatching { getGameState() }.onSuccess { state ->
+            synchronized(state) {
+                val snake = (state.snakes.filter { snake -> snake.playerId == playerId }.first
+                    ?: throw UnknownPlayerError(ErrorMessages.UNKNOWN_PLAYER_MESSAGE))
+
+                runCatching { updateSnakeDirection(snake, direction) }.onFailure { e ->
+                    logger.warn("Updating snake direction with player id $playerId has error")
+                    throw NodeError(ErrorMessages.NODE_ERROR_MESSAGE, e)
+                }
+            }
+        }
+    }
+
+    fun acceptState(newState: GameState) {
+        runCatching { getGameState() }.onSuccess { state ->
+            //TODO добавить проверку на нашу ноду (чтобы никто левый не прислал и не сменил нам state)
+
+            if (state.stateOrder <= newState.stateOrder) {
+                logger.info("Node accepted previous state from master node")
+                return
+            }
+
+            synchronized(state) {
+                gameState = Optional.of(newState)
+            }
+        }.onFailure { e ->
+            logger.warn("This node haven't game state to update", e)
+        }
+    }
+
     fun acceptError(message: String) {
         viewGameController.showErrorMessage(message)
     }
@@ -183,6 +223,17 @@ class GameController {
         }
     }
 
+
+    private fun updateSnakeDirection(snake: Snake, newDirection: Direction) {
+        runCatching { getConfig() }.onSuccess { config ->
+            synchronized(config) {
+                //TODO реализовать
+            }
+        }.onFailure {
+            logger.warn("This node haven't game config")
+            throw NodeError(ErrorMessages.NODE_ERROR_MESSAGE)
+        }
+    }
 
     private fun canJoin(): Boolean {
         TODO("not implemented yet")

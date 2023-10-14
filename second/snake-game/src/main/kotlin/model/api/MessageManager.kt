@@ -136,14 +136,12 @@ class MessageManager(
 //
     private val deputyListenersTask = {
         if (gameController.isGameRunning()) {
-            val nodeRoleRes = runCatching { gameController.getNodeRole() }
-            nodeRoleRes.onSuccess { nodeRole ->
+            runCatching { gameController.getNodeRole() }.onSuccess { nodeRole ->
                 if (nodeRole != NodeRole.DEPUTY) {
                     return@onSuccess
                 }
 
-                val gameStateRes = runCatching { gameController.getGameState() }
-                gameStateRes.onSuccess { gameState ->
+                runCatching { gameController.getGameState() }.onSuccess { gameState ->
                     val messages: List<State>
                     synchronized(gameState) {
                         messages = gameController.getDeputyListenersAddresses()
@@ -162,8 +160,6 @@ class MessageManager(
             }.onFailure { e ->
                 logger.warn("Node role is empty", e)
             }
-
-
         }
     }
 
@@ -233,16 +229,12 @@ class MessageManager(
     //TODO перенести проверку
     private fun sendAnnouncement(address: InetSocketAddress) {
         runCatching {
-            if (gameController.isGameRunning()
-                && gameController.getNodeRole() == NodeRole.MASTER
-            ) {
-                val result = runCatching { gameController.getGameAnnouncement() }
-                result.onFailure {
-                    logger.warn("Game Announcement error", it)
-                }
-                result.onSuccess {
-                    val message = Announcement(address, listOf(it))
+            if (gameController.isGameRunning() && gameController.getNodeRole() == NodeRole.MASTER) {
+                runCatching { gameController.getGameAnnouncement() }.onSuccess { announcement ->
+                    val message = Announcement(address, listOf(announcement))
                     sendMessage(message)
+                }.onFailure { e ->
+                    logger.warn("Game Announcement error", e)
                 }
             }
         }.onFailure { e ->
@@ -311,7 +303,7 @@ class MessageManager(
                     message.requestedRole
                 )
             }.onSuccess {
-                sendAck(message.address, message.msgSeq, message.senderId, message.receiverId)
+                sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
             }.onFailure { e ->
                 sendErrorMessage(message.address, e.message ?: "error")
             }
@@ -326,15 +318,17 @@ class MessageManager(
             is RoleChange -> runCatching {
                 gameController.acceptRoleChange(message.senderRole, message.receiverRole)
             }.onSuccess {
-                sendAck(message.address, message.msgSeq, message.senderId, message.receiverId)
+                sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
             }.onFailure { e ->
                 sendErrorMessage(message.address, e.message ?: "error")
             }
 
+            is State -> {
+                gameController.acceptState(message.state)
+                sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
+            }
 
-            is State -> TODO()
             is Steer -> TODO()
         }
     }
 }
-
