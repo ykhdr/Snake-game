@@ -184,10 +184,7 @@ class GameController {
                 val snake = (state.snakes.filter { snake -> snake.playerId == playerId }.first
                     ?: throw UnknownPlayerError(ErrorMessages.UNKNOWN_PLAYER_MESSAGE))
 
-                runCatching { updateSnakeDirection(snake, direction) }.onFailure { e ->
-                    logger.warn("Updating snake direction with player id $playerId has error")
-                    throw NodeError(ErrorMessages.NODE_ERROR_MESSAGE, e)
-                }
+                snake.headDirection = direction
             }
         }
     }
@@ -220,18 +217,6 @@ class GameController {
             } else {
                 availableGames[masterAddress] = announcement
             }
-        }
-    }
-
-
-    private fun updateSnakeDirection(snake: Snake, newDirection: Direction) {
-        runCatching { getConfig() }.onSuccess { config ->
-            synchronized(config) {
-                //TODO реализовать
-            }
-        }.onFailure {
-            logger.warn("This node haven't game config")
-            throw NodeError(ErrorMessages.NODE_ERROR_MESSAGE)
         }
     }
 

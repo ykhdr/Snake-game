@@ -12,8 +12,12 @@ import java.net.InetSocketAddress
 import java.net.MulticastSocket
 
 
-object ReceiverController {
-    private const val BUFFER_SIZE = 1024
+class ReceiverController(
+    private val sentMessageTime: MutableMap<InetSocketAddress, Long>
+) {
+    companion object {
+        private const val BUFFER_SIZE = 1024
+    }
 
     private val protoMapper = ProtoMapper
     private val buffer = ByteArray(BUFFER_SIZE)
@@ -36,10 +40,14 @@ object ReceiverController {
 
         logger.info("Message received from ${address.address}")
 
+        synchronized(sentMessageTime){
+            sentMessageTime.remove(address)
+        }
+
         val message = protoMapper.toMessage(
-                protoMessage,
-                address
-            )
+            protoMessage,
+            address
+        )
 
         checkOnAck(message, protoMessage.msgSeq, address)
         checkOnError(message, protoMessage.msgSeq, address)
@@ -54,7 +62,7 @@ object ReceiverController {
                     waitingForAck.remove(address)
                     logger.info("Ack confirmed from ${address.address}")
                     synchronized(receivedAck) {
-                        receivedAck[address] = message as Ack
+                        receivedAck[address] = message
                     }
                 }
             }

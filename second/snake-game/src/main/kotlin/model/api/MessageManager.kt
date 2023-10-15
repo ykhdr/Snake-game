@@ -19,17 +19,18 @@ class MessageManager(
     private val config: NetworkConfig,
     private val gameController: GameController
 ) {
-    private val receiverController: ReceiverController = ReceiverController
-    private val senderController: SenderController = SenderController
-
-    private val receiveExecutor = Executors.newSingleThreadExecutor()
+    private val threadExecutor = Executors.newSingleThreadExecutor()
     private val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
 
     private val ackConfirmations = mutableListOf<AckConfirmation>()
+    private val sentMessageTime = mutableMapOf<InetSocketAddress, Long>()
 
+    private val isPingTaskRunning = AtomicBoolean(false)
+    private val isThreadExecutorTasksRunning = AtomicBoolean(true)
 
-    private val isReceiveTaskRunning = AtomicBoolean(true)
-    private val isAckConfirmationTaskRunning = AtomicBoolean(true)
+    private val receiverController: ReceiverController = ReceiverController(sentMessageTime)
+    private val senderController: SenderController = SenderController(sentMessageTime)
+
 
     private val logger = KotlinLogging.logger {}
 
@@ -41,7 +42,7 @@ class MessageManager(
 
     private val receiveTask = {
         val socket = initSocket()
-        while (isReceiveTaskRunning.get()) {
+        while (isThreadExecutorTasksRunning.get()) {
             val result = runCatching { receiverController.receive(socket) }
             result.onSuccess {
                 handleMessage(it)
@@ -54,16 +55,14 @@ class MessageManager(
 
     // Подтерждения только в рамках игры
     private val ackConfirmationTask = {
-        while (isAckConfirmationTaskRunning.get()) {
+        while (isThreadExecutorTasksRunning.get()) {
             if (gameController.isGameRunning()) {
-                val nodeRoleRes = runCatching { gameController.getNodeRole() }
-                nodeRoleRes.onSuccess { nodeRole ->
+                runCatching { gameController.getNodeRole() }.onSuccess { nodeRole ->
                     if (nodeRole == NodeRole.VIEWER) {
                         return@onSuccess
                     }
 
-                    val gameConfigRes = runCatching { gameController.getConfig() }
-                    gameConfigRes.onSuccess { config ->
+                    runCatching { gameController.getConfig() }.onSuccess { config ->
                         ackConfirm(config)
                     }.onFailure { e ->
                         logger.warn("Game config is empty", e)
@@ -105,6 +104,30 @@ class MessageManager(
                     }
 
                 }
+            }
+        }
+    }
+
+    private val pingTask = {
+        while (isThreadExecutorTasksRunning.get()) {
+            if (isPingTaskRunning.get()) {
+                runCatching { gameController.getConfig() }.onSuccess { config ->
+                    var stateDelay: Int
+                    synchronized(config) {
+                        stateDelay = config.stateDelayMs / 10
+                    }
+                    synchronized(sentMessageTime) {
+                        for (entry in sentMessageTime) {
+                            val currentTime = System.currentTimeMillis()
+                            if (entry.value > currentTime - stateDelay) {
+                                sendMessage(Ping(entry.key))
+                                entry.setValue(currentTime)
+                            }
+                        }
+                    }
+                }
+
+
             }
         }
     }
@@ -165,8 +188,9 @@ class MessageManager(
 
 
     init {
-        receiveExecutor.execute(receiveTask)
-        receiveExecutor.execute(ackConfirmationTask)
+        threadExecutor.execute(receiveTask)
+        threadExecutor.execute(ackConfirmationTask)
+        threadExecutor.execute(pingTask)
 
         scheduledExecutor.scheduleWithFixedDelay(
             announcementTask,
@@ -187,10 +211,12 @@ class MessageManager(
     }
 
     fun stopTasks() {
-        isReceiveTaskRunning.set(false)
-        isAckConfirmationTaskRunning.set(false)
-        receiveExecutor.shutdown()
+        isThreadExecutorTasksRunning.set(false)
+        isPingTaskRunning.set(false)
+
+        threadExecutor.shutdown()
     }
+
 
 
     fun sendErrorMessage(address: InetSocketAddress, errorMessage: String) {
@@ -271,10 +297,18 @@ class MessageManager(
      */
     private fun handleAckOnMessage(message: Message, ack: Message) {
         when (message) {
-            is Ack -> TODO()
-            is Announcement -> TODO()
-            is Discover -> TODO()
-            is Error -> TODO()
+            is Ack -> {/*не моожет быть*/
+            }
+
+            is Announcement -> {/*не моожет быть*/
+            }
+
+            is Discover -> {/*не моожет быть*/
+            }
+
+            is Error -> {/*в handleMessage */
+            }
+
             is Join -> gameController.acceptOurNodeJoin(ack.receiverId)
             is Ping -> TODO()
             is RoleChange -> TODO()
@@ -328,7 +362,7 @@ class MessageManager(
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
             }
 
-            is Steer -> TODO()
+            is Steer -> gameController.acceptSteer(message.senderId, message.direction)
         }
     }
 }
