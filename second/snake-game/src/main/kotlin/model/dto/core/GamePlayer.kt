@@ -5,7 +5,7 @@ data class GamePlayer(
     val id: Int,
     val ip: String = DEFAULT_IP,
     val port: Int = DEFAULT_PORT,
-    val role: NodeRole,
+    var role: NodeRole,
     val type: PlayerType = DEFAULT_PLAYER_TYPE,
     val score: Int,
 ) {

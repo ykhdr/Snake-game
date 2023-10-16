@@ -82,11 +82,39 @@ class GameController {
         nodeId = Optional.of(id)
     }
 
-    fun acceptRoleChange(senderRole: NodeRole, receiverRole: NodeRole) {
+    fun acceptRoleChange(senderRole: NodeRole, receiverRole: NodeRole, playerAddress: InetSocketAddress) {
+        runCatching { getGameState() }.onSuccess { state ->
+            val player: GamePlayer
+            synchronized(state) {
+                player = state.players.players.filter { p ->
+                    p.ip == playerAddress.address.toString() && p.port == playerAddress.port
+                }.first
+            }
 
+            // Заместитель становиться главным
+            if (receiverRole == NodeRole.MASTER && player.role == NodeRole.DEPUTY) {
+                player.role = NodeRole.MASTER
+
+                // От мастера о том, что он выходит и мы становимся главным
+            } else if (senderRole == NodeRole.VIEWER && receiverRole == NodeRole.MASTER) {
+                nodeRole = Optional.of(NodeRole.MASTER)
+                //TODO если мы становимся мастером, то надо ли здесь что то менять?
+
+                // Выходящий игрок
+            } else if (senderRole == NodeRole.VIEWER) {
+                player.role = NodeRole.VIEWER
+                // От главного умершему
+            } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.VIEWER) {
+                nodeRole = Optional.of(NodeRole.VIEWER)
+                // От главного новому заместителю
+            } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.DEPUTY) {
+                nodeRole = Optional.of(NodeRole.DEPUTY)
+            }
+        }.onFailure { e ->
+            logger.warn("Game state is not present", e)
+        }
     }
 
-    // TODO сделать, чтобы функция прокидывала ошибку и уже сам MM решал отправлять ли ack или error message
     fun acceptAnotherNodeJoin(
         address: InetSocketAddress,
         playerType: PlayerType,
@@ -186,6 +214,9 @@ class GameController {
 
                 snake.headDirection = direction
             }
+        }.onFailure { e ->
+            logger.warn("This node haven't game state to update", e)
+            throw NodeError(ErrorMessages.NODE_ERROR_MESSAGE)
         }
     }
 

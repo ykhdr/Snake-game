@@ -25,7 +25,7 @@ class MessageManager(
     private val ackConfirmations = mutableListOf<AckConfirmation>()
     private val sentMessageTime = mutableMapOf<InetSocketAddress, Long>()
 
-    private val isPingTaskRunning = AtomicBoolean(false)
+    private val isPingTaskRunning = AtomicBoolean(true)
     private val isThreadExecutorTasksRunning = AtomicBoolean(true)
 
     private val receiverController: ReceiverController = ReceiverController(sentMessageTime)
@@ -218,7 +218,6 @@ class MessageManager(
     }
 
 
-
     fun sendErrorMessage(address: InetSocketAddress, errorMessage: String) {
         val message = Error(
             address = address,
@@ -327,7 +326,11 @@ class MessageManager(
 
             is Announcement -> gameController.acceptAnnouncement(message.address, message.games)
             is Discover -> sendAnnouncement(message.address)
-            is Error -> gameController.acceptError(message.errorMessage)
+            is Error -> {
+                gameController.acceptError(message.errorMessage)
+                sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
+            }
+
             is Join -> runCatching {
                 gameController.acceptAnotherNodeJoin(
                     message.address,
@@ -350,7 +353,7 @@ class MessageManager(
             )
 
             is RoleChange -> runCatching {
-                gameController.acceptRoleChange(message.senderRole, message.receiverRole)
+                gameController.acceptRoleChange(message.senderRole, message.receiverRole, message.address)
             }.onSuccess {
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
             }.onFailure { e ->
@@ -362,7 +365,13 @@ class MessageManager(
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
             }
 
-            is Steer -> gameController.acceptSteer(message.senderId, message.direction)
+            is Steer -> runCatching {
+                gameController.acceptSteer(message.senderId, message.direction)
+            }.onSuccess {
+                sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
+            }.onFailure { e ->
+                sendErrorMessage(message.address, e.message ?: "error")
+            }
         }
     }
 }
