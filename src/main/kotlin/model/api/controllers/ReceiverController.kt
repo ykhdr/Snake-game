@@ -1,23 +1,27 @@
 package model.api.controllers
 
 import me.ippolitov.fit.snakes.SnakesProto.GameMessage
+import model.api.config.NetworkConfig
 import model.dto.messages.Ack
 import model.dto.messages.Error
 import model.dto.messages.Message
 import model.exceptions.UndefinedMessageTypeError
 import model.mappers.ProtoMapper
 import mu.KotlinLogging
+import java.io.Closeable
 import java.net.DatagramPacket
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
 
 
 class ReceiverController(
-    private val sentMessageTime: MutableMap<InetSocketAddress, Long>
-) {
+    config: NetworkConfig
+) : Closeable{
     companion object {
         private const val BUFFER_SIZE = 1024
     }
+
+    private var socket: MulticastSocket = initSocket(config)
 
     private val protoMapper = ProtoMapper
     private val buffer = ByteArray(BUFFER_SIZE)
@@ -31,7 +35,7 @@ class ReceiverController(
     /**
      * @throws UndefinedMessageTypeError если полученное сообщение явялется неизвестным
      */
-    fun receive(socket: MulticastSocket): Message {
+    fun receive(): Message {
         val datagramPacket = DatagramPacket(buffer, buffer.size)
         socket.receive(datagramPacket)
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
@@ -40,9 +44,7 @@ class ReceiverController(
 
         logger.info("Message received from ${address.address}")
 
-        synchronized(sentMessageTime){
-            sentMessageTime.remove(address)
-        }
+
 
         val message = protoMapper.toMessage(
             protoMessage,
@@ -115,5 +117,19 @@ class ReceiverController(
             receivedErrors.remove(address)
             return error ?: throw NoSuchElementException("Error message with this address has not in received Errors")
         }
+    }
+
+    private fun initSocket(config : NetworkConfig): MulticastSocket {
+        //TODO добавить проверки на валидность адреса
+        val socket = MulticastSocket(config.groupAddress.port)
+        socket.joinGroup(
+            config.groupAddress,
+            config.localInterface
+        )
+        return socket
+    }
+
+    override fun close() {
+        socket.close()
     }
 }

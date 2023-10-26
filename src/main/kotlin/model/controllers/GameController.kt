@@ -1,6 +1,6 @@
 package model.controllers
 
-import config.NetworkConfig
+import model.api.config.NetworkConfig
 import model.api.MessageManager
 import model.dto.core.*
 import model.exceptions.NoSpaceOnFieldError

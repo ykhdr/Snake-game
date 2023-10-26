@@ -1,4 +1,4 @@
-package config
+package model.api.config
 
 import java.net.InetSocketAddress
 import java.net.NetworkInterface

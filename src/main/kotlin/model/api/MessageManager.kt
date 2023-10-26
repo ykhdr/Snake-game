@@ -1,6 +1,6 @@
 package model.api
 
-import config.NetworkConfig
+import model.api.config.NetworkConfig
 import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
 import model.controllers.GameController
@@ -28,8 +28,8 @@ class MessageManager(
     private val isPingTaskRunning = AtomicBoolean(true)
     private val isThreadExecutorTasksRunning = AtomicBoolean(true)
 
-    private val receiverController: ReceiverController = ReceiverController(sentMessageTime)
-    private val senderController: SenderController = SenderController(sentMessageTime)
+    private val receiverController: ReceiverController = ReceiverController(config)
+    private val senderController: SenderController = SenderController()
 
 
     private val logger = KotlinLogging.logger {}
@@ -41,16 +41,14 @@ class MessageManager(
     }
 
     private val receiveTask = {
-        val socket = initSocket()
         while (isThreadExecutorTasksRunning.get()) {
-            val result = runCatching { receiverController.receive(socket) }
+            val result = runCatching { receiverController.receive() }
             result.onSuccess {
                 handleMessage(it)
             }.onFailure {
                 logger.warn("Receiving data has not any message type", it)
             }
         }
-        socket.close()
     }
 
     // Подтерждения только в рамках игры
@@ -240,16 +238,6 @@ class MessageManager(
         waitAckOnMessage(message)
     }
 
-    private fun initSocket(): MulticastSocket {
-        //TODO добавить проверки на валидность адреса
-        val socket = MulticastSocket(config.groupAddress.port)
-        socket.joinGroup(
-            config.groupAddress,
-            config.localInterface
-        )
-        return socket
-    }
-
 
     //TODO перенести проверку
     private fun sendAnnouncement(address: InetSocketAddress) {
@@ -280,6 +268,12 @@ class MessageManager(
 
     private fun sendMessage(message: Message) {
         senderController.sendMessage(message)
+
+        if (message !is Announcement && message !is Ack && message !is Discover) {
+            synchronized(sentMessageTime) {
+                sentMessageTime[message.address] = System.currentTimeMillis()
+            }
+        }
     }
 
     private fun waitAckOnMessage(message: Message) {
@@ -309,7 +303,7 @@ class MessageManager(
             }
 
             is Join -> gameController.acceptOurNodeJoin(ack.receiverId)
-            is Ping -> TODO()
+            is Ping -> synchronized(sentMessageTime) { sentMessageTime.remove(ack.address) }
             is RoleChange -> TODO()
             is State -> TODO()
             is Steer -> TODO()
