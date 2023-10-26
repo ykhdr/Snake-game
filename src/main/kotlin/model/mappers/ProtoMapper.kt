@@ -107,7 +107,7 @@ object ProtoMapper {
             .build()
     }
 
-    private fun toProtoSteer(steer: Steer) : SnakesProto.GameMessage{
+    private fun toProtoSteer(steer: Steer): SnakesProto.GameMessage {
         return SnakesProto.GameMessage.newBuilder()
             .setSteer(
                 SnakesProto.GameMessage.SteerMsg.newBuilder()
@@ -180,7 +180,7 @@ object ProtoMapper {
         return SnakesProto.GamePlayer.newBuilder()
             .setName(player.name)
             .setId(player.id)
-            .setIpAddress(player.ip)
+            .setIpAddress(player.ip.address.toString())
             .setPort(player.port)
             .setRole(toProtoNodeRole(player.role))
             .setType(toProtoPlayerType(player.type))
@@ -303,7 +303,7 @@ object ProtoMapper {
     private fun toGamePlayer(proto: SnakesProto.GamePlayer) = GamePlayer(
         name = proto.name,
         id = proto.id,
-        ip = proto.ipAddress ?: GamePlayer.DEFAULT_IP,
+        ip = InetSocketAddress(proto.ipAddress ?: GamePlayer.DEFAULT_STR_IP, proto.port),
         port = if (proto.hasPort()) proto.port else GamePlayer.DEFAULT_PORT,
         role = toNodeRole(proto.role),
         type = if (proto.hasType()) toPlayerType(proto.type) else GamePlayer.DEFAULT_PLAYER_TYPE,

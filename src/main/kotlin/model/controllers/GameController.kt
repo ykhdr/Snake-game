@@ -7,6 +7,7 @@ import model.exceptions.NoSpaceOnFieldError
 import model.exceptions.NodeError
 import model.exceptions.NodeRoleHasNotPrivilegesError
 import model.exceptions.UnknownPlayerError
+import model.models.RolesLinkage
 import mu.KotlinLogging
 import java.net.InetSocketAddress
 import java.util.*
@@ -87,7 +88,7 @@ class GameController {
             val player: GamePlayer
             synchronized(state) {
                 player = state.players.players.filter { p ->
-                    p.ip == playerAddress.address.toString() && p.port == playerAddress.port
+                    p.ip == playerAddress && p.port == playerAddress.port
                 }.first
             }
 
@@ -137,7 +138,7 @@ class GameController {
             val player = GamePlayer(
                 playerName,
                 playerId,
-                address.address.toString(),
+                address,
                 address.port,
                 requestedRole,
                 playerType,

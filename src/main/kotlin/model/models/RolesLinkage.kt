@@ -1,4 +1,4 @@
-package model.controllers
+package model.models
 
 data class RolesLinkage(
     val senderRole: Int,
