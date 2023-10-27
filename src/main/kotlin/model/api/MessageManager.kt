@@ -3,7 +3,8 @@ package model.api
 import model.api.config.NetworkConfig
 import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
-import model.controllers.GameController
+import model.controllers.Context
+import model.controllers.GameControllerImpl
 import model.dto.core.GameConfig
 import model.dto.core.NodeRole
 import model.dto.messages.*
@@ -16,8 +17,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 
 class MessageManager(
-    private val config: NetworkConfig,
-    private val gameController: GameController
+    private val gameController: GameControllerImpl,
+    private val context: Context
 ) {
     private val threadExecutor = Executors.newSingleThreadExecutor()
     private val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
@@ -28,7 +29,7 @@ class MessageManager(
     private val isPingTaskRunning = AtomicBoolean(true)
     private val isThreadExecutorTasksRunning = AtomicBoolean(true)
 
-    private val receiverController: ReceiverController = ReceiverController(config)
+    private val receiverController: ReceiverController = ReceiverController(context.networkConfig)
     private val senderController: SenderController = SenderController()
 
 
@@ -138,7 +139,7 @@ class MessageManager(
 
                 val announcementRes = runCatching { gameController.getGameAnnouncement() }
                 announcementRes.onSuccess { announcement ->
-                    sendMessage(Announcement(config.groupAddress, listOf(announcement)))
+                    sendMessage(Announcement(context.networkConfig.groupAddress, listOf(announcement)))
                     logger.info("Sent announcement to nodes")
                 }.onFailure { e ->
                     logger.warn("Game Announcement is empty", e)
