@@ -170,9 +170,9 @@ object ProtoMapper {
             .build()
     }
 
-    private fun toProtoGamePlayers(gamePlayers: GamePlayers): SnakesProto.GamePlayers {
+    private fun toProtoGamePlayers(gamePlayers: List<GamePlayer>): SnakesProto.GamePlayers {
         return SnakesProto.GamePlayers.newBuilder()
-            .addAllPlayers(gamePlayers.players.map { player -> toProtoPlayer(player) })
+            .addAllPlayers(gamePlayers.map { player -> toProtoPlayer(player) })
             .build()
     }
 
@@ -289,15 +289,10 @@ object ProtoMapper {
     )
 
     private fun toGameAnnouncement(proto: SnakesProto.GameAnnouncement) = GameAnnouncement(
-        players = toGamePlayers(proto.players),
+        players = proto.players.playersList.map { player -> toGamePlayer(player) }.toMutableList(),
         config = toGameConfig(proto.config),
         canJoin = proto.canJoin,
         gameName = proto.gameName
-    )
-
-
-    private fun toGamePlayers(proto: SnakesProto.GamePlayers) = GamePlayers(
-        players = proto.playersList.map { player -> toGamePlayer(player) }.toMutableList()
     )
 
     private fun toGamePlayer(proto: SnakesProto.GamePlayer) = GamePlayer(
@@ -349,6 +344,6 @@ object ProtoMapper {
         stateOrder = proto.stateOrder,
         snakes = proto.snakesList.map { snake -> toSnake(snake) }.toMutableList(),
         foods = proto.foodsList.map { food -> toCoord(food) }.toMutableList(),
-        players = toGamePlayers(proto.players)
+        players = proto.players.playersList.map { player -> toGamePlayer(player) }.toMutableList()
     )
 }
