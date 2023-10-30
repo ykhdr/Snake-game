@@ -12,7 +12,7 @@ class StateHolderImpl : StateHolder {
 
     override fun isGameRunning(): Boolean {
         val state = stateEditor.edit()
-        return state.getNodeRole() == NodeRole.MASTER || state.getNodeRole() == NodeRole.DEPUTY
+        return state.getNodeRole() == NodeRole.MASTER
     }
 
     override fun getGameAnnouncement(): GameAnnouncement {

@@ -20,6 +20,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var canJoin: Boolean = false
     private var nodeId: Optional<Int> = Optional.empty()
     private val errors: ArrayDeque<String> = ArrayDeque()
+    private var availableCoords: MutableList<Coord> = mutableListOf()
 
     @Synchronized
     override fun addFoods(foods: List<Coord>) {
@@ -27,9 +28,10 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     }
 
     @Synchronized
-    override fun addPlayers(players: List<GamePlayer>) {
+    override fun addPlayer(player: GamePlayer) {
         //TODO при добавлении игрока создавать змейку
-        this.players.addAll(players)
+        createSnake(player)
+        this.players.add(player)
     }
 
     @Synchronized
@@ -104,6 +106,11 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         errors.add(errorMessage)
     }
 
+    @Synchronized
+    override fun updateAvailableCoords(coords: List<Coord>) {
+        availableCoords = coords.toMutableList()
+    }
+
     private fun resetState() {
         this.foods.clear()
         this.snakes.clear()
@@ -115,6 +122,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.canJoin = false
         this.gameName = Optional.empty()
         this.errors.clear()
+        this.availableCoords.clear()
     }
 
     @Synchronized
@@ -130,7 +138,8 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             stateOrder,
             canJoin,
             gameName,
-            errors
+            errors,
+            availableCoords
         )
     }
 }

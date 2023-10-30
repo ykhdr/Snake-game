@@ -9,7 +9,7 @@ import java.net.InetSocketAddress
 interface StateEditor {
     fun addFoods(foods: List<Coord>)
 
-    fun addPlayers(players: List<GamePlayer>)
+    fun addPlayer(player: GamePlayer)
 
     fun removePlayer(player: GamePlayer): Boolean
 
@@ -38,4 +38,6 @@ interface StateEditor {
     fun setNodeId(id : Int)
 
     fun addError(errorMessage: String)
+
+    fun updateAvailableCoords(coords: List<Coord>)
 }

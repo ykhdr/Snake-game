@@ -18,7 +18,8 @@ internal class StateImpl internal constructor(
     private val stateOrder: Optional<Int>,
     private val canJoin: Boolean,
     private val gameName: Optional<String>,
-    private val errors: ArrayDeque<String>
+    private val errors: ArrayDeque<String>,
+    private val availableCoords: List<Coord>
 ) : State {
 
 
@@ -42,4 +43,5 @@ internal class StateImpl internal constructor(
     override fun getAnnouncements(): Map<InetSocketAddress, GameAnnouncement> = announcements
 
     override fun getGameName(): String = gameName.orElseThrow { NoSuchElementException("State order is empty") }
+    override fun getAvailableCoords(): List<Coord> = availableCoords
 }

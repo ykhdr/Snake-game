@@ -307,7 +307,6 @@ class MessageManager(
             }
 
             is Join -> {
-                val state = stateHolder.getState()
                 val stateEditor = stateHolder.getStateEditor()
 
                 if (!stateHolder.isGameRunning()) {
@@ -318,8 +317,6 @@ class MessageManager(
                 if (message.requestedRole == NodeRole.DEPUTY || message.requestedRole == NodeRole.MASTER) {
                     sendErrorMessage(message.address, "The requested role is not available to join the game with it")
                 }
-
-
 
                 runCatching {
                     GamePlayer(
@@ -333,7 +330,7 @@ class MessageManager(
                     )
                     //TODO продумать как передать игрока на основе acceptAnotherNodeJoin
                 }.onSuccess {player ->
-                    stateEditor.addPlayers(listOf(player))
+                    stateEditor.addPlayer(listOf(player))
                     sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
                 }.onFailure { e ->
                     sendErrorMessage(message.address, e.message ?: "error")

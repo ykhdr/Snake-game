@@ -32,5 +32,5 @@ interface State {
      */
     fun getGameName() : String
 
-
+    fun getAvailableCoords() : List<Coord>
 }
