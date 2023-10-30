@@ -21,7 +21,7 @@ class StateHolderImpl : StateHolder {
         return GameAnnouncement(
             state.getPlayers(),
             state.getConfig(),
-            state.canJoin(),
+            state.getAvailableCoords().isNotEmpty(),
             state.getGameName()
         )
     }

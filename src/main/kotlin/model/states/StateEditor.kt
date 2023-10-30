@@ -4,10 +4,15 @@ import model.dto.core.*
 import java.net.InetSocketAddress
 
 /**
- * StateEditor отвечает за изменения состояния внешними источниками
+ * Отвечает за изменения состояния внешними источниками
  */
 interface StateEditor {
     fun addFoods(foods: List<Coord>)
+
+    /**
+     * @throws NoSpaceOnFieldError если на поле нет доступных клеток
+     */
+    fun addPlayerToAdding(player: GamePlayer)
 
     fun addPlayer(player: GamePlayer)
 
@@ -21,7 +26,7 @@ interface StateEditor {
 
     fun removeAnnouncement(address: InetSocketAddress) : Boolean
 
-    fun addSnakes(snakes: List<Snake>)
+    fun addSnake(snake: Snake)
 
     fun removeSnake(snake: Snake): Boolean
 
@@ -33,7 +38,6 @@ interface StateEditor {
 
     fun setGameConfig(gameConfig: GameConfig)
 
-    fun setCanJoin(canJoin: Boolean)
 
     fun setNodeId(id : Int)
 

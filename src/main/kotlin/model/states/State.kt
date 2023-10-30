@@ -3,15 +3,16 @@ package model.states
 import model.dto.core.*
 import java.net.InetSocketAddress
 import java.util.NoSuchElementException
+import java.util.Queue
 
 
 interface State {
     fun getFoods() : List<Coord>
     fun getSnakes() : List<Snake>
     fun getNodeRole() : NodeRole
+    fun getPlayersToAdding() : Queue<GamePlayer>
     fun getPlayers() : List<GamePlayer>
     fun getDeputyListeners() : List<InetSocketAddress>
-    fun canJoin() : Boolean
     fun getAnnouncements() : Map<InetSocketAddress, GameAnnouncement>
 
     /**
@@ -24,7 +25,7 @@ interface State {
      */
     fun getStateOrder() : Int
 
-    fun getErrors() : ArrayDeque<String>
+    fun getErrors() : Queue<String>
 
 
     /**

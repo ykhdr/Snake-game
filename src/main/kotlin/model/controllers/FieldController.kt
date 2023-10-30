@@ -35,6 +35,7 @@ class FieldController(
             val foodCoords = state.getFoods()
 
             val availableCoords = findAvailableCoords(snakeCoords, foodCoords)
+            //TODO сделать проверку на то когда у нас четыре еды вокруг одной клетки
             stateHolder.getStateEditor().updateAvailableCoords(availableCoords)
         }
     }

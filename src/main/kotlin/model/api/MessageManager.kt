@@ -319,37 +319,22 @@ class MessageManager(
                     sendErrorMessage(message.address, "The requested role is not available to join the game with it")
                 }
 
-                runCatching {
-                    GamePlayer(
-                        message.playerName,
-                        IdSequence.getNextId(),
-                        message.address,
-                        message.address.port,
-                        message.requestedRole,
-                        message.playerType,
-                        0
-                    )
-                    //TODO продумать как передать игрока на основе acceptAnotherNodeJoin
-                }.onSuccess {player ->
-                    stateEditor.addPlayerToAdding(listOf(player))
+                val player = GamePlayer(
+                    message.playerName,
+                    IdSequence.getNextId(),
+                    message.address,
+                    message.address.port,
+                    message.requestedRole,
+                    message.playerType,
+                    0
+                )
+
+                runCatching { stateEditor.addPlayerToAdding(player) }.onSuccess {
                     sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
                 }.onFailure { e ->
                     sendErrorMessage(message.address, e.message ?: "error")
                 }
             }
-//            runCatching {
-//                gameController.acceptAnotherNodeJoin(
-//                    message.address,
-//                    message.playerType,
-//                    message.playerName,
-//                    message.gameName,
-//                    message.requestedRole
-//                )
-//            }.onSuccess {
-//                sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
-//            }.onFailure { e ->
-//                sendErrorMessage(message.address, e.message ?: "error")
-//            }
 
             is Ping -> sendAck(
                 message.address,
@@ -360,6 +345,8 @@ class MessageManager(
 
             is RoleChange -> runCatching {
                 //TODO реализовать
+
+
                 gameController.acceptRoleChange(message.senderRole, message.receiverRole, message.address)
             }.onSuccess {
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)

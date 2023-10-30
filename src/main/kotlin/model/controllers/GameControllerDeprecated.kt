@@ -13,7 +13,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
 
-class GameControllerImpl {
+class GameControllerDeprecated {
 
     companion object {
         private const val DEFAULT_GAME_STATE_DELAY = 1000L

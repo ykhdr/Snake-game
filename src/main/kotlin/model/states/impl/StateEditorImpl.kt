@@ -3,12 +3,13 @@ package model.states.impl
 import model.states.State
 import model.states.StateEditor
 import model.dto.core.*
+import model.exceptions.NoSpaceOnFieldError
 import java.net.InetSocketAddress
 import java.util.*
-import kotlin.collections.ArrayDeque
 
 internal class StateEditorImpl internal constructor() : StateEditor {
     private val foods: MutableList<Coord> = mutableListOf()
+    private val playersToAdding: Queue<GamePlayer> = LinkedList()
     private val players: MutableList<GamePlayer> = mutableListOf()
     private val deputyListeners: MutableList<InetSocketAddress> = mutableListOf()
     private val snakes: MutableList<Snake> = mutableListOf()
@@ -17,9 +18,8 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var config: Optional<GameConfig> = Optional.empty()
     private var stateOrder: Optional<Int> = Optional.empty()
     private var gameName: Optional<String> = Optional.empty()
-    private var canJoin: Boolean = false
     private var nodeId: Optional<Int> = Optional.empty()
-    private val errors: ArrayDeque<String> = ArrayDeque()
+    private val errors: Queue<String> = LinkedList()
     private var availableCoords: MutableList<Coord> = mutableListOf()
 
     @Synchronized
@@ -28,14 +28,21 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     }
 
     @Synchronized
+    override fun addPlayerToAdding(player: GamePlayer) {
+        if (availableCoords.isEmpty()){
+            throw NoSpaceOnFieldError("No available coords on field")
+        }
+
+        this.playersToAdding.add(player)
+    }
+
+    @Synchronized
     override fun addPlayer(player: GamePlayer) {
-        //TODO при добавлении игрока создавать змейку
-        createSnake(player)
         this.players.add(player)
     }
 
     @Synchronized
-    override fun removePlayer(player: GamePlayer): Boolean = this.players.remove(player)
+    override fun removePlayer(player: GamePlayer): Boolean = this.playersToAdding.remove(player)
 
     @Synchronized
     override fun addDeputyListeners(listeners: List<InetSocketAddress>) {
@@ -60,8 +67,8 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     override fun removeAnnouncement(address: InetSocketAddress): Boolean = this.announcements.remove(address) != null
 
     @Synchronized
-    override fun addSnakes(snakes: List<Snake>) {
-        this.snakes.addAll(snakes)
+    override fun addSnake(snake: Snake) {
+        this.snakes.add(snake)
     }
 
     @Synchronized
@@ -91,10 +98,6 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.config = Optional.of(gameConfig)
     }
 
-    @Synchronized
-    override fun setCanJoin(canJoin: Boolean) {
-        this.canJoin = canJoin
-    }
 
     @Synchronized
     override fun setNodeId(id: Int) {
@@ -114,12 +117,12 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private fun resetState() {
         this.foods.clear()
         this.snakes.clear()
+        this.playersToAdding.clear()
         this.players.clear()
         this.deputyListeners.clear()
         this.config = Optional.empty()
         this.stateOrder = Optional.empty()
         this.nodeRole = NodeRole.VIEWER
-        this.canJoin = false
         this.gameName = Optional.empty()
         this.errors.clear()
         this.availableCoords.clear()
@@ -129,6 +132,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     internal fun edit(): State {
         return StateImpl(
             foods,
+            playersToAdding,
             players,
             deputyListeners,
             snakes,
@@ -136,7 +140,6 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             nodeRole,
             config,
             stateOrder,
-            canJoin,
             gameName,
             errors,
             availableCoords
