@@ -9,6 +9,7 @@ import model.dto.core.GamePlayer
 import model.dto.core.NodeRole
 import model.dto.messages.*
 import model.models.AckConfirmation
+import model.models.NetworkContext
 import model.utils.IdSequence
 import mu.KotlinLogging
 import java.net.InetSocketAddress
@@ -18,7 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 
 class MessageManager(
-    context: Context
+    context: NetworkContext
 ) {
     private val stateHolder: StateHolder = context.stateHolder
 
@@ -330,7 +331,7 @@ class MessageManager(
                     )
                     //TODO продумать как передать игрока на основе acceptAnotherNodeJoin
                 }.onSuccess {player ->
-                    stateEditor.addPlayer(listOf(player))
+                    stateEditor.addPlayerToAdding(listOf(player))
                     sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
                 }.onFailure { e ->
                     sendErrorMessage(message.address, e.message ?: "error")
