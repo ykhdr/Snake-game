@@ -230,7 +230,7 @@ class MessageManager(
         }
     }
 
-    fun sendAck(address: InetSocketAddress, msgSeq: Long, senderId: Int, receiverId: Int) {
+    private fun sendAck(address: InetSocketAddress, msgSeq: Long, senderId: Int, receiverId: Int) {
         val ack = Ack(
             address = address,
             msgSeq = msgSeq,

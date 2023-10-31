@@ -21,8 +21,7 @@ class GameControllerImpl(
         private const val CREATING_SNAKES_TASK_DELAY = 300L
     }
 
-    private val stateHolder = context.stateHolder;
-    private val fieldController = FieldController(context)
+    private val stateHolder = context.stateHolder
 
     private val threadExecutor = Executors.newScheduledThreadPool(THREAD_PULL_SIZE)
 

@@ -1,4 +1,11 @@
 package model.controllers
 
-class LobbyController {
+import model.dto.core.NodeRole
+import java.net.InetSocketAddress
+
+interface LobbyController {
+    fun join(address: InetSocketAddress, playerName: String, gameName: String, requestedRole: NodeRole)
+    fun leave()
+    fun view(address: InetSocketAddress, playerName: String, gameName: String, requestedRole: NodeRole)
+
 }
