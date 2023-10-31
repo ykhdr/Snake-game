@@ -1,6 +1,9 @@
 package model.states
 
 import model.dto.core.*
+import model.exceptions.NoSpaceOnFieldError
+import model.exceptions.NodeRoleHasNotPrivilegesError
+import model.exceptions.UnknownPlayerError
 import java.net.InetSocketAddress
 
 /**
@@ -24,7 +27,7 @@ interface StateEditor {
 
     fun addAnnouncements(address: InetSocketAddress, announcements: List<GameAnnouncement>)
 
-    fun removeAnnouncement(address: InetSocketAddress) : Boolean
+    fun removeAnnouncement(address: InetSocketAddress): Boolean
 
     fun addSnake(snake: Snake)
 
@@ -40,10 +43,23 @@ interface StateEditor {
 
     fun setGameConfig(gameConfig: GameConfig)
 
-
-    fun setNodeId(id : Int)
+    fun setNodeId(id: Int)
 
     fun addError(errorMessage: String)
 
     fun updateAvailableCoords(coords: List<Coord>)
+
+    /**
+     * @throws NodeRoleHasNotPrivilegesError если запрос ноды является недопустимым в рамках ее привилегий
+     * @throws UnknownPlayerError если игрок был не найден по адресу
+     */
+    fun updateRole(playerAddress: InetSocketAddress, senderRole: NodeRole, receiverRole: NodeRole)
+
+    fun setState(newState: GameState)
+
+
+    /**
+     * @throws UnknownPlayerError если змейка с таким playerId не была найдена
+     */
+    fun updateSnakeDirection(playerId: Int, direction: Direction)
 }

@@ -2,7 +2,6 @@ package model.api
 
 import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
-import model.models.Context
 import model.states.StateHolder
 import model.dto.core.GameConfig
 import model.dto.core.GamePlayer
@@ -345,10 +344,7 @@ class MessageManager(
             )
 
             is RoleChange -> runCatching {
-                //TODO реализовать
-
-
-                gameController.acceptRoleChange(message.senderRole, message.receiverRole, message.address)
+                stateHolder.getStateEditor().updateRole(message.address, message.senderRole, message.receiverRole)
             }.onSuccess {
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
             }.onFailure { e ->
@@ -356,12 +352,21 @@ class MessageManager(
             }
 
             is State -> {
-                gameController.acceptState(message.state)
-                sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
+                val state = stateHolder.getState()
+                runCatching { state.getStateOrder() }.onSuccess { stateOrder ->
+                    if (message.state.stateOrder > stateOrder) {
+                        stateHolder.getStateEditor().setState(message.state)
+                    }
+                    sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
+                }.onFailure { e ->
+                    sendErrorMessage(message.address, e.message ?: "error")
+                }
+
+
             }
 
             is Steer -> runCatching {
-                gameController.acceptSteer(message.senderId, message.direction)
+                stateHolder.getStateEditor().updateSnakeDirection(message.senderId,message.direction)
             }.onSuccess {
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
             }.onFailure { e ->

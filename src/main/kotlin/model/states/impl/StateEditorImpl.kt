@@ -4,6 +4,8 @@ import model.states.State
 import model.states.StateEditor
 import model.dto.core.*
 import model.exceptions.NoSpaceOnFieldError
+import model.exceptions.NodeRoleHasNotPrivilegesError
+import model.exceptions.UnknownPlayerError
 import java.net.InetSocketAddress
 import java.util.*
 
@@ -85,9 +87,9 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     override fun setNodeRole(nodeRole: NodeRole) {
         if (nodeRole == NodeRole.VIEWER) {
             resetState()
-        } else {
-            this.nodeRole = nodeRole
         }
+
+        this.nodeRole = nodeRole
     }
 
     @Synchronized
@@ -121,6 +123,57 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         availableCoords = coords.toMutableList()
     }
 
+    @Synchronized
+    override fun updateRole(playerAddress: InetSocketAddress, senderRole: NodeRole, receiverRole: NodeRole) {
+        val player = players.filter { player ->
+            player.ip == playerAddress && player.port == playerAddress.port
+        }.first ?: throw UnknownPlayerError("player did not find in game")
+
+
+        // Заместитель становиться главным
+        if (receiverRole == NodeRole.MASTER && player.role == NodeRole.DEPUTY) {
+            player.role = NodeRole.MASTER
+
+            // От мастера о том, что он выходит и мы становимся главным
+        } else if (senderRole == NodeRole.VIEWER && receiverRole == NodeRole.MASTER) {
+            nodeRole = NodeRole.MASTER
+            //TODO если мы становимся мастером, то надо ли здесь что то менять?
+
+            // Выходящий игрок
+        } else if (senderRole == NodeRole.VIEWER) {
+            player.role = NodeRole.VIEWER
+            // От главного умершему
+        } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.VIEWER) {
+            nodeRole = NodeRole.VIEWER
+            // От главного новому заместителю
+        } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.DEPUTY) {
+            nodeRole = NodeRole.DEPUTY
+        } else {
+            throw NodeRoleHasNotPrivilegesError("sender node has not privileges to change role")
+        }
+    }
+
+    @Synchronized
+    override fun setState(newState: GameState) {
+        resetState()
+
+        this.foods.addAll(newState.foods)
+        this.snakes.addAll(newState.snakes)
+        this.players.addAll(newState.players)
+        this.stateOrder = Optional.of(newState.stateOrder)
+    }
+
+    @Synchronized
+    override fun updateSnakeDirection(playerId: Int, direction: Direction) {
+        val snake = this.snakes.find { snake -> snake.playerId == playerId }
+            ?: throw UnknownPlayerError("Unknown player")
+
+        val updatedSnake = snake.copy(headDirection = direction)
+
+        this.snakes.remove(snake)
+        this.snakes.add(updatedSnake)
+    }
+
     private fun resetState() {
         this.foods.clear()
         this.snakes.clear()
@@ -129,9 +182,9 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.deputyListeners.clear()
         this.config = Optional.empty()
         this.stateOrder = Optional.empty()
-        this.nodeRole = NodeRole.VIEWER
+//        this.nodeRole = NodeRole.VIEWER
         this.gameName = Optional.empty()
-        this.errors.clear()
+//        this.errors.clear()
         this.availableCoords.clear()
     }
 
