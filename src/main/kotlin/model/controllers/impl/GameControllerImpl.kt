@@ -7,19 +7,28 @@ import model.dto.core.Direction
 import model.dto.core.Snake
 import model.dto.core.SnakeState
 import model.models.Context
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
 class GameControllerImpl(
     context: Context
 ) : GameController {
 
+    companion object {
+        private const val THREAD_PULL_SIZE = 2
+        private const val CREATING_SNAKES_TASK_DELAY = 300L
+    }
+
     private val stateHolder = context.stateHolder;
     private val fieldController = FieldController(context)
 
+    private val threadExecutor = Executors.newScheduledThreadPool(THREAD_PULL_SIZE)
 
-    //TODO некоторая scheduled task
+
     private val creatingSnakesTask = {
-        while (stateHolder.isGameRunning()) {
+        if (stateHolder.isGameRunning()) {
             val state = stateHolder.getState()
             val playersToAdding = state.getPlayersToAdding()
             val availableCoords = state.getAvailableCoords().toMutableList()
@@ -38,6 +47,14 @@ class GameControllerImpl(
                 availableCoords.remove(headCoord)
             }
         }
+    }
+
+    init {
+        threadExecutor.schedule(
+            creatingSnakesTask,
+            CREATING_SNAKES_TASK_DELAY,
+            TimeUnit.MILLISECONDS
+        )
     }
 
     //TODO сделать проверку на координаты соседние
@@ -61,5 +78,11 @@ class GameControllerImpl(
         } else {
             Direction.UP
         }
+    }
+
+    override fun move(snake: Snake, direction: Direction) {
+        val updatedSnake = Snake(snake.playerId, snake.points, snake.state, direction)
+
+        stateHolder.getStateEditor().updateSnake(updatedSnake)
     }
 }

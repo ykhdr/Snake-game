@@ -29,7 +29,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
     @Synchronized
     override fun addPlayerToAdding(player: GamePlayer) {
-        if (availableCoords.isEmpty()){
+        if (availableCoords.isEmpty()) {
             throw NoSpaceOnFieldError("No available coords on field")
         }
 
@@ -69,6 +69,13 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     @Synchronized
     override fun addSnake(snake: Snake) {
         this.snakes.add(snake)
+    }
+
+    @Synchronized
+    override fun updateSnake(updatedSnake: Snake) {
+        if (this.snakes.removeIf { snake -> snake.playerId == updatedSnake.playerId }) {
+            this.snakes.add(updatedSnake)
+        }
     }
 
     @Synchronized

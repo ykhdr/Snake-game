@@ -21,10 +21,16 @@ import java.util.concurrent.atomic.AtomicBoolean
 class MessageManager(
     context: NetworkContext
 ) {
+    companion object {
+        private const val ANNOUNCEMENT_DELAY_MS = 1000
+        private const val ANNOUNCEMENT_INITIAL_DELAY_MS = 1000
+        private const val THREAD_POOL_SIZE = 10
+    }
+
     private val stateHolder: StateHolder = context.stateHolder
 
-    private val threadExecutor = Executors.newSingleThreadExecutor()
-    private val scheduledExecutor = Executors.newSingleThreadScheduledExecutor()
+    private val threadExecutor = Executors.newCachedThreadPool()
+    private val scheduledExecutor = Executors.newScheduledThreadPool(THREAD_POOL_SIZE)
 
     private val ackConfirmations = mutableListOf<AckConfirmation>()
     private val sentMessageTime = mutableMapOf<InetSocketAddress, Long>()
@@ -37,11 +43,6 @@ class MessageManager(
 
     private val logger = KotlinLogging.logger {}
 
-
-    companion object {
-        const val ANNOUNCEMENT_DELAY_MS = 1000
-        const val ANNOUNCEMENT_INITIAL_DELAY_MS = 1000
-    }
 
     private val receiveTask = {
         while (isThreadExecutorTasksRunning.get()) {

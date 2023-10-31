@@ -28,6 +28,8 @@ interface StateEditor {
 
     fun addSnake(snake: Snake)
 
+    fun updateSnake(updatedSnake: Snake)
+
     fun removeSnake(snake: Snake): Boolean
 
     fun setNodeRole(nodeRole: NodeRole)
