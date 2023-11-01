@@ -1,15 +1,15 @@
 package model.states.impl
 
+import model.models.JoinRequest
+import model.models.core.*
 import model.states.State
-import model.dto.core.*
 import java.net.InetSocketAddress
 import java.util.*
-import kotlin.NoSuchElementException
 
 internal class StateImpl internal constructor(
     private val foods: List<Coord>,
     private val playersToAdding: Queue<GamePlayer>,
-    private val players : List<GamePlayer>,
+    private val players: List<GamePlayer>,
     private val deputyListeners: List<InetSocketAddress>,
     private val snakes: List<Snake>,
     private val announcements: Map<InetSocketAddress, GameAnnouncement>,
@@ -17,10 +17,11 @@ internal class StateImpl internal constructor(
     private val config: Optional<GameConfig>,
     private val stateOrder: Optional<Int>,
     private val gameName: Optional<String>,
+    private val playerName: String,
     private val errors: Queue<String>,
-    private val availableCoords: List<Coord>
+    private val availableCoords: List<Coord>,
+    private val joinRequest: Optional<JoinRequest>
 ) : State {
-
 
     override fun getFoods(): List<Coord> = foods
 
@@ -42,5 +43,8 @@ internal class StateImpl internal constructor(
     override fun getAnnouncements(): Map<InetSocketAddress, GameAnnouncement> = announcements
 
     override fun getGameName(): String = gameName.orElseThrow { NoSuchElementException("State order is empty") }
+    override fun getPlayerName(): String = playerName
+
     override fun getAvailableCoords(): List<Coord> = availableCoords
+    override fun getJoinRequest(): Optional<JoinRequest> = joinRequest
 }

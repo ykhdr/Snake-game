@@ -1,7 +1,7 @@
 package model.controllers
 
-import model.dto.core.Coord
 import model.models.Context
+import model.models.core.Coord
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs

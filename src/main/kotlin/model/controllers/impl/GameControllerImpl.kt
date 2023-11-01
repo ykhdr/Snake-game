@@ -1,13 +1,11 @@
 package model.controllers.impl
 
-import model.controllers.FieldController
 import model.controllers.GameController
-import model.dto.core.Coord
-import model.dto.core.Direction
-import model.dto.core.Snake
-import model.dto.core.SnakeState
 import model.models.Context
-import java.util.concurrent.Executor
+import model.models.core.Coord
+import model.models.core.Direction
+import model.models.core.Snake
+import model.models.core.SnakeState
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random

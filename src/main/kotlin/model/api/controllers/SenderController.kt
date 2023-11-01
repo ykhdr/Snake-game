@@ -1,14 +1,10 @@
 package model.api.controllers
 
-import model.dto.messages.Ack
-import model.dto.messages.Announcement
-import model.dto.messages.Discover
 import model.dto.messages.Message
 import model.mappers.ProtoMapper
 import java.io.Closeable
 import java.net.DatagramPacket
 import java.net.DatagramSocket
-import java.net.InetSocketAddress
 
 class SenderController : Closeable{
     companion object {

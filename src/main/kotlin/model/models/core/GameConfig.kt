@@ -1,4 +1,4 @@
-package model.dto.core
+package model.models.core
 
 data class GameConfig(
     val width: Int = DEFAULT_WIDTH,

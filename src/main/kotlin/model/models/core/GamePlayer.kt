@@ -1,4 +1,4 @@
-package model.dto.core
+package model.models.core
 
 import java.net.InetSocketAddress
 

@@ -1,8 +1,7 @@
 package model.controllers
 
-import model.dto.core.Coord
-import model.dto.core.Direction
-import model.dto.core.Snake
+import model.models.core.Direction
+import model.models.core.Snake
 
 interface GameController {
     fun move(snake: Snake, direction: Direction)

@@ -1,4 +1,4 @@
-package model.dto.core
+package model.models.core
 
 data class Coord(
     val x: Int = 0,

@@ -1,9 +1,10 @@
 package model.states
 
-import model.dto.core.*
 import model.exceptions.NoSpaceOnFieldError
 import model.exceptions.NodeRoleHasNotPrivilegesError
 import model.exceptions.UnknownPlayerError
+import model.models.JoinRequest
+import model.models.core.*
 import java.net.InetSocketAddress
 
 /**
@@ -41,6 +42,8 @@ interface StateEditor {
 
     fun setGameName(name: String)
 
+    fun setPlayerName(name: String)
+
     fun setGameConfig(gameConfig: GameConfig)
 
     fun setNodeId(id: Int)
@@ -62,4 +65,8 @@ interface StateEditor {
      * @throws UnknownPlayerError если змейка с таким playerId не была найдена
      */
     fun updateSnakeDirection(playerId: Int, direction: Direction)
+
+    fun setJoinRequest(joinRequest: JoinRequest)
+
+    fun clearJoinRequest();
 }

@@ -1,9 +1,9 @@
 package model.states
 
-import model.dto.core.*
+import model.models.JoinRequest
+import model.models.core.*
 import java.net.InetSocketAddress
-import java.util.NoSuchElementException
-import java.util.Queue
+import java.util.*
 
 
 interface State {
@@ -24,7 +24,6 @@ interface State {
      * @throws NoSuchElementException если текущая нода не в игре
      */
     fun getStateOrder() : Int
-
     fun getErrors() : Queue<String>
 
 
@@ -32,6 +31,7 @@ interface State {
      * @throws NoSuchElementException если текущая нода не в игре
      */
     fun getGameName() : String
-
+    fun getPlayerName() : String
     fun getAvailableCoords() : List<Coord>
+    fun getJoinRequest() : Optional<JoinRequest>
 }

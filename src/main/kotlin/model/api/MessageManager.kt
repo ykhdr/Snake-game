@@ -2,13 +2,13 @@ package model.api
 
 import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
-import model.states.StateHolder
-import model.dto.core.GameConfig
-import model.dto.core.GamePlayer
-import model.dto.core.NodeRole
 import model.dto.messages.*
 import model.models.AckConfirmation
 import model.models.NetworkContext
+import model.models.core.GameConfig
+import model.models.core.GamePlayer
+import model.models.core.NodeRole
+import model.states.StateHolder
 import model.utils.IdSequence
 import mu.KotlinLogging
 import java.net.InetSocketAddress

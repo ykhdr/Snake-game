@@ -1,15 +1,20 @@
 package model.states.impl
 
-import model.states.State
-import model.states.StateEditor
-import model.dto.core.*
 import model.exceptions.NoSpaceOnFieldError
 import model.exceptions.NodeRoleHasNotPrivilegesError
 import model.exceptions.UnknownPlayerError
+import model.models.JoinRequest
+import model.models.core.*
+import model.states.State
+import model.states.StateEditor
 import java.net.InetSocketAddress
 import java.util.*
 
 internal class StateEditorImpl internal constructor() : StateEditor {
+    companion object {
+        private const val DEFAULT_PLAYER_NAME = "Player"
+    }
+
     private val foods: MutableList<Coord> = mutableListOf()
     private val playersToAdding: Queue<GamePlayer> = LinkedList()
     private val players: MutableList<GamePlayer> = mutableListOf()
@@ -20,9 +25,11 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var config: Optional<GameConfig> = Optional.empty()
     private var stateOrder: Optional<Int> = Optional.empty()
     private var gameName: Optional<String> = Optional.empty()
+    private var playerName: String = DEFAULT_PLAYER_NAME
     private var nodeId: Optional<Int> = Optional.empty()
     private val errors: Queue<String> = LinkedList()
     private var availableCoords: MutableList<Coord> = mutableListOf()
+    private var joinRequest: Optional<JoinRequest> = Optional.empty()
 
     @Synchronized
     override fun addFoods(foods: List<Coord>) {
@@ -103,6 +110,11 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     }
 
     @Synchronized
+    override fun setPlayerName(name: String) {
+        this.playerName = name
+    }
+
+    @Synchronized
     override fun setGameConfig(gameConfig: GameConfig) {
         this.config = Optional.of(gameConfig)
     }
@@ -174,6 +186,16 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.snakes.add(updatedSnake)
     }
 
+    @Synchronized
+    override fun setJoinRequest(joinRequest: JoinRequest) {
+        this.joinRequest = Optional.of(joinRequest)
+    }
+
+    @Synchronized
+    override fun clearJoinRequest() {
+        this.joinRequest = Optional.empty()
+    }
+
     private fun resetState() {
         this.foods.clear()
         this.snakes.clear()
@@ -182,9 +204,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.deputyListeners.clear()
         this.config = Optional.empty()
         this.stateOrder = Optional.empty()
-//        this.nodeRole = NodeRole.VIEWER
         this.gameName = Optional.empty()
-//        this.errors.clear()
         this.availableCoords.clear()
     }
 
@@ -201,8 +221,10 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             config,
             stateOrder,
             gameName,
+            playerName,
             errors,
-            availableCoords
+            availableCoords,
+            joinRequest
         )
     }
 }

@@ -1,9 +1,9 @@
 package model.mappers
 
 import me.ippolitov.fit.snakes.SnakesProto
-import model.dto.core.*
 import model.dto.messages.*
 import model.exceptions.UndefinedMessageTypeError
+import model.models.core.*
 import java.net.InetSocketAddress
 
 object ProtoMapper {

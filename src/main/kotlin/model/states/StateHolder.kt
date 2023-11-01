@@ -1,7 +1,7 @@
 package model.states
 
-import model.dto.core.GameAnnouncement
-import model.dto.core.GameState
+import model.models.core.GameAnnouncement
+import model.models.core.GameState
 
 interface StateHolder {
     fun isGameRunning(): Boolean

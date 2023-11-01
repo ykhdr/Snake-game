@@ -1,11 +1,11 @@
 package model.states.impl
 
+import model.models.core.GameAnnouncement
+import model.models.core.GameState
+import model.models.core.NodeRole
 import model.states.State
 import model.states.StateEditor
 import model.states.StateHolder
-import model.dto.core.NodeRole
-import model.dto.core.GameAnnouncement
-import model.dto.core.GameState
 
 class StateHolderImpl : StateHolder {
     private val stateEditor = StateEditorImpl()

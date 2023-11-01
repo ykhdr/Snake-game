@@ -1,6 +1,6 @@
 package model.dto.messages
 
-import model.dto.core.Direction
+import model.models.core.Direction
 import java.net.InetSocketAddress
 
 

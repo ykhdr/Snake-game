@@ -1,7 +1,7 @@
 package model.dto.messages
 
-import model.dto.core.NodeRole
-import model.dto.core.PlayerType
+import model.models.core.NodeRole
+import model.models.core.PlayerType
 import java.net.InetSocketAddress
 
 class Join(

@@ -1,6 +1,6 @@
 package model.dto.messages
 
-import model.dto.core.NodeRole
+import model.models.core.NodeRole
 import java.net.InetSocketAddress
 
 class RoleChange(
