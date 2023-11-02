@@ -283,9 +283,11 @@ class MessageManager(
             }
 //            gameController.acceptOurNodeJoin(ack.receiverId)
             is Ping -> synchronized(sentMessageTime) { sentMessageTime.remove(ack.address) }
-            is RoleChange -> TODO()
-            is State -> TODO()
-            is Steer -> TODO()
+            is RoleChange -> stateHolder.getStateEditor().setNodeRole(message.senderRole)
+            is State -> {}//TODO подумать как этом можно обработать
+            is Steer -> {
+                stateHolder.getStateEditor().updateSnakeDirection(message.senderId, message.direction)
+            }
         }
     }
 
@@ -366,7 +368,7 @@ class MessageManager(
             }
 
             is Steer -> runCatching {
-                stateHolder.getStateEditor().updateSnakeDirection(message.senderId,message.direction)
+                stateHolder.getStateEditor().updateSnakeDirection(message.senderId, message.direction)
             }.onSuccess {
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
             }.onFailure { e ->
