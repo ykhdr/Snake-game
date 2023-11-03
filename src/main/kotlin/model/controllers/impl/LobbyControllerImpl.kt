@@ -16,7 +16,7 @@ class LobbyControllerImpl(
                 .addError("Player has not privilage to request role ${requestedRole.name}")
         } else {
             val joinRequest = JoinRequest(address, requestedRole)
-
+            context.stateHolder.getStateEditor().setJoinRequest(joinRequest)
         }
 
     }
