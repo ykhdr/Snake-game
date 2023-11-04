@@ -1,6 +1,6 @@
 package model.controllers
 
-import model.models.Context
+import model.models.contexts.Context
 import model.models.core.Coord
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -55,7 +55,6 @@ class FieldController(
 
         return allCoords
     }
-
 
     fun runScan() {
         isNewGame.set(true)

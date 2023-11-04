@@ -1,9 +1,8 @@
 package model.controllers.impl
 
 import model.controllers.LobbyController
-import model.exceptions.NodeRoleHasNotPrivilegesError
-import model.models.Context
-import model.models.JoinRequest
+import model.models.contexts.Context
+import model.models.requests.JoinRequest
 import model.models.core.NodeRole
 import java.net.InetSocketAddress
 

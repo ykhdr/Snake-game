@@ -1,7 +1,7 @@
 package model.states.impl
 
-import model.models.JoinRequest
-import model.models.SteerRequest
+import model.models.requests.JoinRequest
+import model.models.requests.SteerRequest
 import model.models.core.*
 import model.states.State
 import java.net.InetSocketAddress

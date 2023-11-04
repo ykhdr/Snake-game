@@ -1,4 +1,4 @@
-package model.models
+package model.models.requests
 
 import model.models.core.NodeRole
 import java.net.InetSocketAddress

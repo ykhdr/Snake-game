@@ -4,18 +4,12 @@ import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
 import model.dto.messages.*
 import model.models.AckConfirmation
-import model.models.JoinRequest
-import model.models.NetworkContext
-import model.models.SteerRequest
-import model.models.core.GameConfig
-import model.models.core.GamePlayer
-import model.models.core.NodeRole
-import model.models.core.PlayerType
+import model.models.contexts.NetworkContext
+import model.models.core.*
 import model.states.StateHolder
 import model.utils.IdSequence
 import mu.KotlinLogging
 import java.net.InetSocketAddress
-import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -183,9 +177,8 @@ class MessageManager(
         }
 
         val steer = state.getSteerRequest().get()
+        sendSteerMessage(steer.address, steer.direction)
 
-        val message = Steer(steer.address, steer.direction)
-        sendMessage(message)
         stateHolder.getStateEditor().clearSteerRequest()
     }
 
@@ -196,15 +189,13 @@ class MessageManager(
 
         val join = state.getJoinRequest().get()
 
-        val message = Join(
+        sendJoinMessage(
             join.address,
-            PlayerType.HUMAN,
             state.getPlayerName(),
             state.getGameName(),
             join.requestedRole
         )
 
-        sendMessage(message)
         stateHolder.getStateEditor().clearJoinRequest()
     }
 
@@ -247,7 +238,14 @@ class MessageManager(
     }
 
 
-    fun sendErrorMessage(address: InetSocketAddress, errorMessage: String) {
+    private fun sendSteerMessage(address: InetSocketAddress, direction: Direction) {
+        val message = Steer(address, direction)
+
+        sendMessage(message)
+        waitAckOnMessage(message)
+    }
+
+    private fun sendErrorMessage(address: InetSocketAddress, errorMessage: String) {
         val message = Error(
             address = address,
             errorMessage = errorMessage
@@ -257,7 +255,7 @@ class MessageManager(
         waitAckOnMessage(message)
     }
 
-    fun sendJoinMessage(address: InetSocketAddress, playerName: String, gameName: String, role: NodeRole) {
+    private fun sendJoinMessage(address: InetSocketAddress, playerName: String, gameName: String, role: NodeRole) {
         val message = Join(
             address = address,
             playerName = playerName,
