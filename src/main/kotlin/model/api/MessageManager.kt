@@ -4,14 +4,18 @@ import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
 import model.dto.messages.*
 import model.models.AckConfirmation
+import model.models.JoinRequest
 import model.models.NetworkContext
+import model.models.SteerRequest
 import model.models.core.GameConfig
 import model.models.core.GamePlayer
 import model.models.core.NodeRole
+import model.models.core.PlayerType
 import model.states.StateHolder
 import model.utils.IdSequence
 import mu.KotlinLogging
 import java.net.InetSocketAddress
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -21,8 +25,9 @@ class MessageManager(
     context: NetworkContext
 ) {
     companion object {
-        private const val ANNOUNCEMENT_DELAY_MS = 1000
-        private const val ANNOUNCEMENT_INITIAL_DELAY_MS = 1000
+        private const val ANNOUNCEMENT_DELAY_MS = 1000L
+        private const val ANNOUNCEMENT_INITIAL_DELAY_MS = 1000L
+        private const val REQUEST_SENDER_DELAY_MS = 1000L
         private const val THREAD_POOL_SIZE = 10
     }
 
@@ -164,6 +169,46 @@ class MessageManager(
     }
 
 
+    private val requestSenderTask = {
+        if (stateHolder.isGameRunning()) {
+            val state = stateHolder.getState()
+            checkSteerRequest(state)
+            checkJoinRequest(state)
+        }
+    }
+
+    private fun checkSteerRequest(state: model.states.State) {
+        if (state.getSteerRequest().isEmpty) {
+            return
+        }
+
+        val steer = state.getSteerRequest().get()
+
+        val message = Steer(steer.address, steer.direction)
+        sendMessage(message)
+        stateHolder.getStateEditor().clearSteerRequest()
+    }
+
+    private fun checkJoinRequest(state: model.states.State) {
+        if (state.getJoinRequest().isEmpty) {
+            return
+        }
+
+        val join = state.getJoinRequest().get()
+
+        val message = Join(
+            join.address,
+            PlayerType.HUMAN,
+            state.getPlayerName(),
+            state.getGameName(),
+            join.requestedRole
+        )
+
+        sendMessage(message)
+        stateHolder.getStateEditor().clearJoinRequest()
+    }
+
+
     init {
         threadExecutor.execute(receiveTask)
         threadExecutor.execute(ackConfirmationTask)
@@ -171,8 +216,8 @@ class MessageManager(
 
         scheduledExecutor.scheduleWithFixedDelay(
             announcementTask,
-            ANNOUNCEMENT_INITIAL_DELAY_MS.toLong(),
-            ANNOUNCEMENT_DELAY_MS.toLong(),
+            ANNOUNCEMENT_INITIAL_DELAY_MS,
+            ANNOUNCEMENT_DELAY_MS,
             TimeUnit.MILLISECONDS
         )
 
@@ -181,6 +226,13 @@ class MessageManager(
             0,
             // TODO подумать какое сюда лучше подставить время в случае, если мы не DEPUTY
             stateHolder.getState().getConfig().stateDelayMs.toLong(),
+            TimeUnit.MILLISECONDS
+        )
+
+        scheduledExecutor.scheduleWithFixedDelay(
+            requestSenderTask,
+            0,
+            REQUEST_SENDER_DELAY_MS,
             TimeUnit.MILLISECONDS
         )
 

@@ -1,6 +1,7 @@
 package model.states
 
 import model.models.JoinRequest
+import model.models.SteerRequest
 import model.models.core.*
 import java.net.InetSocketAddress
 import java.util.*
@@ -34,4 +35,5 @@ interface State {
     fun getPlayerName() : String
     fun getAvailableCoords() : List<Coord>
     fun getJoinRequest() : Optional<JoinRequest>
+    fun getSteerRequest() : Optional<SteerRequest>
 }

@@ -1,6 +1,7 @@
 package model.states.impl
 
 import model.models.JoinRequest
+import model.models.SteerRequest
 import model.models.core.*
 import model.states.State
 import java.net.InetSocketAddress
@@ -20,31 +21,23 @@ internal class StateImpl internal constructor(
     private val playerName: String,
     private val errors: Queue<String>,
     private val availableCoords: List<Coord>,
-    private val joinRequest: Optional<JoinRequest>
+    private val joinRequest: Optional<JoinRequest>,
+    private val steerRequest: Optional<SteerRequest>
 ) : State {
 
     override fun getFoods(): List<Coord> = foods
-
     override fun getSnakes(): List<Snake> = snakes
-
     override fun getNodeRole(): NodeRole = nodeRole
-
     override fun getPlayersToAdding(): Queue<GamePlayer> = playersToAdding
-
     override fun getPlayers(): List<GamePlayer> = players
-
     override fun getDeputyListeners(): List<InetSocketAddress> = deputyListeners
-
     override fun getConfig(): GameConfig = config.orElseThrow { NoSuchElementException("State order is empty") }
-
     override fun getStateOrder(): Int = stateOrder.orElseThrow { NoSuchElementException("State order is empty") }
     override fun getErrors(): Queue<String> = errors
-
     override fun getAnnouncements(): Map<InetSocketAddress, GameAnnouncement> = announcements
-
     override fun getGameName(): String = gameName.orElseThrow { NoSuchElementException("State order is empty") }
     override fun getPlayerName(): String = playerName
-
     override fun getAvailableCoords(): List<Coord> = availableCoords
     override fun getJoinRequest(): Optional<JoinRequest> = joinRequest
+    override fun getSteerRequest(): Optional<SteerRequest> = steerRequest
 }

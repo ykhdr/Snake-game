@@ -4,6 +4,7 @@ import model.exceptions.NoSpaceOnFieldError
 import model.exceptions.NodeRoleHasNotPrivilegesError
 import model.exceptions.UnknownPlayerError
 import model.models.JoinRequest
+import model.models.SteerRequest
 import model.models.core.*
 import model.states.State
 import model.states.StateEditor
@@ -30,6 +31,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private val errors: Queue<String> = LinkedList()
     private var availableCoords: MutableList<Coord> = mutableListOf()
     private var joinRequest: Optional<JoinRequest> = Optional.empty()
+    private var steerRequest: Optional<SteerRequest> = Optional.empty()
 
     @Synchronized
     override fun addFoods(foods: List<Coord>) {
@@ -196,6 +198,16 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.joinRequest = Optional.empty()
     }
 
+    @Synchronized
+    override fun setSteerRequest(steerRequest: SteerRequest) {
+        this.steerRequest = Optional.of(steerRequest)
+    }
+
+    @Synchronized
+    override fun clearSteerRequest() {
+        this.steerRequest = Optional.empty()
+    }
+
     private fun resetState() {
         this.foods.clear()
         this.snakes.clear()
@@ -224,7 +236,8 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             playerName,
             errors,
             availableCoords,
-            joinRequest
+            joinRequest,
+            steerRequest
         )
     }
 }

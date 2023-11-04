@@ -2,10 +2,12 @@ package model.controllers.impl
 
 import model.controllers.GameController
 import model.models.Context
+import model.models.SteerRequest
 import model.models.core.Coord
 import model.models.core.Direction
 import model.models.core.Snake
 import model.models.core.SnakeState
+import java.net.InetSocketAddress
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
@@ -77,9 +79,12 @@ class GameControllerImpl(
         }
     }
 
-    override fun move(snake: Snake, direction: Direction) {
+    override fun move(address: InetSocketAddress, snake: Snake, direction: Direction) {
         val updatedSnake = Snake(snake.playerId, snake.points, snake.state, direction)
 
+        val steerRequest = SteerRequest(address, direction)
+
+        stateHolder.getStateEditor().setSteerRequest(steerRequest)
         stateHolder.getStateEditor().updateSnake(updatedSnake)
     }
 }

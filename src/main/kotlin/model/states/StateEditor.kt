@@ -4,6 +4,7 @@ import model.exceptions.NoSpaceOnFieldError
 import model.exceptions.NodeRoleHasNotPrivilegesError
 import model.exceptions.UnknownPlayerError
 import model.models.JoinRequest
+import model.models.SteerRequest
 import model.models.core.*
 import java.net.InetSocketAddress
 
@@ -69,4 +70,6 @@ interface StateEditor {
     fun setJoinRequest(joinRequest: JoinRequest)
 
     fun clearJoinRequest();
+    fun setSteerRequest(steerRequest: SteerRequest)
+    fun clearSteerRequest();
 }
