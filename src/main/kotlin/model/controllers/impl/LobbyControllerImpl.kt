@@ -21,11 +21,8 @@ class LobbyControllerImpl(
     }
 
     override fun leave() {
-        TODO("Not yet implemented")
-    }
-
-    override fun view(address: InetSocketAddress, playerName: String, gameName: String, requestedRole: NodeRole) {
-        TODO("Not yet implemented")
+        val state = context.stateHolder.getState()
+        // TODO add to state LeaveRequest()
     }
 
     override fun createGame(gameName: String) {
