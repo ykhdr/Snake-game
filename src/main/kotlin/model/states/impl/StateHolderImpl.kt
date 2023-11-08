@@ -10,7 +10,7 @@ import model.states.StateHolder
 class StateHolderImpl : StateHolder {
     private val stateEditor = StateEditorImpl()
 
-    override fun isGameRunning(): Boolean {
+    override fun isNodeMaster(): Boolean {
         val state = stateEditor.edit()
         return state.getNodeRole() == NodeRole.MASTER
     }

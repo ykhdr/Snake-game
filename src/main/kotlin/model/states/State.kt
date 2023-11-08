@@ -32,8 +32,15 @@ interface State {
      * @throws NoSuchElementException если текущая нода не в игре
      */
     fun getGameName() : String
+
+    /**
+     * @throws NoSuchElementException если текущая нода не в игре
+     */
+    fun getGameAddress() : InetSocketAddress
     fun getPlayerName() : String
     fun getAvailableCoords() : List<Coord>
     fun getJoinRequest() : Optional<JoinRequest>
     fun getSteerRequest() : Optional<SteerRequest>
+    fun getLeaveRequest() : Boolean
+
 }

@@ -56,7 +56,7 @@ class MessageManager(
     // Подтерждения только в рамках игры
     private val ackConfirmationTask = {
         while (isThreadExecutorTasksRunning.get()) {
-            if (stateHolder.isGameRunning()) {
+            if (stateHolder.isNodeMaster()) {
                 val state = stateHolder.getState()
 
                 if (state.getNodeRole() != NodeRole.VIEWER) {
@@ -106,7 +106,7 @@ class MessageManager(
 
     private val pingTask = {
         while (isThreadExecutorTasksRunning.get()) {
-            if (isPingTaskRunning.get() && stateHolder.isGameRunning()) {
+            if (isPingTaskRunning.get() && stateHolder.isNodeMaster()) {
                 runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
                     var stateDelay: Int
                     synchronized(config) {
@@ -129,7 +129,7 @@ class MessageManager(
     }
 
     private val announcementTask = {
-        if (stateHolder.isGameRunning()) {
+        if (stateHolder.isNodeMaster()) {
             val state = stateHolder.getState()
             if (state.getNodeRole() == NodeRole.MASTER) {
                 runCatching { stateHolder.getGameAnnouncement() }.onSuccess { announcement ->
@@ -146,7 +146,7 @@ class MessageManager(
     // Здесь мы смотрим является ли наша нода Deputy и после спрашиваем у нее
     // какие ноды просят вместо mastera у нас инфу об игре (GameState)
     private val deputyListenersTask = {
-        if (stateHolder.isGameRunning()) {
+        if (stateHolder.isNodeMaster()) {
             val state = stateHolder.getState()
             if (state.getNodeRole() == NodeRole.DEPUTY) {
                 val messages: List<State> = state.getDeputyListeners()
@@ -164,7 +164,7 @@ class MessageManager(
 
 
     private val requestSenderTask = {
-        if (stateHolder.isGameRunning()) {
+        if (stateHolder.isNodeMaster()) {
             val state = stateHolder.getState()
             checkSteerRequest(state)
             checkJoinRequest(state)
@@ -270,7 +270,7 @@ class MessageManager(
 
     //TODO перенести проверку
     private fun sendAnnouncement(address: InetSocketAddress) {
-        if (stateHolder.isGameRunning() && stateHolder.getState().getNodeRole() == NodeRole.MASTER) {
+        if (stateHolder.isNodeMaster() && stateHolder.getState().getNodeRole() == NodeRole.MASTER) {
             runCatching { stateHolder.getGameAnnouncement() }.onSuccess { announcement ->
                 val message = Announcement(address, listOf(announcement))
                 sendMessage(message)
@@ -330,8 +330,8 @@ class MessageManager(
             is Join -> {
                 val stateEditor = stateHolder.getStateEditor()
                 stateEditor.setNodeId(ack.receiverId)
+                stateEditor.setGameAddress(ack.address)
             }
-//            gameController.acceptOurNodeJoin(ack.receiverId)
             is Ping -> synchronized(sentMessageTime) { sentMessageTime.remove(ack.address) }
             is RoleChange -> stateHolder.getStateEditor().setNodeRole(message.senderRole)
             is State -> {}//TODO подумать как этом можно обработать
@@ -362,7 +362,7 @@ class MessageManager(
             is Join -> {
                 val stateEditor = stateHolder.getStateEditor()
 
-                if (!stateHolder.isGameRunning()) {
+                if (!stateHolder.isNodeMaster()) {
                     sendErrorMessage(message.address, "No game on node")
                     return
                 }

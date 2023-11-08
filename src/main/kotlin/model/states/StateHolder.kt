@@ -4,7 +4,7 @@ import model.models.core.GameAnnouncement
 import model.models.core.GameState
 
 interface StateHolder {
-    fun isGameRunning(): Boolean
+    fun isNodeMaster(): Boolean
 
 
     /**

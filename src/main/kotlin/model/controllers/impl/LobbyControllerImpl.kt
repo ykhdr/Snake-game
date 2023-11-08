@@ -21,12 +21,11 @@ class LobbyControllerImpl(
     }
 
     override fun leave() {
-        val state = context.stateHolder.getState()
-        // TODO add to state LeaveRequest()
+        context.stateHolder.getStateEditor().setLeaveRequest(true)
     }
 
     override fun createGame(gameName: String) {
-        TODO("Not yet implemented")
+        // TODO add to state CreateGameRequest()
     }
 
     override fun setPlayerName(playerName: String) {

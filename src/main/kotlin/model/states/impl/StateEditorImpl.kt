@@ -26,12 +26,14 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var config: Optional<GameConfig> = Optional.empty()
     private var stateOrder: Optional<Int> = Optional.empty()
     private var gameName: Optional<String> = Optional.empty()
+    private var gameAddress : Optional<InetSocketAddress> = Optional.empty()
     private var playerName: String = DEFAULT_PLAYER_NAME
     private var nodeId: Optional<Int> = Optional.empty()
     private val errors: Queue<String> = LinkedList()
     private var availableCoords: MutableList<Coord> = mutableListOf()
     private var joinRequest: Optional<JoinRequest> = Optional.empty()
     private var steerRequest: Optional<SteerRequest> = Optional.empty()
+    private var leaveRequest : Boolean = false
 
     @Synchronized
     override fun addFoods(foods: List<Coord>) {
@@ -109,6 +111,11 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     @Synchronized
     override fun setGameName(name: String) {
         this.gameName = Optional.of(name)
+    }
+
+    @Synchronized
+    override fun setGameAddress(address: InetSocketAddress) {
+        this.gameAddress = Optional.of(address)
     }
 
     @Synchronized
@@ -208,6 +215,11 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.steerRequest = Optional.empty()
     }
 
+    @Synchronized
+    override fun setLeaveRequest(leaveRequest: Boolean) {
+        this.leaveRequest = leaveRequest
+    }
+
     private fun resetState() {
         this.foods.clear()
         this.snakes.clear()
@@ -233,11 +245,13 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             config,
             stateOrder,
             gameName,
+            gameAddress,
             playerName,
             errors,
             availableCoords,
             joinRequest,
-            steerRequest
+            steerRequest,
+            leaveRequest
         )
     }
 }

@@ -42,6 +42,7 @@ interface StateEditor {
     fun setStateOrder(stateOrder: Int)
 
     fun setGameName(name: String)
+    fun setGameAddress(address: InetSocketAddress)
 
     fun setPlayerName(name: String)
 
@@ -69,7 +70,8 @@ interface StateEditor {
 
     fun setJoinRequest(joinRequest: JoinRequest)
 
-    fun clearJoinRequest();
+    fun clearJoinRequest()
     fun setSteerRequest(steerRequest: SteerRequest)
-    fun clearSteerRequest();
+    fun clearSteerRequest()
+    fun setLeaveRequest(leaveRequest: Boolean)
 }

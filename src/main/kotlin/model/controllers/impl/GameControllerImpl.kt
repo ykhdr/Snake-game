@@ -25,9 +25,8 @@ class GameControllerImpl(
 
     private val threadExecutor = Executors.newScheduledThreadPool(THREAD_PULL_SIZE)
 
-
     private val creatingSnakesTask = {
-        if (stateHolder.isGameRunning()) {
+        if (stateHolder.isNodeMaster()) {
             val state = stateHolder.getState()
             val playersToAdding = state.getPlayersToAdding()
             val availableCoords = state.getAvailableCoords().toMutableList()
@@ -46,6 +45,10 @@ class GameControllerImpl(
                 availableCoords.remove(headCoord)
             }
         }
+    }
+
+    private val creatingGameTask = {
+
     }
 
     init {

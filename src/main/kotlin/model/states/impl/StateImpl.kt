@@ -18,11 +18,13 @@ internal class StateImpl internal constructor(
     private val config: Optional<GameConfig>,
     private val stateOrder: Optional<Int>,
     private val gameName: Optional<String>,
+    private val gameAddress: Optional<InetSocketAddress>,
     private val playerName: String,
     private val errors: Queue<String>,
     private val availableCoords: List<Coord>,
     private val joinRequest: Optional<JoinRequest>,
-    private val steerRequest: Optional<SteerRequest>
+    private val steerRequest: Optional<SteerRequest>,
+    private val leaveRequest: Boolean
 ) : State {
 
     override fun getFoods(): List<Coord> = foods
@@ -36,8 +38,12 @@ internal class StateImpl internal constructor(
     override fun getErrors(): Queue<String> = errors
     override fun getAnnouncements(): Map<InetSocketAddress, GameAnnouncement> = announcements
     override fun getGameName(): String = gameName.orElseThrow { NoSuchElementException("State order is empty") }
+    override fun getGameAddress(): InetSocketAddress =
+        gameAddress.orElseThrow { NoSuchElementException("State order is empty") }
+
     override fun getPlayerName(): String = playerName
     override fun getAvailableCoords(): List<Coord> = availableCoords
     override fun getJoinRequest(): Optional<JoinRequest> = joinRequest
     override fun getSteerRequest(): Optional<SteerRequest> = steerRequest
+    override fun getLeaveRequest(): Boolean = leaveRequest
 }

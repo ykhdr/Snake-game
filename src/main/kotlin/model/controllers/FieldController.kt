@@ -23,7 +23,7 @@ class FieldController(
     private val threadExecutor = Executors.newSingleThreadExecutor()
 
     private val scanFieldTask = {
-        while (stateHolder.isGameRunning()) {
+        while (stateHolder.isNodeMaster()) {
             val state = stateHolder.getState()
             val config = state.getConfig()
 
