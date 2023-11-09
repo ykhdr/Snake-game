@@ -171,33 +171,6 @@ class MessageManager(
         }
     }
 
-    private fun checkSteerRequest(state: model.states.State) {
-        if (state.getSteerRequest().isEmpty) {
-            return
-        }
-
-        val steer = state.getSteerRequest().get()
-        sendSteerMessage(steer.address, steer.direction)
-
-        stateHolder.getStateEditor().clearSteerRequest()
-    }
-
-    private fun checkJoinRequest(state: model.states.State) {
-        if (state.getJoinRequest().isEmpty) {
-            return
-        }
-
-        val join = state.getJoinRequest().get()
-
-        sendJoinMessage(
-            join.address,
-            state.getPlayerName(),
-            state.getGameName(),
-            join.requestedRole
-        )
-
-        stateHolder.getStateEditor().clearJoinRequest()
-    }
 
 
     init {
@@ -238,6 +211,43 @@ class MessageManager(
     }
 
 
+    private fun checkSteerRequest(state: model.states.State) {
+        if (state.getSteerRequest().isEmpty) {
+            return
+        }
+
+        val steer = state.getSteerRequest().get()
+        sendSteerMessage(steer.address, steer.direction)
+
+        stateHolder.getStateEditor().clearSteerRequest()
+    }
+
+    private fun checkJoinRequest(state: model.states.State) {
+        if (state.getJoinRequest().isEmpty) {
+            return
+        }
+
+        val join = state.getJoinRequest().get()
+
+        sendJoinMessage(
+            join.address,
+            state.getPlayerName(),
+            state.getGameName(),
+            join.requestedRole
+        )
+
+        stateHolder.getStateEditor().clearJoinRequest()
+    }
+
+    private fun checkLeaveRequest(state: model.states.State){
+        if (state.getLeaveRequest().isEmpty){
+            return
+        }
+        //TODO доделать
+//        sendRoleChangeMessage()
+    }
+
+
     private fun sendSteerMessage(address: InetSocketAddress, direction: Direction) {
         val message = Steer(address, direction)
 
@@ -265,6 +275,10 @@ class MessageManager(
 
         sendMessage(message)
         waitAckOnMessage(message)
+    }
+
+    private fun sendRoleChangeMessage(address: InetSocketAddress, senderRole: NodeRole, receiverRole: NodeRole){
+//        val message = RoleChange(address,)
     }
 
 

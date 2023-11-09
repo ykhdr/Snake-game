@@ -3,6 +3,7 @@ package model.states.impl
 import model.models.requests.JoinRequest
 import model.models.requests.SteerRequest
 import model.models.core.*
+import model.models.requests.ChangeRoleRequest
 import model.states.State
 import java.net.InetSocketAddress
 import java.util.*
@@ -24,7 +25,7 @@ internal class StateImpl internal constructor(
     private val availableCoords: List<Coord>,
     private val joinRequest: Optional<JoinRequest>,
     private val steerRequest: Optional<SteerRequest>,
-    private val leaveRequest: Boolean
+    private val leaveRequest: Optional<ChangeRoleRequest>
 ) : State {
 
     override fun getFoods(): List<Coord> = foods
@@ -45,5 +46,5 @@ internal class StateImpl internal constructor(
     override fun getAvailableCoords(): List<Coord> = availableCoords
     override fun getJoinRequest(): Optional<JoinRequest> = joinRequest
     override fun getSteerRequest(): Optional<SteerRequest> = steerRequest
-    override fun getLeaveRequest(): Boolean = leaveRequest
+    override fun getLeaveRequest(): Optional<ChangeRoleRequest> = leaveRequest
 }

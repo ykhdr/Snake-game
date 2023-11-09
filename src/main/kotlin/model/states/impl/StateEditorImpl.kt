@@ -6,6 +6,7 @@ import model.exceptions.UnknownPlayerError
 import model.models.requests.JoinRequest
 import model.models.requests.SteerRequest
 import model.models.core.*
+import model.models.requests.ChangeRoleRequest
 import model.states.State
 import model.states.StateEditor
 import java.net.InetSocketAddress
@@ -33,7 +34,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var availableCoords: MutableList<Coord> = mutableListOf()
     private var joinRequest: Optional<JoinRequest> = Optional.empty()
     private var steerRequest: Optional<SteerRequest> = Optional.empty()
-    private var leaveRequest : Boolean = false
+    private var leaveRequest : Optional<ChangeRoleRequest> = Optional.empty()
 
     @Synchronized
     override fun addFoods(foods: List<Coord>) {
@@ -216,8 +217,13 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     }
 
     @Synchronized
-    override fun setLeaveRequest(leaveRequest: Boolean) {
-        this.leaveRequest = leaveRequest
+    override fun setLeaveRequest(leaveRequest: ChangeRoleRequest) {
+        this.leaveRequest = Optional.of(leaveRequest)
+    }
+
+    @Synchronized
+    override fun clearLeaveRequest() {
+        this.leaveRequest = Optional.empty()
     }
 
     private fun resetState() {
@@ -229,6 +235,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.config = Optional.empty()
         this.stateOrder = Optional.empty()
         this.gameName = Optional.empty()
+        this.gameAddress = Optional.empty()
         this.availableCoords.clear()
     }
 

@@ -6,6 +6,7 @@ import model.exceptions.UnknownPlayerError
 import model.models.requests.JoinRequest
 import model.models.requests.SteerRequest
 import model.models.core.*
+import model.models.requests.ChangeRoleRequest
 import java.net.InetSocketAddress
 
 /**
@@ -69,9 +70,11 @@ interface StateEditor {
     fun updateSnakeDirection(playerId: Int, direction: Direction)
 
     fun setJoinRequest(joinRequest: JoinRequest)
-
     fun clearJoinRequest()
+
     fun setSteerRequest(steerRequest: SteerRequest)
     fun clearSteerRequest()
-    fun setLeaveRequest(leaveRequest: Boolean)
+
+    fun setLeaveRequest(leaveRequest: ChangeRoleRequest)
+    fun clearLeaveRequest()
 }
