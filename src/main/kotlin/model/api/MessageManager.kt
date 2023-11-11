@@ -168,6 +168,7 @@ class MessageManager(
             val state = stateHolder.getState()
             checkSteerRequest(state)
             checkJoinRequest(state)
+            checkLeaveRequest(state)
         }
     }
 
