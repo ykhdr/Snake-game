@@ -77,4 +77,5 @@ interface StateEditor {
 
     fun setLeaveRequest(leaveRequest: ChangeRoleRequest)
     fun clearLeaveRequest()
+
 }

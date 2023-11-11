@@ -3,8 +3,8 @@ package model.models.requests
 import model.models.core.NodeRole
 
 data class ChangeRoleRequest(
-    private val senderId : Int,
-    private val receiverId : Int,
-    private val senderRole: NodeRole,
-    private val receiverRole: NodeRole
+    val senderId : Int,
+    val receiverId : Int,
+    val senderRole: NodeRole,
+    val receiverRole: NodeRole
 )

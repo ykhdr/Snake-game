@@ -172,7 +172,6 @@ class MessageManager(
     }
 
 
-
     init {
         threadExecutor.execute(receiveTask)
         threadExecutor.execute(ackConfirmationTask)
@@ -239,12 +238,22 @@ class MessageManager(
         stateHolder.getStateEditor().clearJoinRequest()
     }
 
-    private fun checkLeaveRequest(state: model.states.State){
-        if (state.getLeaveRequest().isEmpty){
+    private fun checkLeaveRequest(state: model.states.State) {
+        if (state.getLeaveRequest().isEmpty) {
             return
         }
-        //TODO доделать
-//        sendRoleChangeMessage()
+
+        val roleChange = state.getLeaveRequest().get()
+
+        sendRoleChangeMessage(
+            state.getGameAddress(),
+            roleChange.senderId,
+            roleChange.receiverId,
+            roleChange.senderRole,
+            roleChange.receiverRole
+        )
+
+        stateHolder.getStateEditor().clearLeaveRequest()
     }
 
 
@@ -277,8 +286,17 @@ class MessageManager(
         waitAckOnMessage(message)
     }
 
-    private fun sendRoleChangeMessage(address: InetSocketAddress, senderRole: NodeRole, receiverRole: NodeRole){
-//        val message = RoleChange(address,)
+    private fun sendRoleChangeMessage(
+        address: InetSocketAddress,
+        senderId: Int,
+        receiverId: Int,
+        senderRole: NodeRole,
+        receiverRole: NodeRole
+    ) {
+        val message = RoleChange(address, senderId, receiverId, senderRole, receiverRole)
+
+        sendMessage(message)
+        waitAckOnMessage(message)
     }
 
 
@@ -346,6 +364,7 @@ class MessageManager(
                 stateEditor.setNodeId(ack.receiverId)
                 stateEditor.setGameAddress(ack.address)
             }
+
             is Ping -> synchronized(sentMessageTime) { sentMessageTime.remove(ack.address) }
             is RoleChange -> stateHolder.getStateEditor().setNodeRole(message.senderRole)
             is State -> {}//TODO подумать как этом можно обработать
