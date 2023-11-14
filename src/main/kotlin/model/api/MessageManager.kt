@@ -9,6 +9,7 @@ import model.models.core.*
 import model.states.StateHolder
 import model.utils.IdSequence
 import mu.KotlinLogging
+import java.io.Closeable
 import java.net.InetSocketAddress
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -17,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class MessageManager(
     context: NetworkContext
-) {
+) : Closeable {
     companion object {
         private const val ANNOUNCEMENT_DELAY_MS = 1000L
         private const val ANNOUNCEMENT_INITIAL_DELAY_MS = 1000L
@@ -33,7 +34,6 @@ class MessageManager(
     private val ackConfirmations = mutableListOf<AckConfirmation>()
     private val sentMessageTime = mutableMapOf<InetSocketAddress, Long>()
 
-    private val isPingTaskRunning = AtomicBoolean(true)
     private val isThreadExecutorTasksRunning = AtomicBoolean(true)
 
     private val receiverController: ReceiverController = ReceiverController(context.networkConfig)
@@ -106,7 +106,7 @@ class MessageManager(
 
     private val pingTask = {
         while (isThreadExecutorTasksRunning.get()) {
-            if (isPingTaskRunning.get() && stateHolder.isNodeMaster()) {
+            if (stateHolder.isNodeMaster()) {
                 runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
                     var stateDelay: Int
                     synchronized(config) {
@@ -188,7 +188,6 @@ class MessageManager(
         scheduledExecutor.scheduleWithFixedDelay(
             deputyListenersTask,
             0,
-            // TODO подумать какое сюда лучше подставить время в случае, если мы не DEPUTY
             stateHolder.getState().getConfig().stateDelayMs.toLong(),
             TimeUnit.MILLISECONDS
         )
@@ -203,11 +202,14 @@ class MessageManager(
         logger.info("All tasks are running ")
     }
 
-    fun stopTasks() {
-        isThreadExecutorTasksRunning.set(false)
-        isPingTaskRunning.set(false)
 
-        threadExecutor.shutdown()
+    override fun close() {
+        isThreadExecutorTasksRunning.set(false)
+
+        threadExecutor.awaitTermination(1000, TimeUnit.MILLISECONDS)
+
+        receiverController.close()
+        senderController.close()
     }
 
 
