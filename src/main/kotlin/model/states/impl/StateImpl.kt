@@ -16,6 +16,7 @@ internal class StateImpl internal constructor(
     private val snakes: List<Snake>,
     private val announcements: Map<InetSocketAddress, GameAnnouncement>,
     private val nodeRole: NodeRole,
+    private val curNodePlayer: Optional<GamePlayer>,
     private val config: Optional<GameConfig>,
     private val stateOrder: Optional<Int>,
     private val gameName: Optional<String>,
@@ -38,6 +39,14 @@ internal class StateImpl internal constructor(
     override fun getStateOrder(): Int = stateOrder.orElseThrow { NoSuchElementException("State order is empty") }
     override fun getErrors(): Queue<String> = errors
     override fun getAnnouncements(): Map<InetSocketAddress, GameAnnouncement> = announcements
+    override fun getMasterPlayer(): GamePlayer {
+        return players.stream().filter { pl -> pl.role == NodeRole.MASTER }.findFirst()
+            .orElseThrow { NoSuchElementException("No master player in game") }
+    }
+
+    override fun getCurNodePlayer(): GamePlayer =
+        curNodePlayer.orElseThrow { NoSuchElementException("Current node player is empty") }
+
     override fun getGameName(): String = gameName.orElseThrow { NoSuchElementException("State order is empty") }
     override fun getGameAddress(): InetSocketAddress =
         gameAddress.orElseThrow { NoSuchElementException("State order is empty") }

@@ -28,6 +28,15 @@ interface State {
     fun getStateOrder() : Int
     fun getErrors() : Queue<String>
 
+    /**
+     * @throws NoSuchElementException если текущая нода не в игре
+     */
+    fun getMasterPlayer() : GamePlayer
+
+    /**
+     * @throws NoSuchElementException если текущая нода не в игре
+     */
+    fun getCurNodePlayer() : GamePlayer
 
     /**
      * @throws NoSuchElementException если текущая нода не в игре

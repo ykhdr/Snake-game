@@ -26,15 +26,16 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var nodeRole: NodeRole = NodeRole.VIEWER
     private var config: Optional<GameConfig> = Optional.empty()
     private var stateOrder: Optional<Int> = Optional.empty()
+    private var currentGamePlayer: Optional<GamePlayer> = Optional.empty()
     private var gameName: Optional<String> = Optional.empty()
-    private var gameAddress : Optional<InetSocketAddress> = Optional.empty()
+    private var gameAddress: Optional<InetSocketAddress> = Optional.empty()
     private var playerName: String = DEFAULT_PLAYER_NAME
     private var nodeId: Optional<Int> = Optional.empty()
     private val errors: Queue<String> = LinkedList()
     private var availableCoords: MutableList<Coord> = mutableListOf()
     private var joinRequest: Optional<JoinRequest> = Optional.empty()
     private var steerRequest: Optional<SteerRequest> = Optional.empty()
-    private var leaveRequest : Optional<ChangeRoleRequest> = Optional.empty()
+    private var leaveRequest: Optional<ChangeRoleRequest> = Optional.empty()
 
     @Synchronized
     override fun addFoods(foods: List<Coord>) {
@@ -183,6 +184,10 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.snakes.addAll(newState.snakes)
         this.players.addAll(newState.players)
         this.stateOrder = Optional.of(newState.stateOrder)
+
+        this.currentGamePlayer = Optional.of(
+            players.stream().filter { pl -> pl.id == this.nodeId.get() }.findFirst().get()
+        )
     }
 
     @Synchronized
@@ -231,10 +236,10 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.snakes.clear()
         this.playersToAdding.clear()
         this.players.clear()
-        this.deputyListeners.clear()
-        this.config = Optional.empty()
+//        this.deputyListeners.clear()
+//        this.config = Optional.empty()
         this.stateOrder = Optional.empty()
-        this.gameName = Optional.empty()
+//        this.gameName = Optional.empty()
         this.gameAddress = Optional.empty()
         this.availableCoords.clear()
     }
@@ -249,6 +254,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             snakes,
             announcements,
             nodeRole,
+            currentGamePlayer,
             config,
             stateOrder,
             gameName,

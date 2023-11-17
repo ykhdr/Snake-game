@@ -6,7 +6,6 @@ import model.models.requests.JoinRequest
 import model.models.core.NodeRole
 import model.models.requests.ChangeRoleRequest
 import java.net.InetSocketAddress
-import kotlin.jvm.optionals.getOrElse
 
 class LobbyControllerImpl(
     private val context: Context
@@ -25,21 +24,30 @@ class LobbyControllerImpl(
     override fun leave() {
         val state = context.stateHolder.getState()
 
-        val senderId = state.getPlayers().stream()
-            .filter { player -> player.role == NodeRole.MASTER }
-            .map { p -> p.id }
-            .findFirst()
+        runCatching {
+            val receiverPlayer = state.getMasterPlayer()
 
+            runCatching {
+                val senderPlayer = state.getCurNodePlayer()
 
-        if (senderId.isEmpty) {
-            context.stateHolder.getStateEditor().addError("Master node has not found in game")
+                val leaveRequest = ChangeRoleRequest(
+                    senderPlayer.id,
+                    receiverPlayer.id,
+                    senderPlayer.role,
+                    receiverPlayer.role
+                )
+
+                context.stateHolder.getStateEditor().setLeaveRequest(leaveRequest)
+
+            }.onFailure { e ->
+                throw e
+            }
+
+        }.onFailure { e ->
+            e.message?.let { context.stateHolder.getStateEditor().addError(it) }
         }
-//        val leaveRequest = ChangeRoleRequest(}
-//        )
-//
-//        context.stateHolder.getStateEditor().setLeaveRequest(true)
-
     }
+
 
     override fun createGame(gameName: String) {
         // TODO add to state CreateGameRequest()
