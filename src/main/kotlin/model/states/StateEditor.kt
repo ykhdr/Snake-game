@@ -7,12 +7,14 @@ import model.models.requests.JoinRequest
 import model.models.requests.SteerRequest
 import model.models.core.*
 import model.models.requests.ChangeRoleRequest
+import model.models.requests.GameCreateRequest
 import java.net.InetSocketAddress
 
 /**
  * Отвечает за изменения состояния внешними источниками
  */
 interface StateEditor {
+
     fun addFoods(foods: List<Coord>)
 
     /**
@@ -77,5 +79,8 @@ interface StateEditor {
 
     fun setLeaveRequest(leaveRequest: ChangeRoleRequest)
     fun clearLeaveRequest()
+
+    fun setGameCreateRequest(gameCreateRequest: GameCreateRequest)
+    fun clearGameCreateRequest()
 
 }

@@ -7,6 +7,7 @@ import model.models.requests.JoinRequest
 import model.models.requests.SteerRequest
 import model.models.core.*
 import model.models.requests.ChangeRoleRequest
+import model.models.requests.GameCreateRequest
 import model.states.State
 import model.states.StateEditor
 import java.net.InetSocketAddress
@@ -36,6 +37,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var joinRequest: Optional<JoinRequest> = Optional.empty()
     private var steerRequest: Optional<SteerRequest> = Optional.empty()
     private var leaveRequest: Optional<ChangeRoleRequest> = Optional.empty()
+    private var gameCreateRequest: Optional<GameCreateRequest> = Optional.empty()
 
     @Synchronized
     override fun addFoods(foods: List<Coord>) {
@@ -231,6 +233,16 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.leaveRequest = Optional.empty()
     }
 
+    @Synchronized
+    override fun setGameCreateRequest(gameCreateRequest: GameCreateRequest) {
+        this.gameCreateRequest = Optional.of(gameCreateRequest)
+    }
+
+    @Synchronized
+    override fun clearGameCreateRequest() {
+        this.gameCreateRequest = Optional.empty()
+    }
+
     private fun resetState() {
         this.foods.clear()
         this.snakes.clear()
@@ -264,7 +276,8 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             availableCoords,
             joinRequest,
             steerRequest,
-            leaveRequest
+            leaveRequest,
+            gameCreateRequest
         )
     }
 }

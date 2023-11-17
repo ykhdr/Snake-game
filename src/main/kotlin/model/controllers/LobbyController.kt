@@ -6,6 +6,6 @@ import java.net.InetSocketAddress
 interface LobbyController : Controller {
     fun join(address: InetSocketAddress, gameName: String, requestedRole: NodeRole)
     fun leave()
-    fun createGame(gameName: String)
+    fun createGame(gameName: String, width: Int, height : Int, foodStatic: Int, stateDelay : Int)
     fun setPlayerName(playerName: String)
 }

@@ -4,6 +4,7 @@ import model.models.requests.JoinRequest
 import model.models.requests.SteerRequest
 import model.models.core.*
 import model.models.requests.ChangeRoleRequest
+import model.models.requests.GameCreateRequest
 import model.states.State
 import java.net.InetSocketAddress
 import java.util.*
@@ -26,8 +27,11 @@ internal class StateImpl internal constructor(
     private val availableCoords: List<Coord>,
     private val joinRequest: Optional<JoinRequest>,
     private val steerRequest: Optional<SteerRequest>,
-    private val leaveRequest: Optional<ChangeRoleRequest>
+    private val leaveRequest: Optional<ChangeRoleRequest>,
+    private val gameCreateRequest: Optional<GameCreateRequest>
 ) : State {
+
+
 
     override fun getFoods(): List<Coord> = foods
     override fun getSnakes(): List<Snake> = snakes
@@ -47,6 +51,8 @@ internal class StateImpl internal constructor(
     override fun getCurNodePlayer(): GamePlayer =
         curNodePlayer.orElseThrow { NoSuchElementException("Current node player is empty") }
 
+
+
     override fun getGameName(): String = gameName.orElseThrow { NoSuchElementException("State order is empty") }
     override fun getGameAddress(): InetSocketAddress =
         gameAddress.orElseThrow { NoSuchElementException("State order is empty") }
@@ -56,4 +62,5 @@ internal class StateImpl internal constructor(
     override fun getJoinRequest(): Optional<JoinRequest> = joinRequest
     override fun getSteerRequest(): Optional<SteerRequest> = steerRequest
     override fun getLeaveRequest(): Optional<ChangeRoleRequest> = leaveRequest
+    override fun getGameCreateRequest(): Optional<GameCreateRequest> = gameCreateRequest
 }

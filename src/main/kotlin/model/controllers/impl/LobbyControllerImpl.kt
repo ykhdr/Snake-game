@@ -2,9 +2,11 @@ package model.controllers.impl
 
 import model.controllers.LobbyController
 import model.models.contexts.Context
+import model.models.core.GameConfig
 import model.models.requests.JoinRequest
 import model.models.core.NodeRole
 import model.models.requests.ChangeRoleRequest
+import model.models.requests.GameCreateRequest
 import java.net.InetSocketAddress
 
 class LobbyControllerImpl(
@@ -48,9 +50,11 @@ class LobbyControllerImpl(
         }
     }
 
+    override fun createGame(gameName: String, width: Int, height: Int, foodStatic: Int, stateDelay: Int) {
+        val gameConfig = GameConfig(width, height, foodStatic, stateDelay)
+        val gameCreateRequest = GameCreateRequest(gameName, gameConfig)
 
-    override fun createGame(gameName: String) {
-        // TODO add to state CreateGameRequest()
+        context.stateHolder.getStateEditor().setGameCreateRequest(gameCreateRequest)
     }
 
     override fun setPlayerName(playerName: String) {
