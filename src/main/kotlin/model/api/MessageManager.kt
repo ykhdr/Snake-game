@@ -3,7 +3,7 @@ package model.api
 import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
 import model.dto.messages.*
-import model.models.AckConfirmation
+import model.models.util.AckConfirmation
 import model.models.contexts.NetworkContext
 import model.models.core.*
 import model.states.StateHolder

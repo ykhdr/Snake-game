@@ -1,4 +1,4 @@
-package model.models
+package model.models.util
 
 import model.dto.messages.Message
 
