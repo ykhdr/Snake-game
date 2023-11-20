@@ -40,7 +40,7 @@ class FieldController(
     private val logger = KotlinLogging.logger {}
 
     private val scanFieldTask = {
-        while (stateHolder.isNodeMaster()) {
+        if (stateHolder.isNodeMaster()) {
             val state = stateHolder.getState()
             val config = state.getConfig()
 
@@ -84,6 +84,7 @@ class FieldController(
 
     private val creatingSnakesTask = {
         if (stateHolder.isNodeMaster()) {
+            logger.info("Create snake task run")
             val state = stateHolder.getState()
             val playersToAdding = state.getPlayersToAdding()
             val availableCoords = state.getAvailableCoords().toMutableList()
@@ -110,7 +111,9 @@ class FieldController(
     }
 
     private val createGameTask = {
-        val gameCreateRequestOpt = stateHolder.getState().getGameCreateRequest()
+        val state = stateHolder.getState()
+        logger.warn("$state")
+        val gameCreateRequestOpt = state.getGameCreateRequest()
         if (gameCreateRequestOpt.isPresent) {
             val gameCreateRequest = gameCreateRequestOpt.get()
 
@@ -123,6 +126,11 @@ class FieldController(
                 role = NodeRole.MASTER,
             )
 
+            fieldSize = FieldSize(gameCreateRequest.gameConfig.width, gameCreateRequest.gameConfig.height)
+
+            val availableCoords = findAvailableCoords(emptyList(), state.getFoods())
+            stateHolder.getStateEditor().setNodeRole(NodeRole.MASTER)
+            stateHolder.getStateEditor().updateAvailableCoords(availableCoords)
             stateHolder.getStateEditor().addPlayerToAdding(player)
             stateHolder.getStateEditor().clearGameCreateRequest()
             logger.info("Game created")

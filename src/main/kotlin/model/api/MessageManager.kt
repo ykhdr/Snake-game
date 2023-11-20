@@ -6,15 +6,18 @@ import model.dto.messages.*
 import model.models.util.AckConfirmation
 import model.models.contexts.NetworkContext
 import model.models.core.*
+import model.models.requests.DeputyListenTaskRequest
 import model.states.StateHolder
 import model.utils.IdSequence
 import mu.KotlinLogging
 import java.io.Closeable
 import java.net.InetSocketAddress
+import java.util.*
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.log
 
 
 class MessageManager(
@@ -35,37 +38,36 @@ class MessageManager(
     private val ackConfirmations = mutableListOf<AckConfirmation>()
     private val sentMessageTime = mutableMapOf<InetSocketAddress, Long>()
 
-    private val isThreadExecutorTasksRunning = AtomicBoolean(true)
-
     private val receiverController: ReceiverController = ReceiverController(context.networkConfig)
     private val senderController: SenderController = SenderController()
+
+    private var deputyListenTaskFuture: Optional<ScheduledFuture<*>> = Optional.empty()
 
     private val logger = KotlinLogging.logger {}
 
 
     private val receiveTask = {
-        while (isThreadExecutorTasksRunning.get()) {
-            val result = runCatching { receiverController.receive() }
-            result.onSuccess {
-                handleMessage(it)
-            }.onFailure {
-                logger.warn("Receiving data has not any message type", it)
-            }
+        runCatching {
+            receiverController.receive()
+        }.onSuccess { message ->
+            handleMessage(message)
+        }.onFailure { e ->
+            logger.warn("Error on receiving data", e)
         }
+
+        Unit
     }
 
     // Подтерждения только в рамках игры
     private val ackConfirmationTask = {
-        while (isThreadExecutorTasksRunning.get()) {
-            if (stateHolder.isNodeMaster()) {
-                val state = stateHolder.getState()
+        if (stateHolder.isNodeMaster()) {
+            val state = stateHolder.getState()
 
-                if (state.getNodeRole() != NodeRole.VIEWER) {
-                    runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
-                        ackConfirm(config)
-                    }.onFailure { e ->
-                        logger.warn("Game config is empty", e)
-                    }
+            if (state.getNodeRole() != NodeRole.VIEWER) {
+                runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
+                    ackConfirm(config)
+                }.onFailure { e ->
+                    logger.warn("Game config is empty", e)
                 }
             }
         }
@@ -106,40 +108,35 @@ class MessageManager(
     }
 
     private val pingTask = {
-        while (isThreadExecutorTasksRunning.get()) {
-            if (stateHolder.isNodeMaster()) {
-                runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
-                    var stateDelay: Int
-                    synchronized(config) {
-                        stateDelay = config.stateDelayMs / 10
-                    }
-                    synchronized(sentMessageTime) {
-                        for (entry in sentMessageTime) {
-                            val currentTime = System.currentTimeMillis()
-                            if (entry.value > currentTime - stateDelay) {
-                                sendMessage(Ping(entry.key))
-                                entry.setValue(currentTime)
-                            }
-                        }
-                        logger.info("Ping sent")
-                    }
-                }.onFailure { e ->
-                    logger.warn("Game config is empty", e)
+        if (stateHolder.isNodeMaster()) {
+            runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
+                var stateDelay: Int
+                synchronized(config) {
+                    stateDelay = config.stateDelayMs / 10
                 }
+                synchronized(sentMessageTime) {
+                    for (entry in sentMessageTime) {
+                        val currentTime = System.currentTimeMillis()
+                        if (entry.value > currentTime - stateDelay) {
+                            sendMessage(Ping(entry.key))
+                            entry.setValue(currentTime)
+                        }
+                    }
+                    logger.info("Ping sent")
+                }
+            }.onFailure { e ->
+                logger.warn("Game config is empty", e)
             }
         }
     }
 
     private val announcementTask = {
         if (stateHolder.isNodeMaster()) {
-            val state = stateHolder.getState()
-            if (state.getNodeRole() == NodeRole.MASTER) {
-                runCatching { stateHolder.getGameAnnouncement() }.onSuccess { announcement ->
-                    sendMessage(Announcement(context.networkConfig.groupAddress, listOf(announcement)))
-                    logger.info("Sent announcement to nodes")
-                }.onFailure { e ->
-                    logger.warn("Game Announcement is empty", e)
-                }
+            runCatching { stateHolder.getGameAnnouncement() }.onSuccess { announcement ->
+                sendMessage(Announcement(context.networkConfig.groupAddress, listOf(announcement)))
+                logger.info("Sent announcement to nodes")
+            }.onFailure { e ->
+                logger.warn("Game Announcement is empty", e)
             }
 
         }
@@ -148,19 +145,18 @@ class MessageManager(
     // Здесь мы смотрим является ли наша нода Deputy и после спрашиваем у нее
     // какие ноды просят вместо mastera у нас инфу об игре (GameState)
     private val deputyListenersTask = {
-        if (stateHolder.isNodeMaster()) {
-            val state = stateHolder.getState()
-            if (state.getNodeRole() == NodeRole.DEPUTY) {
-                val messages: List<State> = state.getDeputyListeners()
-                    .map { address -> State(address, stateHolder.getGameState()) }
+        val state = stateHolder.getState()
+        val nodeRole = state.getNodeRole()
+        if (nodeRole == NodeRole.DEPUTY) {
+            val messages: List<State> = state.getDeputyListeners()
+                .map { address -> State(address, stateHolder.getGameState()) }
 
-                for (message in messages) {
-                    sendMessage(message)
-                    waitAckOnMessage(message)
-                }
-
-                logger.info("Sent state to deputy listeners")
+            for (message in messages) {
+                sendMessage(message)
+                waitAckOnMessage(message)
             }
+
+            logger.info("Sent state to deputy listeners")
         }
     }
 
@@ -171,27 +167,38 @@ class MessageManager(
             checkSteerRequest(state)
             checkJoinRequest(state)
             checkLeaveRequest(state)
+            checkDeputyListenRequest(state)
             logger.info("All request tasks checked")
         }
     }
 
 
     init {
-        threadExecutor.execute(receiveTask)
-        threadExecutor.execute(ackConfirmationTask)
-        threadExecutor.execute(pingTask)
+        scheduledExecutor.scheduleWithFixedDelay(
+            receiveTask,
+            0,
+            1,
+            TimeUnit.MILLISECONDS
+        )
+
+        scheduledExecutor.scheduleWithFixedDelay(
+            ackConfirmationTask,
+            0,
+            400,
+            TimeUnit.MILLISECONDS
+        )
+
+        scheduledExecutor.scheduleWithFixedDelay(
+            pingTask,
+            0,
+            100,
+            TimeUnit.MILLISECONDS
+        )
 
         scheduledExecutor.scheduleWithFixedDelay(
             announcementTask,
             ANNOUNCEMENT_INITIAL_DELAY_MS,
             ANNOUNCEMENT_DELAY_MS,
-            TimeUnit.MILLISECONDS
-        )
-
-        scheduledExecutor.scheduleWithFixedDelay(
-            deputyListenersTask,
-            0,
-            stateHolder.getState().getConfig().stateDelayMs.toLong(),
             TimeUnit.MILLISECONDS
         )
 
@@ -207,11 +214,7 @@ class MessageManager(
 
 
     override fun close() {
-        isThreadExecutorTasksRunning.set(false)
-
-        threadExecutor.awaitTermination(1000, TimeUnit.MILLISECONDS)
-
-//        threadExecutor.shutdown()
+        threadExecutor.shutdown()
         scheduledExecutor.shutdown()
         receiverController.close()
         senderController.close()
@@ -267,6 +270,43 @@ class MessageManager(
 
         stateHolder.getStateEditor().clearLeaveRequest()
         logger.info("Leave request confirmed")
+    }
+
+    private fun checkDeputyListenRequest(state: model.states.State) {
+
+        when (state.getDeputyListenTaskRequest()) {
+            DeputyListenTaskRequest.RUN -> {
+                if (deputyListenTaskFuture.isPresent) {
+                    return
+                }
+
+                deputyListenTaskFuture = Optional.of(
+                    scheduledExecutor.scheduleWithFixedDelay(
+                        deputyListenersTask,
+                        0,
+                        stateHolder.getState().getConfig().stateDelayMs.toLong(),
+                        TimeUnit.MILLISECONDS
+                    )
+                )
+
+                stateHolder.getStateEditor().clearDeputyListenTaskToRun()
+            }
+
+            DeputyListenTaskRequest.STOP -> {
+                if (deputyListenTaskFuture.isEmpty) {
+                    return
+                }
+
+                deputyListenTaskFuture.get().cancel(true)
+
+                stateHolder.getStateEditor().clearDeputyListenTaskToRun()
+            }
+
+            DeputyListenTaskRequest.DISABLE -> {
+                // nothing
+            }
+        }
+
     }
 
 

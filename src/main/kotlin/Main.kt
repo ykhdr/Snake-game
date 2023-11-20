@@ -9,6 +9,8 @@ fun main() /*= application */{
 
     client.getLobbyController().setPlayerName("hi")
 
+
+    client.getLobbyController().createGame("A", 10, 10,3,1000)
 //    Window(
 //        onCloseRequest = ::exitApplication,
 //        title = "Snake game"
@@ -16,6 +18,6 @@ fun main() /*= application */{
 //        MaterialTheme { MenuView() }
 //    }
 
-    Thread.sleep(1000)
+    Thread.sleep(10000)
     client.close()
 }

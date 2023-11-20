@@ -1,10 +1,7 @@
 package model.states
 
-import model.models.requests.JoinRequest
-import model.models.requests.SteerRequest
 import model.models.core.*
-import model.models.requests.ChangeRoleRequest
-import model.models.requests.GameCreateRequest
+import model.models.requests.*
 import java.net.InetSocketAddress
 import java.util.*
 
@@ -54,4 +51,6 @@ interface State {
     fun getSteerRequest() : Optional<SteerRequest>
     fun getLeaveRequest() : Optional<ChangeRoleRequest>
     fun getGameCreateRequest() : Optional<GameCreateRequest>
+
+    fun getDeputyListenTaskRequest() : DeputyListenTaskRequest
 }

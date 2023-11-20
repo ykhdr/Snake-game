@@ -3,11 +3,8 @@ package model.states.impl
 import model.exceptions.NoSpaceOnFieldError
 import model.exceptions.NodeRoleHasNotPrivilegesError
 import model.exceptions.UnknownPlayerError
-import model.models.requests.JoinRequest
-import model.models.requests.SteerRequest
 import model.models.core.*
-import model.models.requests.ChangeRoleRequest
-import model.models.requests.GameCreateRequest
+import model.models.requests.*
 import model.states.State
 import model.states.StateEditor
 import java.net.InetSocketAddress
@@ -38,6 +35,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var steerRequest: Optional<SteerRequest> = Optional.empty()
     private var leaveRequest: Optional<ChangeRoleRequest> = Optional.empty()
     private var gameCreateRequest: Optional<GameCreateRequest> = Optional.empty()
+    private var deputyListenTaskRequest: DeputyListenTaskRequest = DeputyListenTaskRequest.DISABLE
 
     @Synchronized
     override fun addFoods(foods: List<Coord>) {
@@ -159,30 +157,43 @@ internal class StateEditorImpl internal constructor() : StateEditor {
                 player.ip == playerAddress && player.port == playerAddress.port
             }
         }.onSuccess { player ->
+
+
             // Заместитель становиться главным
             if (receiverRole == NodeRole.MASTER && player.role == NodeRole.DEPUTY) {
                 player.role = NodeRole.MASTER
 
+
                 // От мастера о том, что он выходит и мы становимся главным
             } else if (senderRole == NodeRole.VIEWER && receiverRole == NodeRole.MASTER) {
                 nodeRole = NodeRole.MASTER
+                player.role = NodeRole.MASTER
                 //TODO если мы становимся мастером, то надо ли здесь что то менять?
 
                 // Выходящий игрок
             } else if (senderRole == NodeRole.VIEWER) {
                 player.role = NodeRole.VIEWER
+                nodeRole = NodeRole.VIEWER
                 // От главного умершему
             } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.VIEWER) {
                 nodeRole = NodeRole.VIEWER
+                player.role = NodeRole.VIEWER
+
                 // От главного новому заместителю
             } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.DEPUTY) {
                 nodeRole = NodeRole.DEPUTY
+                player.role = NodeRole.DEPUTY
+                deputyListenTaskRequest = DeputyListenTaskRequest.RUN
             } else {
                 throw NodeRoleHasNotPrivilegesError("sender node has not privileges to change role")
             }
         }.onFailure {
             throw UnknownPlayerError("player did not find in game")
         }
+    }
+
+    override fun clearDeputyListenTaskToRun() {
+        this.deputyListenTaskRequest = DeputyListenTaskRequest.DISABLE
     }
 
     @Synchronized
@@ -284,7 +295,8 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             joinRequest,
             steerRequest,
             leaveRequest,
-            gameCreateRequest
+            gameCreateRequest,
+            deputyListenTaskRequest
         )
     }
 

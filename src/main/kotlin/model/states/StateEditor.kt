@@ -85,4 +85,6 @@ interface StateEditor {
     fun setGameCreateRequest(gameCreateRequest: GameCreateRequest)
     fun clearGameCreateRequest()
 
+    fun clearDeputyListenTaskToRun()
+
 }

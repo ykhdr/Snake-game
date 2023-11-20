@@ -1,10 +1,7 @@
 package model.states.impl
 
-import model.models.requests.JoinRequest
-import model.models.requests.SteerRequest
 import model.models.core.*
-import model.models.requests.ChangeRoleRequest
-import model.models.requests.GameCreateRequest
+import model.models.requests.*
 import model.states.State
 import java.net.InetSocketAddress
 import java.util.*
@@ -28,9 +25,9 @@ internal class StateImpl internal constructor(
     private val joinRequest: Optional<JoinRequest>,
     private val steerRequest: Optional<SteerRequest>,
     private val leaveRequest: Optional<ChangeRoleRequest>,
-    private val gameCreateRequest: Optional<GameCreateRequest>
+    private val gameCreateRequest: Optional<GameCreateRequest>,
+    private val deputyListenTaskRequest: DeputyListenTaskRequest
 ) : State {
-
 
 
     override fun getFoods(): List<Coord> = foods
@@ -52,7 +49,6 @@ internal class StateImpl internal constructor(
         curNodePlayer.orElseThrow { NoSuchElementException("Current node player is empty") }
 
 
-
     override fun getGameName(): String = gameName.orElseThrow { NoSuchElementException("State order is empty") }
     override fun getGameAddress(): InetSocketAddress =
         gameAddress.orElseThrow { NoSuchElementException("State order is empty") }
@@ -63,4 +59,28 @@ internal class StateImpl internal constructor(
     override fun getSteerRequest(): Optional<SteerRequest> = steerRequest
     override fun getLeaveRequest(): Optional<ChangeRoleRequest> = leaveRequest
     override fun getGameCreateRequest(): Optional<GameCreateRequest> = gameCreateRequest
+
+    override fun getDeputyListenTaskRequest(): DeputyListenTaskRequest = deputyListenTaskRequest
+    override fun toString(): String {
+        return "StateImpl(foods=$foods, " +
+                "playersToAdding=$playersToAdding, " +
+                "players=$players, " +
+                "deputyListeners=$deputyListeners, " +
+                "snakes=$snakes, " +
+                "announcements=$announcements, " +
+                "nodeRole=$nodeRole, " +
+                "curNodePlayer=$curNodePlayer, " +
+                "config=$config, " +
+                "stateOrder=$stateOrder, " +
+                "gameName=$gameName, " +
+                "gameAddress=$gameAddress, " +
+                "playerName='$playerName', " +
+                "errors=$errors, " +
+                "availableCoords=$availableCoords, " +
+                "joinRequest=$joinRequest, " +
+                "steerRequest=$steerRequest, " +
+                "leaveRequest=$leaveRequest, " +
+                "gameCreateRequest=$gameCreateRequest, " +
+                "deputyListenTaskRequest=$deputyListenTaskRequest)"
+    }
 }

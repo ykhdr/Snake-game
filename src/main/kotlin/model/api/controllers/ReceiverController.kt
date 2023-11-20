@@ -36,6 +36,11 @@ class ReceiverController(
      * @throws UndefinedMessageTypeError если полученное сообщение явялется неизвестным
      */
     fun receive(): Message {
+//        if (socket.isClosed){
+//            logger.warn("Can not receive message.Socket closed")
+//
+//        }
+
         val datagramPacket = DatagramPacket(buffer, buffer.size)
         socket.receive(datagramPacket)
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
