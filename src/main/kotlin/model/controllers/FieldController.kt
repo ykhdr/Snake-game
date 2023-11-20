@@ -1,11 +1,7 @@
 package model.controllers
 
-import model.controllers.impl.GameControllerImpl
 import model.models.contexts.Context
-import model.models.core.Coord
-import model.models.core.Direction
-import model.models.core.Snake
-import model.models.core.SnakeState
+import model.models.core.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -39,6 +35,7 @@ class FieldController(
             val state = stateHolder.getState()
             val config = state.getConfig()
 
+            // TODO посмотреть, надо ли тут это вообще
             if (isNewGame.get()) {
                 fieldSize = FieldSize(config.width, config.height)
             }
@@ -57,8 +54,10 @@ class FieldController(
             val state = stateHolder.getState()
             val playersToAdding = state.getPlayersToAdding()
             val availableCoords = state.getAvailableCoords().toMutableList()
-            while (playersToAdding.isNotEmpty() && availableCoords.isNotEmpty()) {
-                val player = playersToAdding.poll()
+            for (player in playersToAdding){
+                if (availableCoords.isEmpty()){
+                    break
+                }
                 val headCoord = availableCoords.first ?: continue
                 val bodyCoord = getRandomSecondSnakeCoord(headCoord)
                 val snake = Snake(
@@ -68,18 +67,20 @@ class FieldController(
                     getHeadDirection(headCoord, bodyCoord)
                 )
 
-                stateHolder.getStateEditor().addSnake(snake)
                 availableCoords.remove(headCoord)
+                stateHolder.getStateEditor().removePlayerToAdding(player)
+                stateHolder.getStateEditor().updateAvailableCoords(availableCoords)
+                stateHolder.getStateEditor().addSnake(snake)
             }
         }
     }
 
     private val creatingGameTask = {
         val gameCreateRequestOpt = stateHolder.getState().getGameCreateRequest()
-        if (gameCreateRequestOpt.isPresent){
-            val gameName = gameCreateRequestOpt.get().gameName
+        if (gameCreateRequestOpt.isPresent) {
+            val gameCreateRequest = gameCreateRequestOpt.get()
 
-
+            createGame(gameCreateRequest.gameConfig, gameCreateRequest.gameName)
         }
     }
 
@@ -89,6 +90,14 @@ class FieldController(
             CREATING_SNAKES_TASK_DELAY,
             TimeUnit.MILLISECONDS
         )
+    }
+
+
+
+
+    private fun createGame(gameConfig: GameConfig, gameName: String) {
+        fieldSize = FieldSize(gameConfig.width, gameConfig.height)
+
     }
 
     private fun findAvailableCoords(snakesCoords: List<Coord>, foodCoords: List<Coord>): List<Coord> {
@@ -107,7 +116,9 @@ class FieldController(
         return allCoords
     }
 
+    private fun createSnake(player: GamePlayer){
 
+    }
 
     //TODO сделать проверку на координаты соседние
     private fun getRandomSecondSnakeCoord(headCoord: Coord): Coord {
@@ -131,7 +142,6 @@ class FieldController(
             Direction.UP
         }
     }
-
 
 
     fun runScan() {

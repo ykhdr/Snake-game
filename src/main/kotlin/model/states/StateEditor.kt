@@ -22,6 +22,8 @@ interface StateEditor {
      */
     fun addPlayerToAdding(player: GamePlayer)
 
+    fun removePlayerToAdding(player: GamePlayer)
+
     fun addPlayer(player: GamePlayer)
 
     fun removePlayer(player: GamePlayer): Boolean

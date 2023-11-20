@@ -11,7 +11,7 @@ import java.util.*
 
 internal class StateImpl internal constructor(
     private val foods: List<Coord>,
-    private val playersToAdding: Queue<GamePlayer>,
+    private val playersToAdding: List<GamePlayer>,
     private val players: List<GamePlayer>,
     private val deputyListeners: List<InetSocketAddress>,
     private val snakes: List<Snake>,
@@ -36,7 +36,7 @@ internal class StateImpl internal constructor(
     override fun getFoods(): List<Coord> = foods
     override fun getSnakes(): List<Snake> = snakes
     override fun getNodeRole(): NodeRole = nodeRole
-    override fun getPlayersToAdding(): Queue<GamePlayer> = playersToAdding
+    override fun getPlayersToAdding(): List<GamePlayer> = playersToAdding
     override fun getPlayers(): List<GamePlayer> = players
     override fun getDeputyListeners(): List<InetSocketAddress> = deputyListeners
     override fun getConfig(): GameConfig = config.orElseThrow { NoSuchElementException("State order is empty") }

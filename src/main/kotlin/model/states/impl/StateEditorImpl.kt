@@ -19,7 +19,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     }
 
     private val foods: MutableList<Coord> = mutableListOf()
-    private val playersToAdding: Queue<GamePlayer> = LinkedList()
+    private val playersToAdding: MutableList<GamePlayer> = mutableListOf()
     private val players: MutableList<GamePlayer> = mutableListOf()
     private val deputyListeners: MutableList<InetSocketAddress> = mutableListOf()
     private val snakes: MutableList<Snake> = mutableListOf()
@@ -51,6 +51,10 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         }
 
         this.playersToAdding.add(player)
+    }
+
+    override fun removePlayerToAdding(player: GamePlayer) {
+        this.playersToAdding.remove(player)
     }
 
     @Synchronized
@@ -280,4 +284,6 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             gameCreateRequest
         )
     }
+
+
 }

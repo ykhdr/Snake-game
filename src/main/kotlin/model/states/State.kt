@@ -13,7 +13,7 @@ interface State {
     fun getFoods() : List<Coord>
     fun getSnakes() : List<Snake>
     fun getNodeRole() : NodeRole
-    fun getPlayersToAdding() : Queue<GamePlayer>
+    fun getPlayersToAdding(): List<GamePlayer>
     fun getPlayers() : List<GamePlayer>
     fun getDeputyListeners() : List<InetSocketAddress>
     fun getAnnouncements() : Map<InetSocketAddress, GameAnnouncement>
