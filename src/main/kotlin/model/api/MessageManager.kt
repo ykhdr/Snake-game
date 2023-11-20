@@ -211,9 +211,12 @@ class MessageManager(
 
         threadExecutor.awaitTermination(1000, TimeUnit.MILLISECONDS)
 
+        threadExecutor.close()
+        scheduledExecutor.close()
         receiverController.close()
         senderController.close()
-        logger.info("Sockets closed")
+
+        logger.info("Sockets and executors closed")
     }
 
 

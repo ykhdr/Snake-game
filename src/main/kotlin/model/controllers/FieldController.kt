@@ -4,6 +4,7 @@ import model.models.contexts.Context
 import model.models.core.*
 import model.utils.IdSequence
 import mu.KotlinLogging
+import java.io.Closeable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -13,7 +14,7 @@ import kotlin.random.Random
 
 class FieldController(
     context: Context
-) {
+) : Closeable {
     private data class FieldSize(
         val width: Int,
         val height: Int,
@@ -21,6 +22,7 @@ class FieldController(
 
     companion object {
         private const val SCHEDULED_PULL_SIZE = 4
+        private const val INITIAL_DELAY = 0L
         private const val SCAN_FIELD_TASK_DELAY = 200L
         private const val CREATING_SNAKES_TASK_DELAY = 300L
         private const val SPAWN_FOOD_TASK_DELAY = 1000L
@@ -128,27 +130,31 @@ class FieldController(
     }
 
     init {
-        schedulerExecutor.schedule(
+        schedulerExecutor.scheduleWithFixedDelay(
             scanFieldTask,
+            INITIAL_DELAY,
             SCAN_FIELD_TASK_DELAY,
             TimeUnit.MILLISECONDS
         )
-        schedulerExecutor.schedule(
+        schedulerExecutor.scheduleWithFixedDelay(
             creatingSnakesTask,
+            INITIAL_DELAY,
             CREATING_SNAKES_TASK_DELAY,
             TimeUnit.MILLISECONDS
         )
-        schedulerExecutor.schedule(
+        schedulerExecutor.scheduleWithFixedDelay(
             spawnFoodTask,
+            INITIAL_DELAY,
             SPAWN_FOOD_TASK_DELAY,
             TimeUnit.MILLISECONDS
         )
-        schedulerExecutor.schedule(
+        schedulerExecutor.scheduleWithFixedDelay(
             createGameTask,
+            INITIAL_DELAY,
             CREATE_GAME_TASK_DELAY,
             TimeUnit.MILLISECONDS
         )
-        
+
         logger.info("FieldController tasks running")
     }
 
@@ -189,5 +195,10 @@ class FieldController(
         } else {
             Direction.UP
         }
+    }
+
+    override fun close() {
+        schedulerExecutor.close()
+        logger.info("Executor closed")
     }
 }
