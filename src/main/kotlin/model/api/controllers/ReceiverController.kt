@@ -21,7 +21,7 @@ class ReceiverController(
         private const val BUFFER_SIZE = 1024
     }
 
-    private var socket: MulticastSocket = initSocket(config)
+    private val logger = KotlinLogging.logger {}
 
     private val protoMapper = ProtoMapper
     private val buffer = ByteArray(BUFFER_SIZE)
@@ -30,7 +30,7 @@ class ReceiverController(
     private val receivedAck = mutableMapOf<InetSocketAddress, Ack>()
     private val receivedErrors = mutableMapOf<InetSocketAddress, Error>()
 
-    private val logger = KotlinLogging.logger {}
+    private var socket: MulticastSocket = initSocket(config)
 
     /**
      * @throws UndefinedMessageTypeError если полученное сообщение явялется неизвестным
@@ -126,12 +126,12 @@ class ReceiverController(
             config.groupAddress,
             config.localInterface
         )
-        logger.info { "Multicast socket init" }
+        logger.info("Multicast socket init")
         return socket
     }
 
     override fun close() {
         socket.close()
-        logger.info { "Multicast socket closed" }
+        logger.info ("Multicast socket closed")
     }
 }

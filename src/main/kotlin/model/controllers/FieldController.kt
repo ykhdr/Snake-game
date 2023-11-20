@@ -91,7 +91,7 @@ class FieldController(
                 if (availableCoords.isEmpty()) {
                     break
                 }
-                val headCoord = availableCoords.first
+                val headCoord = availableCoords.first()
                 val bodyCoord = getRandomSecondSnakeCoord(headCoord)
                 val snake = Snake(
                     player.id,
@@ -198,7 +198,7 @@ class FieldController(
     }
 
     override fun close() {
-        schedulerExecutor.close()
+        schedulerExecutor.shutdown()
         logger.info("Executor closed")
     }
 }

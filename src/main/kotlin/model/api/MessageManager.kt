@@ -211,8 +211,8 @@ class MessageManager(
 
         threadExecutor.awaitTermination(1000, TimeUnit.MILLISECONDS)
 
-        threadExecutor.close()
-        scheduledExecutor.close()
+//        threadExecutor.shutdown()
+        scheduledExecutor.shutdown()
         receiverController.close()
         senderController.close()
 

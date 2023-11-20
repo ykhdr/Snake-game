@@ -154,31 +154,34 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
     @Synchronized
     override fun updateRole(playerAddress: InetSocketAddress, senderRole: NodeRole, receiverRole: NodeRole) {
-        val player = players.filter { player ->
-            player.ip == playerAddress && player.port == playerAddress.port
-        }.first ?: throw UnknownPlayerError("player did not find in game")
+        runCatching {
+            players.first { player ->
+                player.ip == playerAddress && player.port == playerAddress.port
+            }
+        }.onSuccess { player ->
+            // Заместитель становиться главным
+            if (receiverRole == NodeRole.MASTER && player.role == NodeRole.DEPUTY) {
+                player.role = NodeRole.MASTER
 
+                // От мастера о том, что он выходит и мы становимся главным
+            } else if (senderRole == NodeRole.VIEWER && receiverRole == NodeRole.MASTER) {
+                nodeRole = NodeRole.MASTER
+                //TODO если мы становимся мастером, то надо ли здесь что то менять?
 
-        // Заместитель становиться главным
-        if (receiverRole == NodeRole.MASTER && player.role == NodeRole.DEPUTY) {
-            player.role = NodeRole.MASTER
-
-            // От мастера о том, что он выходит и мы становимся главным
-        } else if (senderRole == NodeRole.VIEWER && receiverRole == NodeRole.MASTER) {
-            nodeRole = NodeRole.MASTER
-            //TODO если мы становимся мастером, то надо ли здесь что то менять?
-
-            // Выходящий игрок
-        } else if (senderRole == NodeRole.VIEWER) {
-            player.role = NodeRole.VIEWER
-            // От главного умершему
-        } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.VIEWER) {
-            nodeRole = NodeRole.VIEWER
-            // От главного новому заместителю
-        } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.DEPUTY) {
-            nodeRole = NodeRole.DEPUTY
-        } else {
-            throw NodeRoleHasNotPrivilegesError("sender node has not privileges to change role")
+                // Выходящий игрок
+            } else if (senderRole == NodeRole.VIEWER) {
+                player.role = NodeRole.VIEWER
+                // От главного умершему
+            } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.VIEWER) {
+                nodeRole = NodeRole.VIEWER
+                // От главного новому заместителю
+            } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.DEPUTY) {
+                nodeRole = NodeRole.DEPUTY
+            } else {
+                throw NodeRoleHasNotPrivilegesError("sender node has not privileges to change role")
+            }
+        }.onFailure {
+            throw UnknownPlayerError("player did not find in game")
         }
     }
 

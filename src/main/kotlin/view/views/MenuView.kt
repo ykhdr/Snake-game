@@ -7,9 +7,6 @@ import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import view.components.LeaveButton
-import view.components.Lobbies
-import view.components.NewGameButton
 
 @Preview
 @Composable
@@ -41,26 +38,27 @@ fun MenuView() = Surface(
                 horizontalArrangement = Arrangement.Center,
             ) {
 
-                LeaveButton(
-                    Modifier
-                        .fillMaxSize()
-                        .weight(2F)
-                        .padding(5.dp)
-                ) {
-
-                }
-
-                NewGameButton(
-                    Modifier
-                        .fillMaxSize()
-                        .weight(2F)
-                        .padding(5.dp)
-                ) {
-                }
-            }
-
-            Box(modifier = Modifier.fillMaxHeight().weight(6F)) {
-                Lobbies()
+//                LeaveButton(
+//                    Modifier
+//                        .fillMaxSize()
+//                        .weight(2F)
+//                        .padding(5.dp)
+//                ) {
+//
+//                }
+//
+//                NewGameButton(
+//                    Modifier
+//                        .fillMaxSize()
+//                        .weight(2F)
+//                        .padding(5.dp)
+//                ) {
+//                }
+//            }
+//
+//            Box(modifier = Modifier.fillMaxHeight().weight(6F)) {
+//                Lobbies()
+//            }
             }
         }
     }
