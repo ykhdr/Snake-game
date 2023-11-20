@@ -2,6 +2,7 @@ package model.controllers
 
 import model.models.contexts.Context
 import model.models.core.*
+import model.utils.IdSequence
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -17,8 +18,11 @@ class FieldController(
     )
 
     companion object {
-        private const val SCHEDULED_PULL_SIZE = 2
+        private const val SCHEDULED_PULL_SIZE = 4
+        private const val SCAN_FIELD_TASK_DELAY = 200L
         private const val CREATING_SNAKES_TASK_DELAY = 300L
+        private const val SPAWN_FOOD_TASK_DELAY = 1000L
+        private const val CREATE_GAME_TASK_DELAY = 300L
     }
 
     private val stateHolder = context.stateHolder
@@ -27,7 +31,6 @@ class FieldController(
 
     private var isNewGame = AtomicBoolean(false)
 
-    private val threadExecutor = Executors.newSingleThreadExecutor()
     private val schedulerExecutor = Executors.newScheduledThreadPool(SCHEDULED_PULL_SIZE)
 
     private val scanFieldTask = {
@@ -49,16 +52,35 @@ class FieldController(
         }
     }
 
+    private val spawnFoodTask = {
+        if (stateHolder.isNodeMaster()) {
+            val state = stateHolder.getState()
+            val config = state.getConfig()
+            val foods = state.getFoods()
+            val newFoods = mutableListOf<Coord>()
+
+            for (i in 0..config.foodStatic - foods.size) {
+                var coord = Coord((0..config.width).random(), (0..config.height).random())
+                while (foods.contains(coord)) {
+                    coord = Coord((0..config.width).random(), (0..config.height).random())
+                }
+                newFoods.add(coord)
+            }
+
+            stateHolder.getStateEditor().addFoods(newFoods)
+        }
+    }
+
     private val creatingSnakesTask = {
         if (stateHolder.isNodeMaster()) {
             val state = stateHolder.getState()
             val playersToAdding = state.getPlayersToAdding()
             val availableCoords = state.getAvailableCoords().toMutableList()
-            for (player in playersToAdding){
-                if (availableCoords.isEmpty()){
+            for (player in playersToAdding) {
+                if (availableCoords.isEmpty()) {
                     break
                 }
-                val headCoord = availableCoords.first ?: continue
+                val headCoord = availableCoords.first
                 val bodyCoord = getRandomSecondSnakeCoord(headCoord)
                 val snake = Snake(
                     player.id,
@@ -75,10 +97,21 @@ class FieldController(
         }
     }
 
-    private val creatingGameTask = {
+    private val createGameTask = {
         val gameCreateRequestOpt = stateHolder.getState().getGameCreateRequest()
         if (gameCreateRequestOpt.isPresent) {
             val gameCreateRequest = gameCreateRequestOpt.get()
+
+            stateHolder.getStateEditor().setGameConfig(gameCreateRequest.gameConfig)
+            stateHolder.getStateEditor()
+
+            val player = GamePlayer(
+                name = stateHolder.getState().getPlayerName(),
+                id = IdSequence.getNextId(),
+                role = NodeRole.MASTER,
+            )
+
+            stateHolder.getStateEditor().addPlayerToAdding(player)
 
             createGame(gameCreateRequest.gameConfig, gameCreateRequest.gameName)
         }
@@ -86,17 +119,29 @@ class FieldController(
 
     init {
         schedulerExecutor.schedule(
+            scanFieldTask,
+            SCAN_FIELD_TASK_DELAY,
+            TimeUnit.MILLISECONDS
+        )
+        schedulerExecutor.schedule(
             creatingSnakesTask,
             CREATING_SNAKES_TASK_DELAY,
+            TimeUnit.MILLISECONDS
+        )
+        schedulerExecutor.schedule(
+            spawnFoodTask,
+            SPAWN_FOOD_TASK_DELAY,
+            TimeUnit.MILLISECONDS
+        )
+        schedulerExecutor.schedule(
+            createGameTask,
+            CREATE_GAME_TASK_DELAY,
             TimeUnit.MILLISECONDS
         )
     }
 
 
-
-
     private fun createGame(gameConfig: GameConfig, gameName: String) {
-        fieldSize = FieldSize(gameConfig.width, gameConfig.height)
 
     }
 
@@ -116,7 +161,7 @@ class FieldController(
         return allCoords
     }
 
-    private fun createSnake(player: GamePlayer){
+    private fun createSnake(player: GamePlayer) {
 
     }
 
@@ -141,15 +186,5 @@ class FieldController(
         } else {
             Direction.UP
         }
-    }
-
-
-    fun runScan() {
-        isNewGame.set(true)
-        threadExecutor.execute(scanFieldTask)
-    }
-
-    fun stopScan() {
-        threadExecutor.shutdown()
     }
 }
