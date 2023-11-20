@@ -103,7 +103,7 @@ class FieldController(
             val gameCreateRequest = gameCreateRequestOpt.get()
 
             stateHolder.getStateEditor().setGameConfig(gameCreateRequest.gameConfig)
-            stateHolder.getStateEditor()
+            stateHolder.getStateEditor().setGameName(gameCreateRequest.gameName)
 
             val player = GamePlayer(
                 name = stateHolder.getState().getPlayerName(),
@@ -112,8 +112,7 @@ class FieldController(
             )
 
             stateHolder.getStateEditor().addPlayerToAdding(player)
-
-            createGame(gameCreateRequest.gameConfig, gameCreateRequest.gameName)
+            stateHolder.getStateEditor().clearGameCreateRequest()
         }
     }
 
@@ -140,11 +139,6 @@ class FieldController(
         )
     }
 
-
-    private fun createGame(gameConfig: GameConfig, gameName: String) {
-
-    }
-
     private fun findAvailableCoords(snakesCoords: List<Coord>, foodCoords: List<Coord>): List<Coord> {
         val allCoords = (0 until fieldSize.width).flatMap { x ->
             (0 until fieldSize.height).map { y -> Coord(x, y) }
@@ -159,10 +153,6 @@ class FieldController(
         allCoords.removeAll { coord -> foodCoords.contains(coord) }
 
         return allCoords
-    }
-
-    private fun createSnake(player: GamePlayer) {
-
     }
 
     //TODO сделать проверку на координаты соседние
