@@ -1,10 +1,29 @@
 package model.client
 
-import model.controllers.GameController
-import model.controllers.LobbyController
+import model.api.MessageManager
+import model.api.config.NetworkConfig
+import model.controllers.FieldController
+import model.controllers.impl.GameControllerImpl
+import model.controllers.impl.LobbyControllerImpl
+import model.models.contexts.NetworkContext
+import model.states.impl.StateHolderImpl
+import java.io.Closeable
 
-interface Client {
-    fun getLobbyController() : LobbyController
+class Client : Closeable {
+    private val context = NetworkContext(NetworkConfig(), StateHolderImpl())
 
-    fun getGameController() : GameController
+    private val gameController = GameControllerImpl(context)
+    private val lobbyController = LobbyControllerImpl(context)
+
+    private val fieldController = FieldController(context)
+    private val messageManager = MessageManager(context)
+
+    fun getLobbyController() = lobbyController
+
+    fun getGameController() = gameController
+
+    override fun close() {
+        messageManager.close()
+        fieldController.close()
+    }
 }
