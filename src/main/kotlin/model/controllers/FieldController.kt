@@ -3,10 +3,12 @@ package model.controllers
 import model.models.contexts.Context
 import model.models.core.*
 import model.utils.IdSequence
+import mu.KotlinLogging
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
+import kotlin.math.log
 import kotlin.random.Random
 
 class FieldController(
@@ -33,6 +35,8 @@ class FieldController(
 
     private val schedulerExecutor = Executors.newScheduledThreadPool(SCHEDULED_PULL_SIZE)
 
+    private val logger = KotlinLogging.logger {}
+
     private val scanFieldTask = {
         while (stateHolder.isNodeMaster()) {
             val state = stateHolder.getState()
@@ -49,6 +53,7 @@ class FieldController(
             val availableCoords = findAvailableCoords(snakeCoords, foodCoords)
             //TODO сделать проверку на то когда у нас четыре еды вокруг одной клетки
             stateHolder.getStateEditor().updateAvailableCoords(availableCoords)
+            logger.info("Available coords updated")
         }
     }
 
@@ -57,17 +62,21 @@ class FieldController(
             val state = stateHolder.getState()
             val config = state.getConfig()
             val foods = state.getFoods()
-            val newFoods = mutableListOf<Coord>()
 
-            for (i in 0..config.foodStatic - foods.size) {
-                var coord = Coord((0..config.width).random(), (0..config.height).random())
-                while (foods.contains(coord)) {
-                    coord = Coord((0..config.width).random(), (0..config.height).random())
+            if (foods.size != config.foodStatic) {
+                val newFoods = mutableListOf<Coord>()
+
+                for (i in 0..config.foodStatic - foods.size) {
+                    var coord = Coord((0..config.width).random(), (0..config.height).random())
+                    while (foods.contains(coord)) {
+                        coord = Coord((0..config.width).random(), (0..config.height).random())
+                    }
+                    newFoods.add(coord)
                 }
-                newFoods.add(coord)
-            }
 
-            stateHolder.getStateEditor().addFoods(newFoods)
+                stateHolder.getStateEditor().addFoods(newFoods)
+                logger.info("Food spawn")
+            }
         }
     }
 
@@ -93,6 +102,7 @@ class FieldController(
                 stateHolder.getStateEditor().removePlayerToAdding(player)
                 stateHolder.getStateEditor().updateAvailableCoords(availableCoords)
                 stateHolder.getStateEditor().addSnake(snake)
+                logger.info("Snake for player ${player.id} created")
             }
         }
     }
@@ -113,6 +123,7 @@ class FieldController(
 
             stateHolder.getStateEditor().addPlayerToAdding(player)
             stateHolder.getStateEditor().clearGameCreateRequest()
+            logger.info("Game created")
         }
     }
 
@@ -137,6 +148,8 @@ class FieldController(
             CREATE_GAME_TASK_DELAY,
             TimeUnit.MILLISECONDS
         )
+        
+        logger.info("FieldController tasks running")
     }
 
     private fun findAvailableCoords(snakesCoords: List<Coord>, foodCoords: List<Coord>): List<Coord> {

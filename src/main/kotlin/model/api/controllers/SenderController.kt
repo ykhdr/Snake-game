@@ -21,6 +21,7 @@ class SenderController : Closeable{
         val protoMessage = mapper.toProtoMessage(message)
         packet.setData(protoMessage.toByteArray())
         datagramSocket.send(packet)
+
     }
 
     override fun close() {

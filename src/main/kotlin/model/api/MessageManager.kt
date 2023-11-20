@@ -14,6 +14,7 @@ import java.net.InetSocketAddress
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.log
 
 
 class MessageManager(
@@ -120,6 +121,7 @@ class MessageManager(
                                 entry.setValue(currentTime)
                             }
                         }
+                        logger.info("Ping sent")
                     }
                 }.onFailure { e ->
                     logger.warn("Game config is empty", e)
@@ -169,6 +171,7 @@ class MessageManager(
             checkSteerRequest(state)
             checkJoinRequest(state)
             checkLeaveRequest(state)
+            logger.info("All request tasks checked")
         }
     }
 
@@ -210,6 +213,7 @@ class MessageManager(
 
         receiverController.close()
         senderController.close()
+        logger.info("Sockets closed")
     }
 
 
@@ -222,6 +226,7 @@ class MessageManager(
         sendSteerMessage(steer.address, steer.direction)
 
         stateHolder.getStateEditor().clearSteerRequest()
+        logger.info("Steer request confirmed")
     }
 
     private fun checkJoinRequest(state: model.states.State) {
@@ -239,6 +244,7 @@ class MessageManager(
         )
 
         stateHolder.getStateEditor().clearJoinRequest()
+        logger.info("Join request confirmed")
     }
 
     private fun checkLeaveRequest(state: model.states.State) {
@@ -257,6 +263,7 @@ class MessageManager(
         )
 
         stateHolder.getStateEditor().clearLeaveRequest()
+        logger.info("Leave request confirmed")
     }
 
 
@@ -265,6 +272,7 @@ class MessageManager(
 
         sendMessage(message)
         waitAckOnMessage(message)
+        logger.info("Steer message sent")
     }
 
     private fun sendErrorMessage(address: InetSocketAddress, errorMessage: String) {
@@ -275,6 +283,7 @@ class MessageManager(
 
         sendMessage(message)
         waitAckOnMessage(message)
+        logger.info("Error message sent")
     }
 
     private fun sendJoinMessage(address: InetSocketAddress, playerName: String, gameName: String, role: NodeRole) {
@@ -287,6 +296,7 @@ class MessageManager(
 
         sendMessage(message)
         waitAckOnMessage(message)
+        logger.info("Join message sent")
     }
 
     private fun sendRoleChangeMessage(
@@ -300,6 +310,7 @@ class MessageManager(
 
         sendMessage(message)
         waitAckOnMessage(message)
+        logger.info("Role change message sent")
     }
 
 
@@ -309,6 +320,7 @@ class MessageManager(
             runCatching { stateHolder.getGameAnnouncement() }.onSuccess { announcement ->
                 val message = Announcement(address, listOf(announcement))
                 sendMessage(message)
+                logger.info("Announcement sent")
             }.onFailure { e ->
                 logger.warn("Game Announcement error", e)
             }
@@ -324,6 +336,7 @@ class MessageManager(
         )
 
         sendMessage(ack)
+        logger.info("Ack sent")
     }
 
     private fun sendMessage(message: Message) {
@@ -366,19 +379,29 @@ class MessageManager(
                 val stateEditor = stateHolder.getStateEditor()
                 stateEditor.setNodeId(ack.receiverId)
                 stateEditor.setGameAddress(ack.address)
+                logger.info("Join ack confirmed")
             }
 
-            is Ping -> synchronized(sentMessageTime) { sentMessageTime.remove(ack.address) }
-            is RoleChange -> stateHolder.getStateEditor().setNodeRole(message.senderRole)
+            is Ping -> {
+                synchronized(sentMessageTime) { sentMessageTime.remove(ack.address) }
+                logger.info("Ping ack confirmed")
+            }
+
+            is RoleChange -> {
+                stateHolder.getStateEditor().setNodeRole(message.senderRole)
+                logger.info("Role change ack confirmed")
+            }
+
             is State -> {}//TODO подумать как этом можно обработать
             is Steer -> {
                 stateHolder.getStateEditor().updateSnakeDirection(message.senderId, message.direction)
+                logger.info("Steer ack confirmed ")
             }
         }
     }
 
     /**
-     * Обрабатывает приходящие от других людей сообщения
+     * Обрабатывает приходящие от других нод сообщения
      */
     private fun handleMessage(message: Message) {
         when (message) {
@@ -387,12 +410,18 @@ class MessageManager(
 
             is Announcement -> {
                 stateHolder.getStateEditor().addAnnouncements(message.address, message.games)
+                logger.info("Announcement confirmed")
             }
 
-            is Discover -> sendAnnouncement(message.address)
+            is Discover -> {
+                sendAnnouncement(message.address)
+                logger.info("Discover confirmed")
+            }
+
             is Error -> {
                 stateHolder.getStateEditor().addError(message.errorMessage)
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
+                logger.info("Error confirmed")
             }
 
             is Join -> {
@@ -419,24 +448,31 @@ class MessageManager(
 
                 runCatching { stateEditor.addPlayerToAdding(player) }.onSuccess {
                     sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
+                    logger.info("Join confirmed")
                 }.onFailure { e ->
                     sendErrorMessage(message.address, e.message ?: "error")
+                    logger.warn("Error on other node join request", e)
                 }
             }
 
-            is Ping -> sendAck(
-                message.address,
-                message.msgSeq,
-                message.senderId,
-                message.receiverId
-            )
+            is Ping -> {
+                sendAck(
+                    message.address,
+                    message.msgSeq,
+                    message.senderId,
+                    message.receiverId
+                )
+                logger.info("Ping confirmed")
+            }
 
             is RoleChange -> runCatching {
                 stateHolder.getStateEditor().updateRole(message.address, message.senderRole, message.receiverRole)
             }.onSuccess {
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
+                logger.info("Role change confirmed")
             }.onFailure { e ->
                 sendErrorMessage(message.address, e.message ?: "error")
+                logger.info("Error on role change", e)
             }
 
             is State -> {
@@ -446,19 +482,21 @@ class MessageManager(
                         stateHolder.getStateEditor().setState(message.state)
                     }
                     sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
+                    logger.info("State confirmed")
                 }.onFailure { e ->
                     sendErrorMessage(message.address, e.message ?: "error")
+                    logger.info("Error on state", e)
                 }
-
-
             }
 
             is Steer -> runCatching {
                 stateHolder.getStateEditor().updateSnakeDirection(message.senderId, message.direction)
             }.onSuccess {
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
+                logger.info("Steer confirmed")
             }.onFailure { e ->
                 sendErrorMessage(message.address, e.message ?: "error")
+                logger.info("Error on steer", e)
             }
         }
     }

@@ -62,10 +62,10 @@ class ReceiverController(
             synchronized(waitingForAck) {
                 if (waitingForAck.containsKey(address) && waitingForAck[address] == msgSeq) {
                     waitingForAck.remove(address)
-                    logger.info("Ack confirmed from ${address.address}")
                     synchronized(receivedAck) {
                         receivedAck[address] = message
                     }
+                    logger.info("Ack confirmed from ${address.address}")
                 }
             }
         }
@@ -76,10 +76,10 @@ class ReceiverController(
             synchronized(waitingForAck) {
                 if (waitingForAck.containsKey(address) && waitingForAck[address] == msgSeq) {
                     waitingForAck.remove(address)
-                    logger.info("Error message confirmed from ${address.address}")
                     synchronized(receivedErrors) {
                         receivedErrors[address] = message as Error
                     }
+                    logger.info("Error message confirmed from ${address.address}")
                 }
             }
         }
@@ -126,10 +126,12 @@ class ReceiverController(
             config.groupAddress,
             config.localInterface
         )
+        logger.info { "Multicast socket init" }
         return socket
     }
 
     override fun close() {
         socket.close()
+        logger.info { "Multicast socket closed" }
     }
 }
