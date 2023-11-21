@@ -82,6 +82,60 @@ class FieldController(
         }
     }
 
+    private val moveSnakesTask = {
+        if (stateHolder.isNodeMaster()) {
+            val state = stateHolder.getState()
+
+            for (snake in state.getSnakes()) {
+                val direction = snake.headDirection
+                val curCoord = snake.points[0]
+
+                val newCoord: Coord
+
+                when (direction) {
+                    Direction.UP -> {
+                        newCoord = if (curCoord.y == 0) {
+                            Coord(curCoord.x, fieldSize.height - 1)
+                        } else {
+                            Coord(curCoord.x, curCoord.y - 1)
+                        }
+
+                    }
+
+                    Direction.DOWN -> {
+                        newCoord = if (curCoord.y == fieldSize.height - 1) {
+                            Coord(curCoord.x, 0)
+                        } else {
+                            Coord(curCoord.x, curCoord.y + 1)
+                        }
+                    }
+
+                    Direction.LEFT -> {
+                        newCoord = if (curCoord.x == 0) {
+                            Coord(fieldSize.width -1, curCoord.y)
+                        } else {
+                            Coord(curCoord.x - 1, curCoord.y)
+                        }
+                    }
+                    Direction.RIGHT -> {
+                        newCoord = if (curCoord.x == fieldSize.width -1) {
+                            Coord(0, curCoord.y)
+                        } else {
+                            Coord(curCoord.x + 1, curCoord.y)
+                        }
+                    }
+                }
+
+                //TODO дальше итерируемся по змейкам и смотрим их координаты.
+                //TODO обработатать случай, когда сразу несколько змеек врезаются в одну клетку
+                //TODO то есть Сначала мы выситываем новые координаты змеек, а уже потом только смотрим врезались ли они или нет
+
+                //TODO просмотреть случай когда следующая клетка в направлении пустая, еда, другая змейка
+            }
+
+        }
+    }
+
     private val creatingSnakesTask = {
         if (stateHolder.isNodeMaster()) {
             logger.info("Create snake task run")
