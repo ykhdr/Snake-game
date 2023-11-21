@@ -2,10 +2,15 @@ package model.controllers
 
 import model.models.contexts.Context
 import model.models.core.*
+import model.models.requests.GameCreateRequest
+import model.models.requests.MoveSnakeTaskRequest
+import model.states.State
 import model.utils.IdSequence
 import mu.KotlinLogging
 import java.io.Closeable
+import java.util.*
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
@@ -31,10 +36,11 @@ class FieldController(
     private val stateHolder = context.stateHolder
 
     private var fieldSize = FieldSize(0, 0)
-
     private var isNewGame = AtomicBoolean(false)
 
     private val schedulerExecutor = Executors.newScheduledThreadPool(SCHEDULED_PULL_SIZE)
+
+    private var moveSnakeTaskFuture: Optional<ScheduledFuture<*>> = Optional.empty()
 
     private val logger = KotlinLogging.logger {}
 
@@ -84,7 +90,6 @@ class FieldController(
     private val moveSnakesTask = {
         if (stateHolder.isNodeMaster()) {
             val state = stateHolder.getState()
-
             val newCoords = mutableListOf<Coord>()
             val snakes = state.getSnakes().toMutableList()
             val foods = state.getFoods().toMutableList()
@@ -198,7 +203,7 @@ class FieldController(
         }
     }
 
-    private val creatingSnakesTask = {
+    private val createSnakesTask = {
         if (stateHolder.isNodeMaster()) {
             logger.info("Create snake task run")
             val state = stateHolder.getState()
@@ -226,31 +231,31 @@ class FieldController(
         }
     }
 
-    private val createGameTask = {
+    private val checkGameRequestTask = {
         val state = stateHolder.getState()
         logger.warn("$state")
         val gameCreateRequestOpt = state.getGameCreateRequest()
         if (gameCreateRequestOpt.isPresent) {
-            val gameCreateRequest = gameCreateRequestOpt.get()
-
-            stateHolder.getStateEditor().setGameConfig(gameCreateRequest.gameConfig)
-            stateHolder.getStateEditor().setGameName(gameCreateRequest.gameName)
-
-            val player = GamePlayer(
-                name = stateHolder.getState().getPlayerName(),
-                id = IdSequence.getNextId(),
-                role = NodeRole.MASTER,
-            )
-
-            fieldSize = FieldSize(gameCreateRequest.gameConfig.width, gameCreateRequest.gameConfig.height)
-
-            val availableCoords = findAvailableCoords(emptyList(), state.getFoods())
-            stateHolder.getStateEditor().setNodeRole(NodeRole.MASTER)
-            stateHolder.getStateEditor().updateAvailableCoords(availableCoords)
-            stateHolder.getStateEditor().addPlayerToAdding(player)
-            stateHolder.getStateEditor().clearGameCreateRequest()
-            logger.info("Game created")
+            createGame(state, gameCreateRequestOpt.get())
         }
+        if (state.getMoveSnakeTaskRequest() == MoveSnakeTaskRequest.RUN) {
+            if (moveSnakeTaskFuture.isEmpty) {
+                moveSnakeTaskFuture = Optional.of(
+                    schedulerExecutor.scheduleWithFixedDelay(
+                        moveSnakesTask,
+                        0,
+                        state.getConfig().stateDelayMs.toLong(),
+                        TimeUnit.MILLISECONDS
+                    )
+                )
+            }
+        } else if (state.getMoveSnakeTaskRequest() == MoveSnakeTaskRequest.STOP) {
+            if (moveSnakeTaskFuture.isPresent) {
+                moveSnakeTaskFuture.get().cancel(true)
+                moveSnakeTaskFuture = Optional.empty()
+            }
+        }
+
     }
 
     init {
@@ -261,7 +266,7 @@ class FieldController(
             TimeUnit.MILLISECONDS
         )
         schedulerExecutor.scheduleWithFixedDelay(
-            creatingSnakesTask,
+            createSnakesTask,
             INITIAL_DELAY,
             CREATING_SNAKES_TASK_DELAY,
             TimeUnit.MILLISECONDS
@@ -273,13 +278,35 @@ class FieldController(
             TimeUnit.MILLISECONDS
         )
         schedulerExecutor.scheduleWithFixedDelay(
-            createGameTask,
+            checkGameRequestTask,
             INITIAL_DELAY,
             CREATE_GAME_TASK_DELAY,
             TimeUnit.MILLISECONDS
         )
 
         logger.info("FieldController tasks running")
+    }
+
+    private fun createGame(state: State, gameCreateRequest: GameCreateRequest) {
+
+
+        stateHolder.getStateEditor().setGameConfig(gameCreateRequest.gameConfig)
+        stateHolder.getStateEditor().setGameName(gameCreateRequest.gameName)
+
+        val player = GamePlayer(
+            name = stateHolder.getState().getPlayerName(),
+            id = IdSequence.getNextId(),
+            role = NodeRole.MASTER,
+        )
+
+        fieldSize = FieldSize(gameCreateRequest.gameConfig.width, gameCreateRequest.gameConfig.height)
+
+        val availableCoords = findAvailableCoords(emptyList(), state.getFoods())
+        stateHolder.getStateEditor().setNodeRole(NodeRole.MASTER)
+        stateHolder.getStateEditor().updateAvailableCoords(availableCoords)
+        stateHolder.getStateEditor().addPlayerToAdding(player)
+        stateHolder.getStateEditor().clearGameCreateRequest()
+        logger.info("Game created")
     }
 
     private fun findAvailableCoords(snakesCoords: List<Coord>, foodCoords: List<Coord>): List<Coord> {
