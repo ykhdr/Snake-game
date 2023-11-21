@@ -5,5 +5,5 @@ import model.models.core.Snake
 import java.net.InetSocketAddress
 
 interface GameController : Controller {
-    fun move(address: InetSocketAddress, snake: Snake, direction: Direction)
+    fun move(address: InetSocketAddress, direction: Direction)
 }
