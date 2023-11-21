@@ -9,7 +9,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
-import kotlin.math.log
 import kotlin.random.Random
 
 class FieldController(
@@ -86,7 +85,12 @@ class FieldController(
         if (stateHolder.isNodeMaster()) {
             val state = stateHolder.getState()
 
-            for (snake in state.getSnakes()) {
+            val newCoords = mutableListOf<Coord>()
+            val snakes = state.getSnakes().toMutableList()
+            val foods = state.getFoods().toMutableList()
+            val players = state.getPlayers().toMutableList()
+
+            for (snake in snakes) {
                 val direction = snake.headDirection
                 val curCoord = snake.points[0]
 
@@ -112,13 +116,14 @@ class FieldController(
 
                     Direction.LEFT -> {
                         newCoord = if (curCoord.x == 0) {
-                            Coord(fieldSize.width -1, curCoord.y)
+                            Coord(fieldSize.width - 1, curCoord.y)
                         } else {
                             Coord(curCoord.x - 1, curCoord.y)
                         }
                     }
+
                     Direction.RIGHT -> {
-                        newCoord = if (curCoord.x == fieldSize.width -1) {
+                        newCoord = if (curCoord.x == fieldSize.width - 1) {
                             Coord(0, curCoord.y)
                         } else {
                             Coord(curCoord.x + 1, curCoord.y)
@@ -126,12 +131,69 @@ class FieldController(
                     }
                 }
 
-                //TODO дальше итерируемся по змейкам и смотрим их координаты.
-                //TODO обработатать случай, когда сразу несколько змеек врезаются в одну клетку
+                newCoords.add(newCoord)
+                //TODO дальше итерируемся по змейкам и смотрим их координаты. - DONE
+                //TODO обработатать случай, когда сразу несколько змеек врезаются в одну клетку - DONE
                 //TODO то есть Сначала мы выситываем новые координаты змеек, а уже потом только смотрим врезались ли они или нет
 
                 //TODO просмотреть случай когда следующая клетка в направлении пустая, еда, другая змейка
             }
+
+            val snakesToDelete = mutableListOf<Snake>()
+            val coordsToDelete = mutableListOf<Coord>()
+            val deadPlayers = mutableListOf<GamePlayer>()
+
+
+            for (i in 0 until newCoords.size) {
+                val coord = newCoords[i]
+
+                for (j in i + 1 until newCoords.size) {
+                    if (coord == newCoords[j]) {
+                        val otherSnake = snakes[j]
+                        if (otherSnake !in snakesToDelete)
+                            snakesToDelete.add(otherSnake)
+
+                        coordsToDelete.add(coord)
+                        //TODO нужно у игроков поменять + Ловить исключение
+                        val player = players.stream().filter { p -> p.id == otherSnake.playerId }.findFirst().get()
+                        players[j] = player.copy(role = NodeRole.VIEWER, score = 0)
+                        deadPlayers.add(players[j])
+                    }
+                }
+            }
+
+            //
+            //TODO нужно ли как то уведомлять игроков?
+            players.removeAll(deadPlayers)
+            snakes.removeAll(snakesToDelete)
+            newCoords.removeAll(coordsToDelete)
+
+            for (i in 0..newCoords.size) {
+                val snake = snakes[i]
+                val coord = newCoords[i]
+                val newSnakePoints = mutableListOf<Coord>()
+
+                newSnakePoints.add(coord)
+                newSnakePoints.addAll(snake.points)
+
+                if (coord in foods) {
+                    foods.remove(coord)
+                    //TODO ловить исключение
+                    val player = players.stream().filter { p -> p.id == snake.playerId }.findFirst().get()
+                    players[i] = player.copy(score = player.score + 1)
+
+                } else {
+                    //TODO ловить исключение
+                    newSnakePoints.removeLast()
+                }
+
+                snakes[i] = snake.copy(points = newSnakePoints)
+            }
+
+            stateHolder.getStateEditor().setFoods(foods)
+            stateHolder.getStateEditor().setSnakes(snakes)
+            stateHolder.getStateEditor().updatePlayers(players)
+            stateHolder.getStateEditor().updatePlayers(deadPlayers)
 
         }
     }

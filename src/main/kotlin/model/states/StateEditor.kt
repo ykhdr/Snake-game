@@ -17,6 +17,8 @@ interface StateEditor {
 
     fun addFoods(foods: List<Coord>)
 
+    fun setFoods(foods: List<Coord>)
+
     /**
      * @throws NoSpaceOnFieldError если на поле нет доступных клеток
      */
@@ -25,6 +27,8 @@ interface StateEditor {
     fun removePlayerToAdding(player: GamePlayer)
 
     fun addPlayer(player: GamePlayer)
+
+    fun updatePlayers(players: List<GamePlayer>)
 
     fun removePlayer(player: GamePlayer): Boolean
 
@@ -38,7 +42,7 @@ interface StateEditor {
 
     fun addSnake(snake: Snake)
 
-    fun updateSnake(updatedSnake: Snake)
+    fun setSnakes(snakes: List<Snake>)
 
     fun removeSnake(snake: Snake): Boolean
 

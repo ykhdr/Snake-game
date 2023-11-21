@@ -43,6 +43,24 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     }
 
     @Synchronized
+    override fun setFoods(foods: List<Coord>) {
+        this.foods.clear()
+        this.foods.addAll(foods)
+    }
+
+    @Synchronized
+    override fun updatePlayers(players: List<GamePlayer>) {
+        val playersIds = players.stream().map { p -> p.id }.toList()
+
+        for (i in 0 until this.players.size) {
+            if (this.players[i].id in playersIds) {
+                //TODO ловить исключение или указать его прокидывание
+                this.players[i] = players.stream().filter { p -> p.id == players[i].id }.findFirst().get()
+            }
+        }
+    }
+
+    @Synchronized
     override fun addPlayerToAdding(player: GamePlayer) {
         if (availableCoords.isEmpty()) {
             throw NoSpaceOnFieldError("No available coords on field")
@@ -91,10 +109,9 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     }
 
     @Synchronized
-    override fun updateSnake(updatedSnake: Snake) {
-        if (this.snakes.removeIf { snake -> snake.playerId == updatedSnake.playerId }) {
-            this.snakes.add(updatedSnake)
-        }
+    override fun setSnakes(snakes: List<Snake>) {
+        this.snakes.clear()
+        this.snakes.addAll(snakes)
     }
 
     @Synchronized
