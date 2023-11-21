@@ -26,7 +26,8 @@ internal class StateImpl internal constructor(
     private val steerRequest: Optional<SteerRequest>,
     private val leaveRequest: Optional<ChangeRoleRequest>,
     private val gameCreateRequest: Optional<GameCreateRequest>,
-    private val deputyListenTaskRequest: DeputyListenTaskRequest
+    private val deputyListenTaskRequest: DeputyListenTaskRequest,
+    private val moveSnakeTaskRequest : MoveSnakeTaskRequest
 ) : State {
 
 
@@ -36,6 +37,7 @@ internal class StateImpl internal constructor(
     override fun getPlayersToAdding(): List<GamePlayer> = playersToAdding
     override fun getPlayers(): List<GamePlayer> = players
     override fun getDeputyListeners(): List<InetSocketAddress> = deputyListeners
+
     override fun getConfig(): GameConfig = config.orElseThrow { NoSuchElementException("State order is empty") }
     override fun getStateOrder(): Int = stateOrder.orElseThrow { NoSuchElementException("State order is empty") }
     override fun getErrors(): Queue<String> = errors
@@ -61,6 +63,8 @@ internal class StateImpl internal constructor(
     override fun getGameCreateRequest(): Optional<GameCreateRequest> = gameCreateRequest
 
     override fun getDeputyListenTaskRequest(): DeputyListenTaskRequest = deputyListenTaskRequest
+
+    override fun getMoveSnakeTaskRequest(): MoveSnakeTaskRequest = moveSnakeTaskRequest
     override fun toString(): String {
         return "StateImpl(foods=$foods, " +
                 "playersToAdding=$playersToAdding, " +

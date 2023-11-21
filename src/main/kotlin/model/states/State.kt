@@ -53,4 +53,6 @@ interface State {
     fun getGameCreateRequest() : Optional<GameCreateRequest>
 
     fun getDeputyListenTaskRequest() : DeputyListenTaskRequest
+
+    fun getMoveSnakeTaskRequest() : MoveSnakeTaskRequest
 }

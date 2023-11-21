@@ -36,6 +36,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var leaveRequest: Optional<ChangeRoleRequest> = Optional.empty()
     private var gameCreateRequest: Optional<GameCreateRequest> = Optional.empty()
     private var deputyListenTaskRequest: DeputyListenTaskRequest = DeputyListenTaskRequest.DISABLE
+    private var moveSnakeTaskRequest: MoveSnakeTaskRequest = MoveSnakeTaskRequest.DISABLE
 
     @Synchronized
     override fun addFoods(foods: List<Coord>) {
@@ -261,6 +262,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     @Synchronized
     override fun setLeaveRequest(leaveRequest: ChangeRoleRequest) {
         this.leaveRequest = Optional.of(leaveRequest)
+        moveSnakeTaskRequest = MoveSnakeTaskRequest.STOP
     }
 
     @Synchronized
@@ -276,6 +278,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     @Synchronized
     override fun clearGameCreateRequest() {
         this.gameCreateRequest = Optional.empty()
+        moveSnakeTaskRequest = MoveSnakeTaskRequest.RUN
     }
 
     private fun resetState() {
@@ -313,7 +316,8 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             steerRequest,
             leaveRequest,
             gameCreateRequest,
-            deputyListenTaskRequest
+            deputyListenTaskRequest,
+            moveSnakeTaskRequest
         )
     }
 
