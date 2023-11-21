@@ -1,12 +1,11 @@
 package model.controllers.impl
 
 import model.controllers.GameController
+import model.exceptions.NoGameError
 import model.models.contexts.Context
 import model.models.requests.SteerRequest
 import model.models.core.Direction
-import model.models.core.Snake
 import mu.KotlinLogging
-import java.net.InetSocketAddress
 
 class GameControllerImpl(
     context: Context
@@ -17,10 +16,16 @@ class GameControllerImpl(
     private val logger = KotlinLogging.logger {}
 
     override fun move(direction: Direction) {
-        val address = stateHolder.getState().getMasterPlayer().ip
-        val steerRequest = SteerRequest(address, direction)
+        runCatching {
+            stateHolder.getState().getMasterPlayer().ip
+        }.onSuccess { address ->
+            val steerRequest = SteerRequest(address, direction)
+            stateHolder.getStateEditor().setSteerRequest(steerRequest)
+            logger.info("Player moved snake")
+        }.onFailure { e ->
+            logger.info("Error on move snake", e)
+            throw NoGameError("Error on move snake", e)
+        }
 
-        stateHolder.getStateEditor().setSteerRequest(steerRequest)
-        logger.info("Player moved snake")
     }
 }
