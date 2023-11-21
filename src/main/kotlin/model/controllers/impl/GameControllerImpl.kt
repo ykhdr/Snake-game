@@ -16,7 +16,8 @@ class GameControllerImpl(
 
     private val logger = KotlinLogging.logger {}
 
-    override fun move(address: InetSocketAddress, direction: Direction) {
+    override fun move(direction: Direction) {
+        val address = stateHolder.getState().getMasterPlayer().ip
         val steerRequest = SteerRequest(address, direction)
 
         stateHolder.getStateEditor().setSteerRequest(steerRequest)
