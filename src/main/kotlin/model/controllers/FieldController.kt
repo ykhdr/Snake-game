@@ -233,7 +233,7 @@ class FieldController(
 
     private val checkGameRequestTask = {
         val state = stateHolder.getState()
-        logger.warn("$state")
+        logger.warn("${state.getSnakes()}")
         val gameCreateRequestOpt = state.getGameCreateRequest()
         if (gameCreateRequestOpt.isPresent) {
             createGame(state, gameCreateRequestOpt.get())
@@ -325,13 +325,12 @@ class FieldController(
         return allCoords
     }
 
-    //TODO сделать проверку на координаты соседние
     private fun getRandomSecondSnakeCoord(headCoord: Coord): Coord {
         return when (Random.nextInt(0, 4)) {
-            0 -> Coord(headCoord.x - 1, headCoord.y)
-            1 -> Coord(headCoord.x + 1, headCoord.y)
-            2 -> Coord(headCoord.x, headCoord.y + 1)
-            3 -> Coord(headCoord.x, headCoord.y - 1)
+            0 -> Coord(if (headCoord.x != 0) headCoord.x - 1 else fieldSize.width - 1, headCoord.y)
+            1 -> Coord(if (headCoord.x != fieldSize.width - 1) headCoord.x + 1 else 0, headCoord.y)
+            2 -> Coord(headCoord.x, if (headCoord.y != fieldSize.height - 1) headCoord.y + 1 else 0)
+            3 -> Coord(headCoord.x, if (headCoord.y != 0) headCoord.y - 1 else fieldSize.height - 1)
             else -> Coord(-1, -1)
         }
     }
