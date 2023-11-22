@@ -225,6 +225,7 @@ class FieldController(
 
                 availableCoords.remove(headCoord)
                 stateHolder.getStateEditor().removePlayerToAdding(player)
+                stateHolder.getStateEditor().addPlayer(player)
                 stateHolder.getStateEditor().updateAvailableCoords(availableCoords)
                 stateHolder.getStateEditor().addSnake(snake)
                 logger.info("Snake for player ${player.id} created")

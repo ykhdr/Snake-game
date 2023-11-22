@@ -191,7 +191,7 @@ class MessageManager(
         scheduledExecutor.scheduleWithFixedDelay(
             pingTask,
             0,
-            100,
+            1000,
             TimeUnit.MILLISECONDS
         )
 
