@@ -173,7 +173,7 @@ class FieldController(
             snakes.removeAll(snakesToDelete)
             newCoords.removeAll(coordsToDelete)
 
-            for (i in 0..newCoords.size) {
+            for (i in 0 until newCoords.size) {
                 val snake = snakes[i]
                 val coord = newCoords[i]
                 val newSnakePoints = mutableListOf<Coord>()
@@ -193,6 +193,7 @@ class FieldController(
                 }
 
                 snakes[i] = snake.copy(points = newSnakePoints)
+                logger.info("Snake ${snakes[i].playerId} moved to ${newCoords[i]}")
             }
 
             stateHolder.getStateEditor().setFoods(foods)
@@ -213,7 +214,7 @@ class FieldController(
                 if (availableCoords.isEmpty()) {
                     break
                 }
-                val headCoord = availableCoords.first()
+                val headCoord = availableCoords.random()
                 val bodyCoord = getRandomSecondSnakeCoord(headCoord)
                 val snake = Snake(
                     player.id,
@@ -243,7 +244,7 @@ class FieldController(
                 moveSnakeTaskFuture = Optional.of(
                     schedulerExecutor.scheduleWithFixedDelay(
                         moveSnakesTask,
-                        0,
+                        INITIAL_DELAY,
                         state.getConfig().stateDelayMs.toLong(),
                         TimeUnit.MILLISECONDS
                     )
@@ -288,8 +289,6 @@ class FieldController(
     }
 
     private fun createGame(state: State, gameCreateRequest: GameCreateRequest) {
-
-
         stateHolder.getStateEditor().setGameConfig(gameCreateRequest.gameConfig)
         stateHolder.getStateEditor().setGameName(gameCreateRequest.gameName)
 
