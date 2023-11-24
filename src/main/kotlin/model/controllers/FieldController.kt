@@ -235,7 +235,7 @@ class FieldController(
 
     private val checkGameRequestTask = {
         val state = stateHolder.getState()
-        logger.warn("${state.getSnakes()}")
+        logger.warn("${state.getSnakes()},${state.getFoods().size}")
         val gameCreateRequestOpt = state.getGameCreateRequest()
         if (gameCreateRequestOpt.isPresent) {
             createGame(state, gameCreateRequestOpt.get())
@@ -305,6 +305,7 @@ class FieldController(
         stateHolder.getStateEditor().setNodeRole(NodeRole.MASTER)
         stateHolder.getStateEditor().updateAvailableCoords(availableCoords)
         stateHolder.getStateEditor().addPlayerToAdding(player)
+        stateHolder.getStateEditor().setGameAddress(player.ip)
         stateHolder.getStateEditor().clearGameCreateRequest()
         logger.info("Game created")
     }

@@ -17,10 +17,14 @@ class GameControllerImpl(
 
     override fun move(direction: Direction) {
         runCatching {
-            stateHolder.getState().getMasterPlayer().ip
-        }.onSuccess { address ->
-            val steerRequest = SteerRequest(address, direction)
-            stateHolder.getStateEditor().setSteerRequest(steerRequest)
+            stateHolder.getState().getMasterPlayer()
+        }.onSuccess { master ->
+            if(stateHolder.getState().getGameAddress() == master.ip){
+                stateHolder.getStateEditor().updateSnakeDirection(master.id,direction)
+            } else {
+                val steerRequest = SteerRequest(master.ip, direction)
+                stateHolder.getStateEditor().setSteerRequest(steerRequest)
+            }
             logger.info("Player moved snake")
         }.onFailure { e ->
             logger.info("Error on move snake", e)
