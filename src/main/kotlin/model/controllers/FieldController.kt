@@ -54,6 +54,8 @@ class FieldController(
                 fieldSize = FieldSize(config.width, config.height)
             }
 
+            state.getCurNodePlayer()
+
             val snakeCoords = state.getSnakes().stream().flatMap { snake -> snake.points.stream() }.toList()
             val foodCoords = state.getFoods()
 
@@ -152,6 +154,14 @@ class FieldController(
             for (i in 0 until newCoords.size) {
                 val coord = newCoords[i]
 
+                if (coord in snakes[i].points){
+                    snakesToDelete.add(snakes[i])
+                    coordsToDelete.add(coord)
+                    val player = players.stream().filter { p -> p.id == snakes[i].playerId }.findFirst().get()
+                    players[i] = player.copy(role = NodeRole.VIEWER, score = 0)
+                    deadPlayers.add(players[i])
+                }
+
                 for (j in i + 1 until newCoords.size) {
                     if (coord == newCoords[j]) {
                         val otherSnake = snakes[j]
@@ -175,6 +185,7 @@ class FieldController(
 
             for (i in 0 until newCoords.size) {
                 val snake = snakes[i]
+                //TODO exc in here
                 val coord = newCoords[i]
                 val newSnakePoints = mutableListOf<Coord>()
 
