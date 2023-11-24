@@ -154,7 +154,7 @@ class FieldController(
             for (i in 0 until newCoords.size) {
                 val coord = newCoords[i]
 
-                if (coord in snakes[i].points){
+                if (coord in snakes[i].points) {
                     snakesToDelete.add(snakes[i])
                     coordsToDelete.add(coord)
                     val player = players.stream().filter { p -> p.id == snakes[i].playerId }.findFirst().get()
@@ -316,7 +316,9 @@ class FieldController(
         stateHolder.getStateEditor().setNodeRole(NodeRole.MASTER)
         stateHolder.getStateEditor().updateAvailableCoords(availableCoords)
         stateHolder.getStateEditor().addPlayerToAdding(player)
+        stateHolder.getStateEditor().setNodeId(player.id)
         stateHolder.getStateEditor().setGameAddress(player.ip)
+        stateHolder.getStateEditor().setCurNodePlayer(player)
         stateHolder.getStateEditor().clearGameCreateRequest()
         logger.info("Game created")
     }
@@ -348,14 +350,22 @@ class FieldController(
     }
 
     private fun getHeadDirection(headCoord: Coord, bodyCoord: Coord): Direction {
-        return if (bodyCoord.x > headCoord.x) {
+        return if (bodyCoord.x == 0 && headCoord.x == fieldSize.width - 1) {
+            Direction.LEFT
+        } else if (bodyCoord.x == fieldSize.width - 1 && headCoord.x == 0) {
+            Direction.RIGHT
+        } else if (bodyCoord.y == 0 && headCoord.y == fieldSize.height - 1) {
+            Direction.UP
+        } else if (bodyCoord.y == fieldSize.height - 1 && headCoord.y == 0) {
+            Direction.DOWN
+        } else if (bodyCoord.x > headCoord.x) {
             Direction.LEFT
         } else if (bodyCoord.x < headCoord.x) {
             Direction.RIGHT
         } else if (bodyCoord.y > headCoord.y) {
-            Direction.DOWN
-        } else {
             Direction.UP
+        } else {
+            Direction.DOWN
         }
     }
 

@@ -48,6 +48,8 @@ interface StateEditor {
 
     fun setNodeRole(nodeRole: NodeRole)
 
+    fun setCurNodePlayer(player: GamePlayer)
+
     fun setStateOrder(stateOrder: Int)
 
     fun setGameName(name: String)

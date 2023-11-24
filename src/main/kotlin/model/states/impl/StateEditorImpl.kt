@@ -24,7 +24,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var nodeRole: NodeRole = NodeRole.VIEWER
     private var config: Optional<GameConfig> = Optional.empty()
     private var stateOrder: Optional<Int> = Optional.empty()
-    private var currentGamePlayer: Optional<GamePlayer> = Optional.empty()
+    private var curNodePlayer: Optional<GamePlayer> = Optional.empty()
     private var gameName: Optional<String> = Optional.empty()
     private var gameAddress: Optional<InetSocketAddress> = Optional.empty()
     private var playerName: String = DEFAULT_PLAYER_NAME
@@ -62,6 +62,11 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     }
 
     @Synchronized
+    override fun setCurNodePlayer(player: GamePlayer) {
+        this.curNodePlayer = Optional.of(player)
+    }
+
+    @Synchronized
     override fun addPlayerToAdding(player: GamePlayer) {
         if (availableCoords.isEmpty()) {
             throw NoSpaceOnFieldError("No available coords on field")
@@ -70,6 +75,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.playersToAdding.add(player)
     }
 
+    @Synchronized
     override fun removePlayerToAdding(player: GamePlayer) {
         this.playersToAdding.remove(player)
     }
@@ -223,7 +229,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.players.addAll(newState.players)
         this.stateOrder = Optional.of(newState.stateOrder)
 
-        this.currentGamePlayer = Optional.of(
+        this.curNodePlayer = Optional.of(
             players.stream().filter { pl -> pl.id == this.nodeId.get() }.findFirst().get()
         )
     }
@@ -233,10 +239,18 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         val snake = this.snakes.find { snake -> snake.playerId == playerId }
             ?: throw UnknownPlayerError("Unknown player")
 
-        val updatedSnake = snake.copy(headDirection = direction)
+        val curDirection = snake.headDirection
 
-        this.snakes.remove(snake)
-        this.snakes.add(updatedSnake)
+        if (curDirection == Direction.DOWN && direction != Direction.UP ||
+            curDirection == Direction.UP && direction != Direction.DOWN ||
+            curDirection == Direction.LEFT && direction != Direction.RIGHT ||
+            curDirection == Direction.RIGHT && direction != Direction.LEFT
+        ) {
+
+            val updatedSnake = snake.copy(headDirection = direction)
+            this.snakes.remove(snake)
+            this.snakes.add(updatedSnake)
+        }
     }
 
     @Synchronized
@@ -304,7 +318,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             snakes,
             announcements,
             nodeRole,
-            currentGamePlayer,
+            curNodePlayer,
             config,
             stateOrder,
             gameName,
