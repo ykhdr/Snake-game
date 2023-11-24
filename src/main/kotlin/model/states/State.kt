@@ -6,14 +6,20 @@ import java.net.InetSocketAddress
 import java.util.*
 
 
-interface State {
-    fun getFoods() : List<Coord>
-    fun getSnakes() : List<Snake>
+interface State : ClientState {
+    override fun getFoods() : List<Coord>
+    override fun getSnakes() : List<Snake>
+    override fun getPlayers() : List<GamePlayer>
+    override fun getAnnouncements() : Map<InetSocketAddress, GameAnnouncement>
+
+    /**
+     * @throws NoSuchElementException если текущая нода не в игре
+     */
+    override fun getCurNodePlayer() : GamePlayer
+
     fun getNodeRole() : NodeRole
     fun getPlayersToAdding(): List<GamePlayer>
-    fun getPlayers() : List<GamePlayer>
     fun getDeputyListeners() : List<InetSocketAddress>
-    fun getAnnouncements() : Map<InetSocketAddress, GameAnnouncement>
 
     /**
      * @throws NoSuchElementException если текущая нода не в игре
@@ -31,10 +37,7 @@ interface State {
      */
     fun getMasterPlayer() : GamePlayer
 
-    /**
-     * @throws NoSuchElementException если текущая нода не в игре
-     */
-    fun getCurNodePlayer() : GamePlayer
+
 
     /**
      * @throws NoSuchElementException если текущая нода не в игре

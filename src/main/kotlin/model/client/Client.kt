@@ -6,6 +6,7 @@ import model.controllers.FieldController
 import model.controllers.impl.GameControllerImpl
 import model.controllers.impl.LobbyControllerImpl
 import model.models.contexts.NetworkContext
+import model.states.ClientState
 import model.states.impl.StateHolderImpl
 import java.io.Closeable
 
@@ -21,6 +22,8 @@ class Client : Closeable {
     fun getLobbyController() = lobbyController
 
     fun getGameController() = gameController
+
+    fun getState() : ClientState = context.stateHolder.getState()
 
     override fun close() {
         messageManager.close()
