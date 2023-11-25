@@ -17,6 +17,8 @@ interface State : ClientState {
      */
     override fun getCurNodePlayer() : GamePlayer
 
+    override fun isGameRunning(): Boolean
+
     fun getNodeRole() : NodeRole
     fun getPlayersToAdding(): List<GamePlayer>
     fun getDeputyListeners() : List<InetSocketAddress>

@@ -19,5 +19,6 @@ interface ClientState {
      * @throws NoSuchElementException если текущая нода не в игре
      */
     fun getCurNodePlayer() : GamePlayer
+    fun isGameRunning(): Boolean
 
 }
