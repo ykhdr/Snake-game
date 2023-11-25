@@ -11,7 +11,8 @@ import model.states.impl.StateHolderImpl
 import java.io.Closeable
 
 class Client : Closeable {
-    private val context = NetworkContext(NetworkConfig(), StateHolderImpl())
+    private val stateHolder = StateHolderImpl()
+    private val context = NetworkContext(NetworkConfig(), stateHolder)
 
     private val gameController = GameControllerImpl(context)
     private val lobbyController = LobbyControllerImpl(context)
@@ -23,7 +24,9 @@ class Client : Closeable {
 
     fun getGameController() = gameController
 
-    fun getState() : ClientState = context.stateHolder.getState()
+    fun getState(): ClientState = context.stateHolder.getState()
+
+    fun setOnStateEditListener(onStateEdit: (ClientState) -> Unit) = stateHolder.setOnStateEditListener(onStateEdit)
 
     override fun close() {
         messageManager.close()

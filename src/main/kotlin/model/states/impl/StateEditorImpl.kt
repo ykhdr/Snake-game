@@ -15,6 +15,8 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         private const val DEFAULT_PLAYER_NAME = "Player"
     }
 
+    private var onStateEdit: (State) -> Unit = {}
+
     private val foods: MutableList<Coord> = mutableListOf()
     private val playersToAdding: MutableList<GamePlayer> = mutableListOf()
     private val players: MutableList<GamePlayer> = mutableListOf()
@@ -37,6 +39,10 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var gameCreateRequest: Optional<GameCreateRequest> = Optional.empty()
     private var deputyListenTaskRequest: DeputyListenTaskRequest = DeputyListenTaskRequest.DISABLE
     private var moveSnakeTaskRequest: MoveSnakeTaskRequest = MoveSnakeTaskRequest.DISABLE
+
+    internal fun setOnStateEditListener(onStateEdit: (State) -> Unit) {
+        this.onStateEdit = onStateEdit
+    }
 
     @Synchronized
     override fun addFoods(foods: List<Coord>) {
@@ -310,7 +316,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
     @Synchronized
     internal fun edit(): State {
-        return StateImpl(
+        val newState = StateImpl(
             foods,
             playersToAdding,
             players,
@@ -333,6 +339,10 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             deputyListenTaskRequest,
             moveSnakeTaskRequest
         )
+
+        onStateEdit(newState)
+
+        return newState
     }
 
 

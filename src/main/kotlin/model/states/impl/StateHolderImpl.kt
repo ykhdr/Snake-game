@@ -9,10 +9,10 @@ import model.states.StateHolder
 
 class StateHolderImpl : StateHolder {
     private val stateEditor = StateEditorImpl()
-    private lateinit var cachedState : State
+    private var cachedState: State
 
     init {
-        getState()
+        cachedState = getState()
     }
 
     override fun isNodeMaster(): Boolean {
@@ -42,5 +42,9 @@ class StateHolderImpl : StateHolder {
             cachedState.getFoods(),
             cachedState.getPlayers(),
         )
+    }
+
+    internal fun setOnStateEditListener(onStateEdit: (State) -> Unit) {
+        this.stateEditor.setOnStateEditListener(onStateEdit)
     }
 }
