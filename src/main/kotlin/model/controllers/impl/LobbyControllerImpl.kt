@@ -9,7 +9,6 @@ import model.models.requests.ChangeRoleRequest
 import model.models.requests.GameCreateRequest
 import mu.KotlinLogging
 import java.net.InetSocketAddress
-import kotlin.math.log
 
 class LobbyControllerImpl(
     private val context: Context
@@ -58,16 +57,12 @@ class LobbyControllerImpl(
         }
     }
 
-    override fun createGame(gameName: String, width: Int, height: Int, foodStatic: Int, stateDelay: Int) {
+    override fun createGame(playerName : String, gameName: String, width: Int, height: Int, foodStatic: Int, stateDelay: Int) {
         val gameConfig = GameConfig(width, height, foodStatic, stateDelay)
         val gameCreateRequest = GameCreateRequest(gameName, gameConfig)
 
+        context.stateHolder.getStateEditor().setPlayerName(playerName)
         context.stateHolder.getStateEditor().setGameCreateRequest(gameCreateRequest)
         logger.info("Player create game create request")
-    }
-
-    override fun setPlayerName(playerName: String) {
-        context.stateHolder.getStateEditor().setPlayerName(playerName)
-        logger.info("Player set new player name : $playerName")
     }
 }
