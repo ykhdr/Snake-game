@@ -1,5 +1,6 @@
 package model.states.impl
 
+import model.dto.messages.Announcement
 import model.models.core.*
 import model.models.requests.*
 import model.states.State
@@ -12,7 +13,7 @@ internal class StateImpl internal constructor(
     private val players: List<GamePlayer>,
     private val deputyListeners: List<InetSocketAddress>,
     private val snakes: List<Snake>,
-    private val announcements: Map<InetSocketAddress, GameAnnouncement>,
+    private val announcements: List<Announcement>,
     private val nodeRole: NodeRole,
     private val curNodePlayer: Optional<GamePlayer>,
     private val config: Optional<GameConfig>,
@@ -41,7 +42,7 @@ internal class StateImpl internal constructor(
     override fun getConfig(): GameConfig = config.orElseThrow { NoSuchElementException("State order is empty") }
     override fun getStateOrder(): Int = stateOrder.orElseThrow { NoSuchElementException("State order is empty") }
     override fun getErrors(): Queue<String> = errors
-    override fun getAnnouncements(): Map<InetSocketAddress, GameAnnouncement> = announcements
+    override fun getAnnouncements(): List<Announcement> = announcements
     override fun getMasterPlayer(): GamePlayer {
         return players.stream().filter { pl -> pl.role == NodeRole.MASTER }.findFirst()
             .orElseThrow { NoSuchElementException("No master player in game") }

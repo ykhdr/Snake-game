@@ -1,5 +1,6 @@
 package view.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,12 +27,16 @@ fun Rating(
     players: Array<GamePlayer>,
     expandedInfoEnable: Boolean
 ) {
-    Column(modifier) {
+
+    val contentPadding = 2.dp
+
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text("Рейтинг")
         Card(
+            modifier = Modifier.padding(contentPadding),
             backgroundColor = Color(240, 240, 240),
             elevation = 0.dp,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
         ) {
             LazyColumn(
                 modifier = Modifier.padding(4.dp),

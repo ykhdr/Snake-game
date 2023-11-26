@@ -5,13 +5,12 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 
 enum class GameIcon(path: String) {
-    HEIGHT("/icons/height_FILL0_wght400_GRAD0_opsz24.svg"),
-    WIDTH("/icons/width_FILL0_wght400_GRAD0_opsz24.svg"),
-    DELAY("/icons/timer_FILL0_wght400_GRAD0_opsz24.svg"),
-    FOOD("/icons/lunch_dining_FILL0_wght400_GRAD0_opsz24.svg"),
-    LOGO("/icons/stream_FILL0_wght400_GRAD0_opsz24.svg"),
-    VIEW_GAME("/icons/visibility_FILL0_wght400_GRAD0_opsz24.svg"),
-    JOIN_GAME("/icons/login_FILL0_wght400_GRAD0_opsz24.svg");
+    HEIGHT("/icons/arrow_down_up.svg"),
+    WIDTH("/icons/arrow_left_right.svg"),
+    DELAY("/icons/timer.svg"),
+    FOOD("/icons/apple.svg"),
+    VIEW_GAME("/icons/watch.svg"),
+    JOIN_GAME("/icons/login.svg");
 
     private val content: String
 

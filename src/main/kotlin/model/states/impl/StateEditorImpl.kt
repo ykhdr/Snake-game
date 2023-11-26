@@ -1,5 +1,6 @@
 package model.states.impl
 
+import model.dto.messages.Announcement
 import model.exceptions.NoSpaceOnFieldError
 import model.exceptions.NodeRoleHasNotPrivilegesError
 import model.exceptions.UnknownPlayerError
@@ -22,7 +23,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private val players: MutableList<GamePlayer> = mutableListOf()
     private val deputyListeners: MutableList<InetSocketAddress> = mutableListOf()
     private val snakes: MutableList<Snake> = mutableListOf()
-    private val announcements: MutableMap<InetSocketAddress, GameAnnouncement> = mutableMapOf()
+    private val announcements: MutableList<Announcement> = mutableListOf()
     private var nodeRole: NodeRole = NodeRole.VIEWER
     private var config: Optional<GameConfig> = Optional.empty()
     private var stateOrder: Optional<Int> = Optional.empty()
@@ -103,18 +104,14 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     override fun removeDeputyListener(listener: InetSocketAddress): Boolean = this.deputyListeners.remove(listener)
 
     @Synchronized
-    override fun addAnnouncements(address: InetSocketAddress, announcements: List<GameAnnouncement>) {
-        for (announcement in announcements) {
-            if (this.announcements.containsKey(address)) {
-                this.announcements.replace(address, announcement)
-            } else {
-                this.announcements[address] = announcement
-            }
+    override fun addAnnouncement(announcement: Announcement) {
+        if (announcement !in announcements) {
+            announcements.add(announcement)
         }
     }
 
     @Synchronized
-    override fun removeAnnouncement(address: InetSocketAddress): Boolean = this.announcements.remove(address) != null
+    override fun removeAnnouncement(announcement: Announcement): Boolean = this.announcements.remove(announcement)
 
     @Synchronized
     override fun addSnake(snake: Snake) {

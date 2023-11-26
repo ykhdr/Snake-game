@@ -1,10 +1,7 @@
 package view.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -17,12 +14,14 @@ import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key.Companion.R
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import view.res.GameIcon
 
@@ -44,8 +43,8 @@ fun Stats(
     )
 
     val contentPadding = 2.dp
-    Column(modifier) {
-        Text("Текущая игра")
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Текущая игра", textAlign = TextAlign.Center)
         LazyVerticalGrid(
             columns = GridCells.Adaptive(115.dp),
             contentPadding = PaddingValues(0.dp, 4.dp, 0.dp, 4.dp),
@@ -68,9 +67,10 @@ private fun StatChip(icon: GameIcon, label: String, value: String, modifier: Mod
         colors = ChipDefaults.chipColors(backgroundColor = Color.White),
         leadingIcon = {
             Icon(
+                modifier = Modifier.size(20.dp),
                 painter = icon.painter(),
-                contentDescription = label
-            )
+                contentDescription = label,
+                )
         },
         modifier = modifier.sizeIn(minWidth = 80.dp, minHeight = 48.dp)
     ) {

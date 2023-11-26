@@ -14,10 +14,8 @@ import java.io.Closeable
 import java.net.InetSocketAddress
 import java.util.*
 import java.util.concurrent.Executors
-import java.util.concurrent.Future
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 
 
 class MessageManager(
@@ -453,7 +451,7 @@ class MessageManager(
             }
 
             is Announcement -> {
-                stateHolder.getStateEditor().addAnnouncements(message.address, message.games)
+                stateHolder.getStateEditor().addAnnouncement(message)
                 logger.info("Announcement confirmed")
             }
 

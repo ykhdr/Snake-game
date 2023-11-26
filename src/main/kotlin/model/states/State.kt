@@ -1,5 +1,6 @@
 package model.states
 
+import model.dto.messages.Announcement
 import model.models.core.*
 import model.models.requests.*
 import java.net.InetSocketAddress
@@ -10,7 +11,7 @@ interface State : ClientState {
     override fun getFoods() : List<Coord>
     override fun getSnakes() : List<Snake>
     override fun getPlayers() : List<GamePlayer>
-    override fun getAnnouncements() : Map<InetSocketAddress, GameAnnouncement>
+    override fun getAnnouncements() : List<Announcement>
 
     /**
      * @throws NoSuchElementException если текущая нода не в игре

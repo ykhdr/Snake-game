@@ -1,5 +1,6 @@
 package model.states
 
+import model.dto.messages.Announcement
 import model.exceptions.NoSpaceOnFieldError
 import model.exceptions.NodeRoleHasNotPrivilegesError
 import model.exceptions.UnknownPlayerError
@@ -36,9 +37,9 @@ interface StateEditor {
 
     fun removeDeputyListener(listener: InetSocketAddress): Boolean
 
-    fun addAnnouncements(address: InetSocketAddress, announcements: List<GameAnnouncement>)
+    fun addAnnouncement(announcement: Announcement)
 
-    fun removeAnnouncement(address: InetSocketAddress): Boolean
+    fun removeAnnouncement(announcement: Announcement): Boolean
 
     fun addSnake(snake: Snake)
 

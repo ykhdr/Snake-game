@@ -1,5 +1,6 @@
 package model.states
 
+import model.dto.messages.Announcement
 import model.models.core.*
 import java.net.InetSocketAddress
 import java.util.NoSuchElementException
@@ -10,7 +11,7 @@ interface ClientState {
 
     fun getPlayers() : List<GamePlayer>
 
-    fun getAnnouncements() : Map<InetSocketAddress, GameAnnouncement>
+    fun getAnnouncements() : List<Announcement>
 
     /**
      * @throws NoSuchElementException если текущая нода не в игре

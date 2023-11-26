@@ -19,13 +19,14 @@ import androidx.compose.ui.unit.sp
 fun LeaveButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(modifier) {
         Button(
-            modifier = Modifier.fillMaxSize(1f),
+            modifier = Modifier.fillMaxSize(0.9f),
             onClick = onClick,
             shape = RoundedCornerShape(12.dp),
         ) {
             Text(
                 text = "Leave lobby",
-                style = TextStyle(fontSize = 18.sp)
+                style = TextStyle(fontSize = 18.sp),
+                textAlign = TextAlign.Center
             )
         }
     }
