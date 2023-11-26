@@ -3,10 +3,9 @@ package view.views
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,28 +16,37 @@ import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.application
 import model.client.Client
 import model.models.core.Direction
+import model.models.core.GameAnnouncement
+import model.models.core.NodeRole
 import view.components.GameStartButton
 import view.components.GameStartDialog
 import view.components.LeaveButton
+import java.net.InetSocketAddress
 
 @Preview
 @Composable
-fun MenuView() = Surface(
+fun MenuView(client: Client) = Surface(
     color = MaterialTheme.colors.surface,
     modifier = Modifier
         .fillMaxSize()
 ) {
-    val client = remember { mutableStateOf(Client()) }
     val openDialog = remember { mutableStateOf(false) }
+    val isGameRunning = remember { mutableStateOf(false) }
+    val announcements = remember { mutableStateOf(mapOf<InetSocketAddress, GameAnnouncement>()) }
 
+    LaunchedEffect(Unit) {
+        client.setOnStateEditListener { state ->
+            isGameRunning.value = state.isGameRunning()
+            announcements.value = state.getAnnouncements()
+        }
+    }
 
     if (openDialog.value) {
         GameStartDialog(
             openDialog,
-            client.value.getLobbyController()::createGame
+            client.getLobbyController()::createGame
         )
     }
-
 
     Row(
 //        horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -50,7 +58,7 @@ fun MenuView() = Surface(
         ) {
             Card(
                 modifier = Modifier.fillMaxSize(),
-                backgroundColor = Color.Cyan
+                backgroundColor = if (isGameRunning.value) Color.Cyan else Color.Yellow
             ) {
             }
         }
@@ -74,7 +82,7 @@ fun MenuView() = Surface(
 
                 LeaveButton(
                     modifier = Modifier.weight(1f),
-                    onClick = { client.value.getLobbyController().leave() }
+                    onClick = { client.getLobbyController().leave() }
                 )
 
             }
@@ -109,7 +117,7 @@ fun MenuView() = Surface(
                     modifier = Modifier.fillMaxSize(),
                     backgroundColor = Color.White
                 ) {
-
+                    Lobbies(announcements = announcements.value)
                 }
             }
 
@@ -171,3 +179,5 @@ fun MenuView() = Surface(
 
 
 }
+
+

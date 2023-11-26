@@ -12,6 +12,7 @@ import java.io.Closeable
 import java.net.DatagramPacket
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
+import java.net.SocketException
 
 
 class ReceiverController(
@@ -34,13 +35,9 @@ class ReceiverController(
 
     /**
      * @throws UndefinedMessageTypeError если полученное сообщение явялется неизвестным
+     * @throws SocketException если сокет закрыт | any IO exception
      */
     fun receive(): Message {
-//        if (socket.isClosed){
-//            logger.warn("Can not receive message.Socket closed")
-//
-//        }
-
         val datagramPacket = DatagramPacket(buffer, buffer.size)
         socket.receive(datagramPacket)
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
