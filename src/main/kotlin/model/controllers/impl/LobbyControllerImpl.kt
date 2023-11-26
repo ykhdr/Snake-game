@@ -16,17 +16,16 @@ class LobbyControllerImpl(
 
     private val logger = KotlinLogging.logger {}
 
-    override fun join(address: InetSocketAddress, gameName: String, requestedRole: NodeRole) {
-        if (requestedRole == NodeRole.MASTER || requestedRole == NodeRole.DEPUTY) {
-            context.stateHolder.getStateEditor()
-                .addError("Player with address ${address.address.hostAddress} has not privilege to request role ${requestedRole.name}")
-            logger.info("Player with address ${address.address.hostAddress} has not privilege to request role ${requestedRole.name}")
-        } else {
-            val joinRequest = JoinRequest(address, requestedRole)
-            context.stateHolder.getStateEditor().setJoinRequest(joinRequest)
-            logger.info("Player with address ${address.address.hostAddress} sent join request")
-        }
+    override fun join(address: InetSocketAddress, gameName: String) {
+        val joinRequest = JoinRequest(address, NodeRole.NORMAL)
+        context.stateHolder.getStateEditor().setJoinRequest(joinRequest)
+        logger.info("Player with address ${address.address.hostAddress} sent join request")
+    }
 
+    override fun watch(address: InetSocketAddress, gameName: String) {
+        val joinRequest = JoinRequest(address, NodeRole.VIEWER)
+        context.stateHolder.getStateEditor().setJoinRequest(joinRequest)
+        logger.info("Player with address ${address.address.hostAddress} sent join on watch request")
     }
 
     override fun leave() {
@@ -46,7 +45,7 @@ class LobbyControllerImpl(
                 )
 
                 context.stateHolder.getStateEditor().setLeaveRequest(leaveRequest)
-                logger.info ("Player ${senderPlayer.id} sent leave request to master ${receiverPlayer.id}")
+                logger.info("Player ${senderPlayer.id} sent leave request to master ${receiverPlayer.id}")
             }.onFailure { e ->
                 throw e
             }
@@ -57,7 +56,14 @@ class LobbyControllerImpl(
         }
     }
 
-    override fun createGame(playerName : String, gameName: String, width: Int, height: Int, foodStatic: Int, stateDelay: Int) {
+    override fun createGame(
+        playerName: String,
+        gameName: String,
+        width: Int,
+        height: Int,
+        foodStatic: Int,
+        stateDelay: Int
+    ) {
         val gameConfig = GameConfig(width, height, foodStatic, stateDelay)
         val gameCreateRequest = GameCreateRequest(gameName, gameConfig)
 
