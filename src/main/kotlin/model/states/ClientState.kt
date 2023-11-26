@@ -1,9 +1,6 @@
 package model.states
 
-import model.models.core.Coord
-import model.models.core.GameAnnouncement
-import model.models.core.GamePlayer
-import model.models.core.Snake
+import model.models.core.*
 import java.net.InetSocketAddress
 import java.util.NoSuchElementException
 
@@ -20,5 +17,10 @@ interface ClientState {
      */
     fun getCurNodePlayer() : GamePlayer
     fun isGameRunning(): Boolean
+
+    /**
+     * @throws NoSuchElementException если текущая нода не в игре
+     */
+    fun getConfig() : GameConfig
 
 }

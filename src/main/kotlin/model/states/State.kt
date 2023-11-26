@@ -19,14 +19,15 @@ interface State : ClientState {
 
     override fun isGameRunning(): Boolean
 
+    /**
+     * @throws NoSuchElementException если текущая нода не в игре
+     */
+    override fun getConfig() : GameConfig
+
     fun getNodeRole() : NodeRole
     fun getPlayersToAdding(): List<GamePlayer>
     fun getDeputyListeners() : List<InetSocketAddress>
 
-    /**
-     * @throws NoSuchElementException если текущая нода не в игре
-     */
-    fun getConfig() : GameConfig
 
     /**
      * @throws NoSuchElementException если текущая нода не в игре

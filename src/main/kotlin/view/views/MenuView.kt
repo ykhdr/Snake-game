@@ -15,12 +15,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.application
 import model.client.Client
-import model.models.core.Direction
-import model.models.core.GameAnnouncement
-import model.models.core.NodeRole
-import view.components.GameStartButton
-import view.components.GameStartDialog
-import view.components.LeaveButton
+import model.models.core.*
+import model.states.ClientState
+import view.components.*
 import java.net.InetSocketAddress
 
 @Preview
@@ -33,13 +30,50 @@ fun MenuView(client: Client) = Surface(
     val openDialog = remember { mutableStateOf(false) }
     val isGameRunning = remember { mutableStateOf(false) }
     val announcements = remember { mutableStateOf(mapOf<InetSocketAddress, GameAnnouncement>()) }
+    val config = remember { mutableStateOf(GameConfig()) }
 
-    LaunchedEffect(Unit) {
-        client.setOnStateEditListener { state ->
+
+    val playersState = remember { mutableStateOf(arrayOf<GamePlayer>()) }
+    val fadedColorsEnable = remember { mutableStateOf(true) }
+    val cells = remember { mutableStateOf(mutableMapOf<Int, Color>()) }
+
+    LaunchedEffect(client) {
+        client.setOnStateEditListener { state: ClientState ->
             isGameRunning.value = state.isGameRunning()
             announcements.value = state.getAnnouncements()
+
+            if (isGameRunning.value){
+                config.value = state.getConfig()
+                val cellsTmp = mutableMapOf<Int, Color>()
+                state.getSnakes().forEach { snake ->
+                    snake.points.forEach { coords ->
+                        cellsTmp[config.value.width * coords.y + coords.x] = ColorResolver.resolveSnake(
+                            fadedColorsEnable.value && state.getCurNodePlayer().id != snake.playerId,
+                            snake.playerId
+                        )
+                    }
+                }
+
+                state.getFoods().forEach { food ->
+                    cellsTmp[config.value.width * food.y + food.x] = ColorResolver.resolveFood(food.x, food.y)
+                }
+
+                playersState.value = state.getPlayers().toTypedArray()
+//                cells.value.clear()
+                cells.value = cellsTmp
+            }
         }
+//        observeGameState(client, config, playersState, fadedColorsEnable, cells, isGameRunning, announcements)
     }
+
+//    LaunchedEffect(Unit) {
+//        client.setOnStateEditListener { state ->
+//            isGameRunning.value = state.isGameRunning()
+//            announcements.value = state.getAnnouncements()
+//
+//        }
+//
+//    }
 
     if (openDialog.value) {
         GameStartDialog(
@@ -60,6 +94,9 @@ fun MenuView(client: Client) = Surface(
                 modifier = Modifier.fillMaxSize(),
                 backgroundColor = if (isGameRunning.value) Color.Cyan else Color.Yellow
             ) {
+                if (isGameRunning.value) {
+                    GameView(client, config.value, playersState, fadedColorsEnable, cells, isGameRunning, announcements)
+                }
             }
         }
 

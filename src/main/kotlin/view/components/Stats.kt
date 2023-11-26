@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key.Companion.R
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import view.res.GameIcon
 
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -36,10 +37,10 @@ fun Stats(
     stateDelayMs: Int
 ) {
     val statItems = listOf(
-        StatItem(Icons.Rounded.ThumbUp, "Высота поля", fieldHeight.toString()),
-        StatItem(Icons.Rounded.ArrowForward, "Ширина поля", fieldWidth.toString()),
-        StatItem(Icons.Rounded.ShoppingCart, "Статическая еда", foodStatic.toString()),
-        StatItem(Icons.Rounded.Build, "Задержка состояния", "$stateDelayMs мс")
+        StatItem(GameIcon.HEIGHT, "Высота поля", fieldHeight.toString()),
+        StatItem(GameIcon.WIDTH, "Ширина поля", fieldWidth.toString()),
+        StatItem(GameIcon.FOOD, "Статическая еда", foodStatic.toString()),
+        StatItem(GameIcon.DELAY, "Задержка состояния", "$stateDelayMs мс")
     )
 
     val contentPadding = 2.dp
@@ -59,7 +60,7 @@ fun Stats(
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-private fun StatChip(icon: ImageVector, label: String, value: String, modifier: Modifier) {
+private fun StatChip(icon: GameIcon, label: String, value: String, modifier: Modifier) {
     Chip(
         onClick = { /* Do something! */ },
         border = BorderStroke(ChipDefaults.OutlinedBorderSize, Color.LightGray),
@@ -67,7 +68,7 @@ private fun StatChip(icon: ImageVector, label: String, value: String, modifier: 
         colors = ChipDefaults.chipColors(backgroundColor = Color.White),
         leadingIcon = {
             Icon(
-                painter = painterResource(icon.name),
+                painter = icon.painter(),
                 contentDescription = label
             )
         },
@@ -80,4 +81,4 @@ private fun StatChip(icon: ImageVector, label: String, value: String, modifier: 
     }
 }
 
-data class StatItem(val icon: ImageVector, val label: String, val value: String)
+data class StatItem(val icon: GameIcon, val label: String, val value: String)

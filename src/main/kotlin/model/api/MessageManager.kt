@@ -121,8 +121,9 @@ class MessageManager(
                             sendMessage(Ping(entry.key))
                             entry.setValue(currentTime)
                         }
+                        logger.info("Ping sent to ${entry.key.address.hostAddress}")
                     }
-                    logger.info("Ping sent")
+
                 }
             }.onFailure { e ->
                 logger.warn("Game config is empty", e)
