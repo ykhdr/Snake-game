@@ -70,6 +70,7 @@ private fun StatChip(icon: GameIcon, label: String, value: String, modifier: Mod
                 modifier = Modifier.size(20.dp),
                 painter = icon.painter(),
                 contentDescription = label,
+                tint = MaterialTheme.colors.primary
                 )
         },
         modifier = modifier.sizeIn(minWidth = 80.dp, minHeight = 48.dp)
