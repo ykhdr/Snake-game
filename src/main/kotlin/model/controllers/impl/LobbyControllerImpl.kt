@@ -37,15 +37,20 @@ class LobbyControllerImpl(
             runCatching {
                 val senderPlayer = state.getCurNodePlayer()
 
-                val leaveRequest = ChangeRoleRequest(
-                    senderPlayer.id,
-                    receiverPlayer.id,
-                    senderPlayer.role,
-                    receiverPlayer.role
-                )
+                if (state.getMasterPlayer() == senderPlayer) {
+                    context.stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
+                    logger.info("Current node player leave game")
+                } else {
+                    val leaveRequest = ChangeRoleRequest(
+                        senderPlayer.id,
+                        receiverPlayer.id,
+                        senderPlayer.role,
+                        receiverPlayer.role
+                    )
+                    context.stateHolder.getStateEditor().setLeaveRequest(leaveRequest)
+                    logger.info("Player ${senderPlayer.id} sent leave request to master ${receiverPlayer.id}")
+                }
 
-                context.stateHolder.getStateEditor().setLeaveRequest(leaveRequest)
-                logger.info("Player ${senderPlayer.id} sent leave request to master ${receiverPlayer.id}")
             }.onFailure { e ->
                 throw e
             }

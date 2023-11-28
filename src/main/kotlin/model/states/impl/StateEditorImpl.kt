@@ -105,7 +105,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
     @Synchronized
     override fun addAnnouncement(announcement: Announcement) {
-        if (announcement !in announcements) {
+        if (announcements.stream().filter { an -> an.address == announcement.address }.findFirst().isEmpty) {
             announcements.add(announcement)
         }
     }
@@ -134,6 +134,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         }
 
         this.nodeRole = nodeRole
+//        curNodePlayer.get().role = nodeRole
     }
 
     @Synchronized
@@ -303,10 +304,10 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.snakes.clear()
         this.playersToAdding.clear()
         this.players.clear()
-//        this.deputyListeners.clear()
-//        this.config = Optional.empty()
+        this.deputyListeners.clear()
+        this.config = Optional.empty()
         this.stateOrder = Optional.empty()
-//        this.gameName = Optional.empty()
+        this.gameName = Optional.empty()
         this.gameAddress = Optional.empty()
         this.availableCoords.clear()
     }

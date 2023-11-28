@@ -51,7 +51,7 @@ internal class StateImpl internal constructor(
     override fun getCurNodePlayer(): GamePlayer =
         curNodePlayer.orElseThrow { NoSuchElementException("Current node player is empty") }
 
-    override fun isGameRunning(): Boolean = curNodePlayer.isPresent
+    override fun isGameRunning(): Boolean = gameAddress.isPresent
 
     override fun getGameName(): String = gameName.orElseThrow { NoSuchElementException("State order is empty") }
     override fun getGameAddress(): InetSocketAddress =

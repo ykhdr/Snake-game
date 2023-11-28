@@ -35,13 +35,13 @@ fun MenuView(client: Client) = Surface(
     val expandedInfoEnable = remember { mutableStateOf(false) }
 
 
-    LaunchedEffect(client) {
+    LaunchedEffect(Unit) {
         client.setOnStateEditListener { state: ClientState ->
             isGameRunning.value = state.isGameRunning()
             announcements.value = state.getAnnouncements()
 
             if (isGameRunning.value) {
-
+                println(isGameRunning.value)
                 config.value = state.getConfig()
 
                 val cellsTmp = mutableMapOf<Int, Color>()
