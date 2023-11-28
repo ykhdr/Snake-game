@@ -253,11 +253,15 @@ class MessageManager(
     }
 
     private fun checkLeaveRequest(state: model.states.State) {
+
+
         if (state.getLeaveRequest().isEmpty) {
             return
         }
 
         val roleChange = state.getLeaveRequest().get()
+
+//        if (roleChange.senderId == state.get)
 
         sendRoleChangeMessage(
             state.getGameAddress(),
