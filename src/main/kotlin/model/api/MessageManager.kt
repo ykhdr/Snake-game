@@ -44,11 +44,25 @@ class MessageManager(
     private val logger = KotlinLogging.logger {}
 
 
-    private val receiveTask = {
+    private val receiveGroupMessagesTask = {
         runCatching {
-            receiverController.receive()
+            receiverController.receiveGroupMessage()
         }.onSuccess { message ->
             handleMessage(message)
+            logger.warn("$message")
+        }.onFailure { e ->
+            logger.warn("Error on receiving data", e)
+        }
+
+        Unit
+    }
+
+    private val receiveNodeMessagesTask = {
+        runCatching {
+            receiverController.receiveNodeMessage()
+        }.onSuccess { message ->
+            handleMessage(message)
+            logger.warn("$message")
         }.onFailure { e ->
             logger.warn("Error on receiving data", e)
         }
@@ -132,7 +146,7 @@ class MessageManager(
     private val announcementTask = {
         if (stateHolder.isNodeMaster()) {
             runCatching { stateHolder.getGameAnnouncement() }.onSuccess { announcement ->
-                sendMessage(Announcement(context.networkConfig.groupAddress, listOf(announcement)))
+                sendMessage(Announcement(context.networkConfig.localAddress, listOf(announcement)))
                 logger.info("Sent announcement to nodes")
             }.onFailure { e ->
                 logger.warn("Game Announcement is empty", e)
@@ -147,8 +161,8 @@ class MessageManager(
         val state = stateHolder.getState()
         val nodeRole = state.getNodeRole()
         if (nodeRole == NodeRole.DEPUTY) {
-            val messages: List<State> = state.getDeputyListeners()
-                .map { address -> State(address, stateHolder.getGameState()) }
+            val messages: List<State> =
+                state.getDeputyListeners().map { address -> State(address, stateHolder.getGameState()) }
 
             for (message in messages) {
                 sendMessage(message)
@@ -161,51 +175,40 @@ class MessageManager(
 
 
     private val requestSenderTask = {
-        if (stateHolder.isNodeMaster()) {
-            val state = stateHolder.getState()
+        val state = stateHolder.getState()
+        if (state.isGameRunning()) {
             checkSteerRequest(state)
-            checkJoinRequest(state)
             checkLeaveRequest(state)
             checkDeputyListenRequest(state)
-            logger.info("All request tasks checked")
         }
+        checkJoinRequest(state)
+        logger.info("All request tasks checked")
     }
 
 
     init {
         scheduledExecutor.scheduleWithFixedDelay(
-            receiveTask,
-            0,
-            1,
-            TimeUnit.MILLISECONDS
+            receiveGroupMessagesTask, 0, 1, TimeUnit.MILLISECONDS
         )
 
         scheduledExecutor.scheduleWithFixedDelay(
-            ackConfirmationTask,
-            0,
-            400,
-            TimeUnit.MILLISECONDS
+            receiveNodeMessagesTask, 0, 1, TimeUnit.MILLISECONDS
         )
 
         scheduledExecutor.scheduleWithFixedDelay(
-            pingTask,
-            0,
-            1000,
-            TimeUnit.MILLISECONDS
+            ackConfirmationTask, 0, 400, TimeUnit.MILLISECONDS
         )
 
         scheduledExecutor.scheduleWithFixedDelay(
-            announcementTask,
-            ANNOUNCEMENT_INITIAL_DELAY_MS,
-            ANNOUNCEMENT_DELAY_MS,
-            TimeUnit.MILLISECONDS
+            pingTask, 0, 1000, TimeUnit.MILLISECONDS
         )
 
         scheduledExecutor.scheduleWithFixedDelay(
-            requestSenderTask,
-            0,
-            REQUEST_SENDER_DELAY_MS,
-            TimeUnit.MILLISECONDS
+            announcementTask, ANNOUNCEMENT_INITIAL_DELAY_MS, ANNOUNCEMENT_DELAY_MS, TimeUnit.MILLISECONDS
+        )
+
+        scheduledExecutor.scheduleWithFixedDelay(
+            requestSenderTask, 0, REQUEST_SENDER_DELAY_MS, TimeUnit.MILLISECONDS
         )
 
         logger.info("All tasks are running ")
@@ -241,15 +244,17 @@ class MessageManager(
 
         val join = state.getJoinRequest().get()
 
-        sendJoinMessage(
-            join.address,
-            state.getPlayerName(),
-            state.getGameName(),
-            join.requestedRole
-        )
+        runCatching {
+            sendJoinMessage(
+                join.address, state.getPlayerName(), join.gameName, join.requestedRole
+            )
+        }.onFailure { e ->
+            logger.warn("Error on sending join message", e)
+        }.onSuccess {
+            stateHolder.getStateEditor().clearJoinRequest()
+            logger.info("Join request confirmed")
+        }
 
-        stateHolder.getStateEditor().clearJoinRequest()
-        logger.info("Join request confirmed")
     }
 
     private fun checkLeaveRequest(state: model.states.State) {
@@ -323,8 +328,7 @@ class MessageManager(
 
     private fun sendErrorMessage(address: InetSocketAddress, errorMessage: String) {
         val message = Error(
-            address = address,
-            errorMessage = errorMessage
+            address = address, errorMessage = errorMessage
         )
 
         sendMessage(message)
@@ -334,10 +338,7 @@ class MessageManager(
 
     private fun sendJoinMessage(address: InetSocketAddress, playerName: String, gameName: String, role: NodeRole) {
         val message = Join(
-            address = address,
-            playerName = playerName,
-            gameName = gameName,
-            requestedRole = role
+            address = address, playerName = playerName, gameName = gameName, requestedRole = role
         )
 
         sendMessage(message)
@@ -346,11 +347,7 @@ class MessageManager(
     }
 
     private fun sendRoleChangeMessage(
-        address: InetSocketAddress,
-        senderId: Int,
-        receiverId: Int,
-        senderRole: NodeRole,
-        receiverRole: NodeRole
+        address: InetSocketAddress, senderId: Int, receiverId: Int, senderRole: NodeRole, receiverRole: NodeRole
     ) {
         val message = RoleChange(address, senderId, receiverId, senderRole, receiverRole)
 
@@ -375,10 +372,7 @@ class MessageManager(
 
     private fun sendAck(address: InetSocketAddress, msgSeq: Long, senderId: Int, receiverId: Int) {
         val ack = Ack(
-            address = address,
-            msgSeq = msgSeq,
-            senderId = senderId,
-            receiverId = receiverId
+            address = address, msgSeq = msgSeq, senderId = senderId, receiverId = receiverId
         )
 
         sendMessage(ack)
@@ -503,10 +497,7 @@ class MessageManager(
 
             is Ping -> {
                 sendAck(
-                    message.address,
-                    message.msgSeq,
-                    message.senderId,
-                    message.receiverId
+                    message.address, message.msgSeq, message.senderId, message.receiverId
                 )
                 logger.info("Ping confirmed")
             }

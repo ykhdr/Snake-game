@@ -246,7 +246,7 @@ class FieldController(
 
     private val checkGameRequestTask = {
         val state = stateHolder.getState()
-        logger.warn("${state.getSnakes()},${state.getFoods().size}")
+//        logger.warn("${state.getSnakes()},${state.getFoods().size}")
         val gameCreateRequestOpt = state.getGameCreateRequest()
         if (gameCreateRequestOpt.isPresent) {
             createGame(state, gameCreateRequestOpt.get())

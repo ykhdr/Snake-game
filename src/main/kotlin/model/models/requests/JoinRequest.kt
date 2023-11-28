@@ -5,5 +5,6 @@ import java.net.InetSocketAddress
 
 data class JoinRequest(
     val address: InetSocketAddress,
+    val gameName : String,
     val requestedRole: NodeRole
 )

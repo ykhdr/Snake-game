@@ -10,6 +10,7 @@ import model.mappers.ProtoMapper
 import mu.KotlinLogging
 import java.io.Closeable
 import java.net.DatagramPacket
+import java.net.DatagramSocket
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
 import java.net.SocketException
@@ -31,20 +32,45 @@ class ReceiverController(
     private val receivedAck = mutableMapOf<InetSocketAddress, Ack>()
     private val receivedErrors = mutableMapOf<InetSocketAddress, Error>()
 
-    private var socket: MulticastSocket = initSocket(config)
+    private val multicastSocket: MulticastSocket = initMulticastSocket(config)
+    private val localSocket : DatagramSocket = initLocalSocket(config)
+
+
 
     /**
      * @throws UndefinedMessageTypeError если полученное сообщение явялется неизвестным
      * @throws SocketException если сокет закрыт | any IO exception
      */
-    fun receive(): Message {
+    fun receiveGroupMessage(): Message {
         val datagramPacket = DatagramPacket(buffer, buffer.size)
-        socket.receive(datagramPacket)
+        multicastSocket.receive(datagramPacket)
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
         val protoMessage = GameMessage.parseFrom(protoBytes)
         val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
 
-        logger.info("Message received from ${address.address}")
+        logger.info("Message received from ${address.address}, $protoMessage")
+
+
+
+        val message = protoMapper.toMessage(
+            protoMessage,
+            address
+        )
+
+        checkOnAck(message, protoMessage.msgSeq, address)
+        checkOnError(message, protoMessage.msgSeq, address)
+
+        return message
+    }
+
+    fun receiveNodeMessage() : Message {
+        val datagramPacket = DatagramPacket(buffer, buffer.size)
+        localSocket.receive(datagramPacket)
+        val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
+        val protoMessage = GameMessage.parseFrom(protoBytes)
+        val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
+
+        logger.info("Message received from ${address.address}, $protoMessage")
 
 
 
@@ -121,7 +147,7 @@ class ReceiverController(
         }
     }
 
-    private fun initSocket(config : NetworkConfig): MulticastSocket {
+    private fun initMulticastSocket(config : NetworkConfig): MulticastSocket {
         //TODO добавить проверки на валидность адреса
         val socket = MulticastSocket(config.groupAddress.port)
         socket.joinGroup(
@@ -132,8 +158,12 @@ class ReceiverController(
         return socket
     }
 
+    private fun initLocalSocket(config: NetworkConfig): DatagramSocket {
+        return DatagramSocket(config.localAddress)
+    }
+
     override fun close() {
-        socket.close()
+        multicastSocket.close()
         logger.info ("Multicast socket closed")
     }
 }

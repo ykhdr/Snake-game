@@ -41,7 +41,6 @@ fun MenuView(client: Client) = Surface(
             announcements.value = state.getAnnouncements()
 
             if (isGameRunning.value) {
-                println(isGameRunning.value)
                 config.value = state.getConfig()
 
                 val cellsTmp = mutableMapOf<Int, Color>()

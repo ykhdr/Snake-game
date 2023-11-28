@@ -1,5 +1,6 @@
 package model.models.core
 
+import java.net.InetAddress
 import java.net.InetSocketAddress
 
 data class GamePlayer(
@@ -13,9 +14,9 @@ data class GamePlayer(
 ) {
     companion object {
         const val DEFAULT_STR_IP = "127.0.0.1"
-        const val DEFAULT_PORT = 1243
+        const val DEFAULT_PORT = 1244
         const val DEFAULT_SCORE = 0
         val DEFAULT_PLAYER_TYPE = PlayerType.HUMAN
-        val DEFAULT_LOCAL_IP = InetSocketAddress(DEFAULT_STR_IP, DEFAULT_PORT)
+        val DEFAULT_LOCAL_IP = InetSocketAddress(DEFAULT_PORT)
     }
 }
