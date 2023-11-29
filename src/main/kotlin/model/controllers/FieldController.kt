@@ -25,7 +25,7 @@ class FieldController(
     )
 
     companion object {
-        private const val SCHEDULED_PULL_SIZE = 4
+        private const val SCHEDULED_PULL_SIZE = 6
         private const val INITIAL_DELAY = 0L
         private const val SCAN_FIELD_TASK_DELAY = 200L
         private const val CREATING_SNAKES_TASK_DELAY = 300L
@@ -241,7 +241,10 @@ class FieldController(
                 stateHolder.getStateEditor().addSnake(snake)
                 logger.info("Snake for player ${player.id} created")
             }
+
         }
+        
+        Unit
     }
 
     private val checkGameRequestTask = {

@@ -33,7 +33,7 @@ class ReceiverController(
     private val receivedErrors = mutableMapOf<InetSocketAddress, Error>()
 
     private val multicastSocket: MulticastSocket = initMulticastSocket(config)
-    private val localSocket : DatagramSocket = initLocalSocket(config)
+    private val nodeSocket : DatagramSocket = config.nodeSocket
 
 
 
@@ -65,7 +65,7 @@ class ReceiverController(
 
     fun receiveNodeMessage() : Message {
         val datagramPacket = DatagramPacket(buffer, buffer.size)
-        localSocket.receive(datagramPacket)
+        nodeSocket.receive(datagramPacket)
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
         val protoMessage = GameMessage.parseFrom(protoBytes)
         val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
@@ -156,10 +156,6 @@ class ReceiverController(
         )
         logger.info("Multicast socket init")
         return socket
-    }
-
-    private fun initLocalSocket(config: NetworkConfig): DatagramSocket {
-        return DatagramSocket(config.localAddress)
     }
 
     override fun close() {

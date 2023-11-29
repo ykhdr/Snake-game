@@ -1,5 +1,6 @@
 package model.api.controllers
 
+import model.api.config.NetworkConfig
 import model.dto.messages.Message
 import model.mappers.ProtoMapper
 import mu.KotlinLogging
@@ -7,12 +8,12 @@ import java.io.Closeable
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 
-class SenderController : Closeable {
+class SenderController(config: NetworkConfig) : Closeable {
     companion object {
         private const val BUFFER_SIZE = 4 * 1024
     }
 
-    private val datagramSocket = DatagramSocket()
+    private val datagramSocket = config.nodeSocket
     private val mapper = ProtoMapper
     private val buffer = ByteArray(BUFFER_SIZE)
 

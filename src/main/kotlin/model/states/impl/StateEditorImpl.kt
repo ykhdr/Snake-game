@@ -315,12 +315,12 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     @Synchronized
     internal fun edit(): State {
         val newState = StateImpl(
-            foods,
-            playersToAdding,
-            players,
-            deputyListeners,
-            snakes,
-            announcements,
+            foods.toList(),
+            playersToAdding.toList(),
+            players.toList(),
+            deputyListeners.toList(),
+            snakes.toList(),
+            announcements.toList(),
             nodeRole,
             curNodePlayer,
             config,

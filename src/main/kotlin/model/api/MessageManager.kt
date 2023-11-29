@@ -37,7 +37,7 @@ class MessageManager(
     private val sentMessageTime = mutableMapOf<InetSocketAddress, Long>()
 
     private val receiverController: ReceiverController = ReceiverController(context.networkConfig)
-    private val senderController: SenderController = SenderController()
+    private val senderController: SenderController = SenderController(context.networkConfig)
 
     private var deputyListenTaskFuture: Optional<ScheduledFuture<*>> = Optional.empty()
 
@@ -146,7 +146,7 @@ class MessageManager(
     private val announcementTask = {
         if (stateHolder.isNodeMaster()) {
             runCatching { stateHolder.getGameAnnouncement() }.onSuccess { announcement ->
-                sendMessage(Announcement(context.networkConfig.localAddress, listOf(announcement)))
+                sendMessage(Announcement(context.networkConfig.groupAddress, listOf(announcement)))
                 logger.info("Sent announcement to nodes")
             }.onFailure { e ->
                 logger.warn("Game Announcement is empty", e)
