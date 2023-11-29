@@ -1,4 +1,4 @@
-package model.models.requests
+package model.models.requests.tasks
 
 enum class MoveSnakeTaskRequest {
     RUN,
