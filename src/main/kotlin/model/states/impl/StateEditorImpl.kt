@@ -189,7 +189,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         }.onSuccess { player ->
 
 
-            // Заместитель становиться главным
+            // Заместитель становится главным
             if (receiverRole == NodeRole.MASTER && player.role == NodeRole.DEPUTY) {
                 player.role = NodeRole.MASTER
 

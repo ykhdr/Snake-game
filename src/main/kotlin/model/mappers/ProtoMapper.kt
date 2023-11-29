@@ -104,6 +104,8 @@ object ProtoMapper {
                     .build()
             )
             .setMsgSeq(state.msgSeq)
+            .setSenderId(state.senderId)
+            .setReceiverId(state.receiverId)
             .build()
     }
 
@@ -115,6 +117,8 @@ object ProtoMapper {
                     .build()
             )
             .setMsgSeq(steer.msgSeq)
+            .setSenderId(steer.senderId)
+            .setReceiverId(steer.receiverId)
             .build()
     }
 

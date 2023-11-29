@@ -25,9 +25,9 @@ class GameControllerImpl(
                 if (player.ip == master.ip) {
                     stateHolder.getStateEditor().updateSnakeDirection(master.id, direction)
                 } else {
-                    val steerRequest = SteerRequest(master.ip, player.id, master.id, direction)
+                    val gameAddress = stateHolder.getState().getGameAddress()
+                    val steerRequest = SteerRequest(gameAddress, player.id, master.id, direction)
                     stateHolder.getStateEditor().setSteerRequest(steerRequest)
-                    print("AAAAA")
                 }
                 logger.info("Player moved snake")
             }.onFailure { e ->

@@ -86,6 +86,8 @@ class MessageManager(
     }
 
     // TODO надо подумаьт над тем, что будет, когда ресивер отпадет и не будет отвечать совсем
+    // TODO пересмотреть этот метод
+
     private fun ackConfirm(gameConfig: GameConfig) {
         val ackDelay = gameConfig.stateDelayMs / 10
         synchronized(ackConfirmations) {
@@ -97,22 +99,16 @@ class MessageManager(
                         ackConfirmation.messageSentTime = currentTime
                     }
                 } else {
-                    val ackResult = runCatching {
+                    runCatching {
                         receiverController.getReceivedAckByAddress(ackConfirmation.message.address)
-                    }
-                    ackResult.onSuccess { ack ->
+                    }.onSuccess { ack ->
                         handleAckOnMessage(ackConfirmation.message, ack)
                     }.onFailure {
-                        val errorResult = runCatching {
+                        runCatching {
                             receiverController.getReceivedErrorByAddress(ackConfirmation.message.address)
-                        }
-                        errorResult.onSuccess { message ->
+                        }.onSuccess { message ->
                             handleMessage(message)
-                        }.onFailure { e ->
-                            //TODO нужно посмотреть чзх вообще
-                            logger.warn("Error in ack receiving")
                         }
-
                     }
 
                 }
@@ -187,7 +183,7 @@ class MessageManager(
         logger.info("All request tasks checked")
     }
 
-    private val sendStateTask = {
+    private val stateTask = {
         if (stateHolder.isNodeMaster()) {
             val state = stateHolder.getState()
 
@@ -241,7 +237,7 @@ class MessageManager(
         )
 
         scheduledExecutor.scheduleWithFixedDelay(
-            sendStateTask, 0, 1000, TimeUnit.MILLISECONDS
+            stateTask, 0, 500, TimeUnit.MILLISECONDS
         )
 
         logger.info("All tasks are running ")
@@ -553,7 +549,6 @@ class MessageManager(
                     if (message.state.stateOrder > stateOrder) {
                         stateHolder.getStateEditor().setState(message.state)
                     }
-                    sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
                 }.onFailure {
                     stateHolder.getStateEditor().setGameAddress(message.address)
                     stateHolder.getStateEditor().setNodeId(message.receiverId)
@@ -561,6 +556,7 @@ class MessageManager(
 //                    sendErrorMessage(message.address, e.message ?: "error")
 //                    logger.warn("Error on state", e)
                 }
+                sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
                 logger.info("State confirmed")
             }
 
