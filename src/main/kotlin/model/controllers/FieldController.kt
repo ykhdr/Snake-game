@@ -3,7 +3,7 @@ package model.controllers
 import model.models.contexts.Context
 import model.models.core.*
 import model.models.requests.GameCreateRequest
-import model.models.requests.MoveSnakeTaskRequest
+import model.models.requests.tasks.MoveSnakeTaskRequest
 import model.states.State
 import model.utils.IdSequence
 import mu.KotlinLogging

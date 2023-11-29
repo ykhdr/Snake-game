@@ -3,6 +3,8 @@ package model.states
 import model.dto.messages.Announcement
 import model.models.core.*
 import model.models.requests.*
+import model.models.requests.tasks.DeputyListenTaskRequest
+import model.models.requests.tasks.MoveSnakeTaskRequest
 import java.net.InetSocketAddress
 import java.util.*
 

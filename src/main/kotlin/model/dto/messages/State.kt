@@ -8,4 +8,4 @@ class State(
     senderId: Int,
     receiverId: Int,
     val state: GameState
-) : Message(address, senderId, 0, receiverId)
+) : Message(address, senderId, receiverId)

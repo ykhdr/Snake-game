@@ -218,7 +218,7 @@ object ProtoMapper {
         else if (message.hasState())
             toState(message.state, address, message.senderId, message.receiverId)
         else if (message.hasSteer())
-            toSteer(message.steer, address)
+            toSteer(message.steer, address, message.senderId, message.receiverId)
         else
             throw UndefinedMessageTypeError(message = "No match type of message")
     }
@@ -285,8 +285,10 @@ object ProtoMapper {
         state = toGameState(proto.state)
     )
 
-    private fun toSteer(proto: SnakesProto.GameMessage.SteerMsg, address: InetSocketAddress) = Steer(
+    private fun toSteer(proto: SnakesProto.GameMessage.SteerMsg, address: InetSocketAddress,senderId : Int, receiverId : Int) = Steer(
         address = address,
+        senderId = senderId,
+        receiverId = receiverId,
         direction = toDirection(proto.direction)
     )
 

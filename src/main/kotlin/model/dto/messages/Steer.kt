@@ -6,5 +6,7 @@ import java.net.InetSocketAddress
 
 class Steer(
     address: InetSocketAddress,
+    senderId : Int,
+    receiverId: Int,
     val direction: Direction
-) : Message(address)
+) : Message(address, senderId, receiverId)

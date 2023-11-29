@@ -6,6 +6,8 @@ import model.exceptions.NodeRoleHasNotPrivilegesError
 import model.exceptions.UnknownPlayerError
 import model.models.core.*
 import model.models.requests.*
+import model.models.requests.tasks.DeputyListenTaskRequest
+import model.models.requests.tasks.MoveSnakeTaskRequest
 import model.states.State
 import model.states.StateEditor
 import java.net.InetSocketAddress

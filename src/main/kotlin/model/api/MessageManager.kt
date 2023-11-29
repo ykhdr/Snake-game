@@ -6,7 +6,7 @@ import model.dto.messages.*
 import model.models.util.AckConfirmation
 import model.models.contexts.NetworkContext
 import model.models.core.*
-import model.models.requests.DeputyListenTaskRequest
+import model.models.requests.tasks.DeputyListenTaskRequest
 import model.states.StateHolder
 import model.utils.IdSequence
 import mu.KotlinLogging
@@ -264,7 +264,7 @@ class MessageManager(
         }
 
         val steer = state.getSteerRequest().get()
-        sendSteerMessage(steer.address, steer.direction)
+        sendSteerMessage(steer.address, steer.senderId, steer.receiverId, steer.direction)
 
         stateHolder.getStateEditor().clearSteerRequest()
         logger.info("Steer request confirmed")
@@ -351,8 +351,8 @@ class MessageManager(
     }
 
 
-    private fun sendSteerMessage(address: InetSocketAddress, direction: Direction) {
-        val message = Steer(address, direction)
+    private fun sendSteerMessage(address: InetSocketAddress, senderId: Int, receiverId: Int, direction: Direction) {
+        val message = Steer(address, senderId, receiverId, direction)
 
         sendMessage(message)
         waitAckOnMessage(message)

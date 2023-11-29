@@ -19,13 +19,20 @@ class GameControllerImpl(
         runCatching {
             stateHolder.getState().getMasterPlayer()
         }.onSuccess { master ->
-            if(stateHolder.getState().getGameAddress() == master.ip){
-                stateHolder.getStateEditor().updateSnakeDirection(master.id,direction)
-            } else {
-                val steerRequest = SteerRequest(master.ip, direction)
-                stateHolder.getStateEditor().setSteerRequest(steerRequest)
+            runCatching {
+                stateHolder.getState().getCurNodePlayer()
+            }.onSuccess { player ->
+                if (player.ip == master.ip) {
+                    stateHolder.getStateEditor().updateSnakeDirection(master.id, direction)
+                } else {
+                    val steerRequest = SteerRequest(master.ip, player.id, master.id, direction)
+                    stateHolder.getStateEditor().setSteerRequest(steerRequest)
+                    print("AAAAA")
+                }
+                logger.info("Player moved snake")
+            }.onFailure { e ->
+                throw e
             }
-            logger.info("Player moved snake")
         }.onFailure { e ->
             logger.info("Error on move snake", e)
             throw NoGameError("Error on move snake", e)
