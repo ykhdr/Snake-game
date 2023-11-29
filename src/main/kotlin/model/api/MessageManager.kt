@@ -517,13 +517,19 @@ class MessageManager(
 
                 val curNodePlayer = stateHolder.getState().getCurNodePlayer()
 
-                runCatching { stateEditor.addPlayerToAdding(player) }.onSuccess {
+                if (player.role == NodeRole.VIEWER) {
+                    stateEditor.addPlayer(player)
                     sendAck(message.address, message.msgSeq, curNodePlayer.id, player.id)
-                    logger.info("Join confirmed")
-                }.onFailure { e ->
-                    sendErrorMessage(message.address, e.message ?: "error")
-                    logger.warn("Error on other node join request", e)
+                } else {
+                    runCatching { stateEditor.addPlayerToAdding(player) }.onSuccess {
+                        sendAck(message.address, message.msgSeq, curNodePlayer.id, player.id)
+                        logger.info("Join confirmed")
+                    }.onFailure { e ->
+                        sendErrorMessage(message.address, e.message ?: "error")
+                        logger.warn("Error on other node join request", e)
+                    }
                 }
+
             }
 
             is Ping -> {
