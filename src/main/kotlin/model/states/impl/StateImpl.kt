@@ -8,6 +8,7 @@ import model.models.requests.tasks.MoveSnakeTaskRequest
 import model.states.State
 import java.net.InetSocketAddress
 import java.util.*
+import kotlin.NoSuchElementException
 
 internal class StateImpl internal constructor(
     private val foods: List<Coord>,
@@ -50,6 +51,11 @@ internal class StateImpl internal constructor(
             .orElseThrow { NoSuchElementException("No master player in game") }
     }
 
+    override fun getDeputyPlayer(): GamePlayer {
+        return players.stream().filter { pl -> pl.role == NodeRole.VIEWER }.findFirst()
+            .orElseThrow { NoSuchElementException("No deputy player in game") }
+    }
+
     override fun getCurNodePlayer(): GamePlayer =
         curNodePlayer.orElseThrow { NoSuchElementException("Current node player is empty") }
 
@@ -89,6 +95,7 @@ internal class StateImpl internal constructor(
                 "steerRequest=$steerRequest, " +
                 "leaveRequest=$leaveRequest, " +
                 "gameCreateRequest=$gameCreateRequest, " +
-                "deputyListenTaskRequest=$deputyListenTaskRequest)"
+                "deputyListenTaskRequest=$deputyListenTaskRequest, " +
+                "moveSnakeTaskRequest=$moveSnakeTaskRequest)"
     }
 }

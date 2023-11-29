@@ -42,7 +42,10 @@ interface State : ClientState {
      */
     fun getMasterPlayer() : GamePlayer
 
-
+    /**
+     * @throws NoSuchElementException если текущая нода не в игре
+     */
+    fun getDeputyPlayer() : GamePlayer
 
     /**
      * @throws NoSuchElementException если текущая нода не в игре
