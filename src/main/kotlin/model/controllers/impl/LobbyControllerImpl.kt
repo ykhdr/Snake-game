@@ -44,8 +44,8 @@ class LobbyControllerImpl(
                     val leaveRequest = ChangeRoleRequest(
                         senderPlayer.id,
                         receiverPlayer.id,
-                        senderPlayer.role,
-                        receiverPlayer.role
+                        NodeRole.VIEWER,
+                        NodeRole.MASTER
                     )
                     context.stateHolder.getStateEditor().setLeaveRequest(leaveRequest)
                     logger.info("Player ${senderPlayer.id} sent leave request to master ${receiverPlayer.id}")

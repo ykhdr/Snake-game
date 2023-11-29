@@ -182,6 +182,8 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
     @Synchronized
     override fun updateRole(playerAddress: InetSocketAddress, senderRole: NodeRole, receiverRole: NodeRole) {
+
+        // Ищем того, КТО является ОПРАВИТЕЛЕМ
         runCatching {
             players.first { player ->
                 player.ip == playerAddress && player.port == playerAddress.port
@@ -195,24 +197,27 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
 
                 // От мастера о том, что он выходит и мы становимся главным
-            } else if (senderRole == NodeRole.VIEWER && receiverRole == NodeRole.MASTER) {
+            } else if (senderRole == NodeRole.VIEWER && player.role == NodeRole.MASTER && receiverRole == NodeRole.MASTER) {
                 nodeRole = NodeRole.MASTER
-                player.role = NodeRole.MASTER
+                player.role = NodeRole.VIEWER
+                leavePlayer(player)
                 //TODO если мы становимся мастером, то надо ли здесь что то менять?
 
                 // Выходящий игрок
-            } else if (senderRole == NodeRole.VIEWER) {
+                //TODO нужно ли проверять на то что эта нода является deputy?
+            } else if (senderRole == NodeRole.VIEWER && (receiverRole == NodeRole.MASTER || receiverRole == NodeRole.DEPUTY)) {
                 player.role = NodeRole.VIEWER
-                nodeRole = NodeRole.VIEWER
+                leavePlayer(player)
+
                 // От главного умершему
-            } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.VIEWER) {
+            } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.VIEWER &&
+                (player.role == NodeRole.NORMAL || player.role == NodeRole.DEPUTY)
+            ) {
                 nodeRole = NodeRole.VIEWER
-                player.role = NodeRole.VIEWER
 
                 // От главного новому заместителю
             } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.DEPUTY) {
                 nodeRole = NodeRole.DEPUTY
-                player.role = NodeRole.DEPUTY
                 deputyListenTaskRequest = DeputyListenTaskRequest.RUN
             } else {
                 throw NodeRoleHasNotPrivilegesError("sender node has not privileges to change role")
@@ -314,6 +319,11 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.gameName = Optional.empty()
         this.gameAddress = Optional.empty()
         this.availableCoords.clear()
+    }
+
+    private fun leavePlayer(player: GamePlayer) {
+        this.players.remove(player)
+        this.snakes.removeIf { s -> s.playerId == player.id }
     }
 
     @Synchronized
