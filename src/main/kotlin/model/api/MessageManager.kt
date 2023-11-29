@@ -540,7 +540,8 @@ class MessageManager(
             }
 
             is RoleChange -> runCatching {
-                stateHolder.getStateEditor().updateRole(message.address, message.senderRole, message.receiverRole)
+                stateHolder.getStateEditor().updateRole(message.senderId, message.senderRole, message.receiverRole)
+//                println("$message")
             }.onSuccess {
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
                 logger.info("Role change confirmed")

@@ -70,7 +70,7 @@ interface StateEditor {
      * @throws NodeRoleHasNotPrivilegesError если запрос ноды является недопустимым в рамках ее привилегий
      * @throws UnknownPlayerError если игрок был не найден по адресу
      */
-    fun updateRole(playerAddress: InetSocketAddress, senderRole: NodeRole, receiverRole: NodeRole)
+    fun updateRole(id: Int, senderRole: NodeRole, receiverRole: NodeRole)
 
     fun setState(newState: GameState)
 

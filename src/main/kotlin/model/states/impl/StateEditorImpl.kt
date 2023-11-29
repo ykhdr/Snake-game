@@ -181,12 +181,12 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     }
 
     @Synchronized
-    override fun updateRole(playerAddress: InetSocketAddress, senderRole: NodeRole, receiverRole: NodeRole) {
+    override fun updateRole(id: Int, senderRole: NodeRole, receiverRole: NodeRole) {
 
         // Ищем того, КТО является ОПРАВИТЕЛЕМ
         runCatching {
             players.first { player ->
-                player.ip == playerAddress && player.port == playerAddress.port
+                player.id == id
             }
         }.onSuccess { player ->
 

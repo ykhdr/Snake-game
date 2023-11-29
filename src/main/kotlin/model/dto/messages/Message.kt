@@ -13,4 +13,8 @@ sealed class Message(
         const val DEFAULT_SENDER_ID = -1
         const val DEFAULT_MESSAGE_SEQUENCE = -1L
     }
+
+    override fun toString(): String {
+        return "Message(address=$address, senderId=$senderId, receiverId=$receiverId, msgSeq=$msgSeq)"
+    }
 }

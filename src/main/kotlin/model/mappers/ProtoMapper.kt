@@ -82,6 +82,8 @@ object ProtoMapper {
                     .setReceiverRole(toProtoNodeRole(message.receiverRole))
                     .build()
             )
+            .setReceiverId(message.receiverId)
+            .setSenderId(message.senderId)
             .setMsgSeq(message.msgSeq)
             .build()
     }
@@ -227,18 +229,14 @@ object ProtoMapper {
             throw UndefinedMessageTypeError(message = "No match type of message")
     }
 
-    private fun toAck(proto: SnakesProto.GameMessage, address: InetSocketAddress): Ack {
-        if (!proto.hasAck()) {
-            throw UndefinedMessageTypeError(message = "Passed argument is not ack message")
-        }
-
-        return Ack(
+    private fun toAck(proto: SnakesProto.GameMessage, address: InetSocketAddress) =
+        Ack(
             address = address,
             msgSeq = proto.msgSeq,
             receiverId = proto.receiverId,
             senderId = proto.senderId
         )
-    }
+
 
     private fun toAnnouncement(proto: SnakesProto.GameMessage.AnnouncementMsg, address: InetSocketAddress) =
         Announcement(
@@ -282,14 +280,24 @@ object ProtoMapper {
         )
     }
 
-    private fun toState(proto: SnakesProto.GameMessage.StateMsg, address: InetSocketAddress, senderId : Int, receiverId : Int) = State(
+    private fun toState(
+        proto: SnakesProto.GameMessage.StateMsg,
+        address: InetSocketAddress,
+        senderId: Int,
+        receiverId: Int
+    ) = State(
         address = address,
         senderId = senderId,
         receiverId = receiverId,
         state = toGameState(proto.state)
     )
 
-    private fun toSteer(proto: SnakesProto.GameMessage.SteerMsg, address: InetSocketAddress,senderId : Int, receiverId : Int) = Steer(
+    private fun toSteer(
+        proto: SnakesProto.GameMessage.SteerMsg,
+        address: InetSocketAddress,
+        senderId: Int,
+        receiverId: Int
+    ) = Steer(
         address = address,
         senderId = senderId,
         receiverId = receiverId,
