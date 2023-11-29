@@ -20,21 +20,12 @@ class LobbyControllerImpl(
 
     override fun join(address: InetSocketAddress, gameName: String) {
         val joinRequest = JoinRequest(address, gameName, NodeRole.NORMAL)
-        val announcement = findAnnouncement(address)
-        if (announcement.isPresent){
-            val ann = announcement.get()
-            context.stateHolder.getStateEditor().setGameConfig(ann.games[0].config)
-
-            context.stateHolder.getStateEditor().setJoinRequest(joinRequest)
-            logger.info("Player with address ${address.address.hostAddress} sent join request")
-        }
-
+        connect2Host(joinRequest)
     }
 
     override fun watch(address: InetSocketAddress, gameName: String) {
         val joinRequest = JoinRequest(address, gameName, NodeRole.VIEWER)
-        context.stateHolder.getStateEditor().setJoinRequest(joinRequest)
-        logger.info("Player with address ${address.address.hostAddress} sent join on watch request")
+        connect2Host(joinRequest)
     }
 
     override fun leave() {
@@ -84,6 +75,17 @@ class LobbyControllerImpl(
         context.stateHolder.getStateEditor().setPlayerName(playerName)
         context.stateHolder.getStateEditor().setGameCreateRequest(gameCreateRequest)
         logger.info("Player create game create request")
+    }
+
+    private fun connect2Host(joinRequest: JoinRequest){
+        val announcement = findAnnouncement(joinRequest.address)
+        if (announcement.isPresent){
+            val ann = announcement.get()
+            context.stateHolder.getStateEditor().setGameConfig(ann.games[0].config)
+
+            context.stateHolder.getStateEditor().setJoinRequest(joinRequest)
+            logger.info("Player with address ${joinRequest.address.address.hostAddress} sent join request")
+        }
     }
 
     private fun findAnnouncement(address: InetSocketAddress) : Optional<Announcement>{
