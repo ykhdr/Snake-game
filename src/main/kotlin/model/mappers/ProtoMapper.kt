@@ -216,7 +216,7 @@ object ProtoMapper {
         else if (message.hasRoleChange())
             toRoleChange(message, address)
         else if (message.hasState())
-            toState(message.state, address)
+            toState(message.state, address, message.senderId, message.receiverId)
         else if (message.hasSteer())
             toSteer(message.steer, address)
         else
@@ -278,8 +278,10 @@ object ProtoMapper {
         )
     }
 
-    private fun toState(proto: SnakesProto.GameMessage.StateMsg, address: InetSocketAddress) = State(
+    private fun toState(proto: SnakesProto.GameMessage.StateMsg, address: InetSocketAddress, senderId : Int, receiverId : Int) = State(
         address = address,
+        senderId = senderId,
+        receiverId = receiverId,
         state = toGameState(proto.state)
     )
 

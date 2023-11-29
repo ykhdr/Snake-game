@@ -109,7 +109,8 @@ class MessageManager(
                         errorResult.onSuccess { message ->
                             handleMessage(message)
                         }.onFailure { e ->
-                            logger.warn("Error in ack receiving", e)
+                            //TODO нужно посмотреть чзх вообще
+                            logger.warn("Error in ack receiving")
                         }
 
                     }
@@ -157,17 +158,18 @@ class MessageManager(
 
     // Здесь мы смотрим является ли наша нода Deputy и после спрашиваем у нее
     // какие ноды просят вместо mastera у нас инфу об игре (GameState)
+    //TODO сделать эту таску
     private val deputyListenersTask = {
         val state = stateHolder.getState()
         val nodeRole = state.getNodeRole()
         if (nodeRole == NodeRole.DEPUTY) {
-            val messages: List<State> =
-                state.getDeputyListeners().map { address -> State(address, stateHolder.getGameState()) }
-
-            for (message in messages) {
-                sendMessage(message)
-                waitAckOnMessage(message)
-            }
+//            val messages: List<State> =
+//                state.getDeputyListeners().map { address -> State(address, stateHolder.getGameState()) }
+//
+//            for (message in messages) {
+//                sendMessage(message)
+//                waitAckOnMessage(message)
+//            }
 
             logger.info("Sent state to deputy listeners")
         }
@@ -183,6 +185,33 @@ class MessageManager(
         }
         checkJoinRequest(state)
         logger.info("All request tasks checked")
+    }
+
+    private val sendStateTask = {
+        if (stateHolder.isNodeMaster()) {
+            val state = stateHolder.getState()
+
+
+            runCatching {
+                state.getCurNodePlayer()
+            }.onSuccess { master ->
+                val players = state.getPlayers()
+                val gameState = stateHolder.getGameState()
+
+                val messages = players.stream()
+                    .filter { p -> p != master }
+                    .map { p -> State(p.ip, master.id, p.id, gameState) }.toList()
+
+                for (message in messages) {
+                    sendMessage(message)
+                    waitAckOnMessage(message)
+                    logger.info("State sent to ${message.address}")
+                }
+            }.onFailure { e ->
+                logger.warn("Error on sending state task", e)
+            }
+
+        }
     }
 
 
@@ -209,6 +238,10 @@ class MessageManager(
 
         scheduledExecutor.scheduleWithFixedDelay(
             requestSenderTask, 0, REQUEST_SENDER_DELAY_MS, TimeUnit.MILLISECONDS
+        )
+
+        scheduledExecutor.scheduleWithFixedDelay(
+            sendStateTask, 0, 1000, TimeUnit.MILLISECONDS
         )
 
         logger.info("All tasks are running ")
@@ -486,8 +519,10 @@ class MessageManager(
                     0
                 )
 
+                val curNodePlayer = stateHolder.getState().getCurNodePlayer()
+
                 runCatching { stateEditor.addPlayerToAdding(player) }.onSuccess {
-                    sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
+                    sendAck(message.address, message.msgSeq, curNodePlayer.id, player.id)
                     logger.info("Join confirmed")
                 }.onFailure { e ->
                     sendErrorMessage(message.address, e.message ?: "error")
@@ -509,7 +544,7 @@ class MessageManager(
                 logger.info("Role change confirmed")
             }.onFailure { e ->
                 sendErrorMessage(message.address, e.message ?: "error")
-                logger.info("Error on role change", e)
+                logger.warn("Error on role change", e)
             }
 
             is State -> {
@@ -519,11 +554,14 @@ class MessageManager(
                         stateHolder.getStateEditor().setState(message.state)
                     }
                     sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
-                    logger.info("State confirmed")
-                }.onFailure { e ->
-                    sendErrorMessage(message.address, e.message ?: "error")
-                    logger.info("Error on state", e)
+                }.onFailure {
+                    stateHolder.getStateEditor().setGameAddress(message.address)
+                    stateHolder.getStateEditor().setNodeId(message.receiverId)
+                    stateHolder.getStateEditor().setState(message.state)
+//                    sendErrorMessage(message.address, e.message ?: "error")
+//                    logger.warn("Error on state", e)
                 }
+                logger.info("State confirmed")
             }
 
             is Steer -> runCatching {
@@ -533,7 +571,7 @@ class MessageManager(
                 logger.info("Steer confirmed")
             }.onFailure { e ->
                 sendErrorMessage(message.address, e.message ?: "error")
-                logger.info("Error on steer", e)
+                logger.warn("Error on steer", e)
             }
         }
     }

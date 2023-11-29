@@ -18,11 +18,11 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
     private var onStateEdit: (State) -> Unit = {}
 
-    private val foods: MutableList<Coord> = mutableListOf()
+    private var foods: MutableList<Coord> = mutableListOf()
     private val playersToAdding: MutableList<GamePlayer> = mutableListOf()
-    private val players: MutableList<GamePlayer> = mutableListOf()
+    private var players: MutableList<GamePlayer> = mutableListOf()
     private val deputyListeners: MutableList<InetSocketAddress> = mutableListOf()
-    private val snakes: MutableList<Snake> = mutableListOf()
+    private var snakes: MutableList<Snake> = mutableListOf()
     private val announcements: MutableList<Announcement> = mutableListOf()
     private var nodeRole: NodeRole = NodeRole.VIEWER
     private var config: Optional<GameConfig> = Optional.empty()
@@ -226,16 +226,16 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
     @Synchronized
     override fun setState(newState: GameState) {
-        resetState()
+//        resetState()
 
-        this.foods.addAll(newState.foods)
-        this.snakes.addAll(newState.snakes)
-        this.players.addAll(newState.players)
+        this.foods = newState.foods.toMutableList()
+        this.snakes = newState.snakes.toMutableList()
+        this.players = newState.players.toMutableList()
+
         this.stateOrder = Optional.of(newState.stateOrder)
 
-        this.curNodePlayer = Optional.of(
-            players.stream().filter { pl -> pl.id == this.nodeId.get() }.findFirst().get()
-        )
+        this.curNodePlayer = players.stream().filter { pl -> pl.id == this.nodeId.get() }.findFirst()
+        println(curNodePlayer)
     }
 
     @Synchronized
@@ -259,6 +259,8 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
     @Synchronized
     override fun setJoinRequest(joinRequest: JoinRequest) {
+        //TODO сделать так чтобы мы ПОТОМ уже брали этот конфиг
+
         this.joinRequest = Optional.of(joinRequest)
     }
 

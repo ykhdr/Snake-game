@@ -211,7 +211,7 @@ class FieldController(
             stateHolder.getStateEditor().setSnakes(snakes)
             stateHolder.getStateEditor().updatePlayers(players)
             stateHolder.getStateEditor().updatePlayers(deadPlayers)
-
+            stateHolder.getStateEditor().setStateOrder(state.getStateOrder() + 1)
         }
     }
 
@@ -243,7 +243,7 @@ class FieldController(
             }
 
         }
-        
+
         Unit
     }
 
@@ -322,6 +322,7 @@ class FieldController(
         stateHolder.getStateEditor().setNodeId(player.id)
         stateHolder.getStateEditor().setGameAddress(player.ip)
         stateHolder.getStateEditor().setCurNodePlayer(player)
+        stateHolder.getStateEditor().setStateOrder(0)
         stateHolder.getStateEditor().clearGameCreateRequest()
         logger.info("Game created")
     }

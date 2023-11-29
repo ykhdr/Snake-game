@@ -29,7 +29,6 @@ interface State : ClientState {
     fun getPlayersToAdding(): List<GamePlayer>
     fun getDeputyListeners() : List<InetSocketAddress>
 
-
     /**
      * @throws NoSuchElementException если текущая нода не в игре
      */

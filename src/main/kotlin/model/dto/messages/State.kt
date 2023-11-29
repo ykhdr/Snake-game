@@ -5,5 +5,7 @@ import java.net.InetSocketAddress
 
 class State(
     address: InetSocketAddress,
+    senderId: Int,
+    receiverId: Int,
     val state: GameState
-) : Message(address)
+) : Message(address, senderId, 0, receiverId)

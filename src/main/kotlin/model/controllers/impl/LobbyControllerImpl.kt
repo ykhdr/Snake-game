@@ -1,6 +1,7 @@
 package model.controllers.impl
 
 import model.controllers.LobbyController
+import model.dto.messages.Announcement
 import model.models.contexts.Context
 import model.models.core.GameConfig
 import model.models.requests.JoinRequest
@@ -9,6 +10,7 @@ import model.models.requests.ChangeRoleRequest
 import model.models.requests.GameCreateRequest
 import mu.KotlinLogging
 import java.net.InetSocketAddress
+import java.util.Optional
 
 class LobbyControllerImpl(
     private val context: Context
@@ -18,8 +20,15 @@ class LobbyControllerImpl(
 
     override fun join(address: InetSocketAddress, gameName: String) {
         val joinRequest = JoinRequest(address, gameName, NodeRole.NORMAL)
-        context.stateHolder.getStateEditor().setJoinRequest(joinRequest)
-        logger.info("Player with address ${address.address.hostAddress} sent join request")
+        val announcement = findAnnouncement(address)
+        if (announcement.isPresent){
+            val ann = announcement.get()
+            context.stateHolder.getStateEditor().setGameConfig(ann.games[0].config)
+
+            context.stateHolder.getStateEditor().setJoinRequest(joinRequest)
+            logger.info("Player with address ${address.address.hostAddress} sent join request")
+        }
+
     }
 
     override fun watch(address: InetSocketAddress, gameName: String) {
@@ -75,5 +84,19 @@ class LobbyControllerImpl(
         context.stateHolder.getStateEditor().setPlayerName(playerName)
         context.stateHolder.getStateEditor().setGameCreateRequest(gameCreateRequest)
         logger.info("Player create game create request")
+    }
+
+    private fun findAnnouncement(address: InetSocketAddress) : Optional<Announcement>{
+        val state = context.stateHolder.getState()
+        val announcement = state.getAnnouncements()
+            .stream()
+            .filter { a -> a.address == address }
+            .findFirst()
+
+        if(announcement.isEmpty) {
+            logger.warn("Announcement with address $address has no found")
+        }
+
+        return announcement
     }
 }
