@@ -6,7 +6,7 @@ sealed class Message(
     open val address: InetSocketAddress,
     open val senderId: Int = DEFAULT_SENDER_ID,
     open val receiverId: Int = DEFAULT_RECEIVER_ID,
-    open val msgSeq: Long = DEFAULT_MESSAGE_SEQUENCE,
+    open var msgSeq: Long = DEFAULT_MESSAGE_SEQUENCE,
 ){
     companion object{
         const val DEFAULT_RECEIVER_ID = -1

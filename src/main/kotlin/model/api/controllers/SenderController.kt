@@ -3,6 +3,7 @@ package model.api.controllers
 import model.api.config.NetworkConfig
 import model.dto.messages.Message
 import model.mappers.ProtoMapper
+import model.utils.MessageSequence
 import mu.KotlinLogging
 import java.io.Closeable
 import java.net.DatagramPacket
@@ -20,6 +21,7 @@ class SenderController(config: NetworkConfig) : Closeable {
     private val logger = KotlinLogging.logger {}
 
     fun sendMessage(message: Message) {
+        message.msgSeq = MessageSequence.getNextSequence()
         val address = message.address
         val packet = DatagramPacket(buffer, BUFFER_SIZE, address)
         val protoMessage = mapper.toProtoMessage(message)
