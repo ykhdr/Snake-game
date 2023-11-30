@@ -49,7 +49,6 @@ class MessageManager(
             receiverController.receiveGroupMessage()
         }.onSuccess { message ->
             handleMessage(message)
-            logger.warn("$message")
         }.onFailure { e ->
             logger.warn("Error on receiving data", e)
         }
@@ -62,7 +61,6 @@ class MessageManager(
             receiverController.receiveNodeMessage()
         }.onSuccess { message ->
             handleMessage(message)
-            logger.warn("$message")
         }.onFailure { e ->
             logger.warn("Error on receiving data", e)
         }
@@ -157,6 +155,7 @@ class MessageManager(
     //TODO сделать эту таску
     private val deputyListenersTask = {
         val state = stateHolder.getState()
+
         val nodeRole = state.getNodeRole()
         if (nodeRole == NodeRole.DEPUTY) {
 //            val messages: List<State> =

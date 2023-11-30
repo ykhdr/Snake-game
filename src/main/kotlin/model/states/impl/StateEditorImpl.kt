@@ -242,7 +242,6 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.stateOrder = Optional.of(newState.stateOrder)
 
         this.curNodePlayer = players.stream().filter { pl -> pl.id == this.nodeId.get() }.findFirst()
-        println(curNodePlayer)
     }
 
     @Synchronized

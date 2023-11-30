@@ -48,7 +48,7 @@ class ReceiverController(
         val protoMessage = GameMessage.parseFrom(protoBytes)
         val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
 
-        logger.info("Message received from ${address.address}, $protoMessage")
+        logger.info("Message received from ${address.address}")
 
 
 
@@ -70,7 +70,7 @@ class ReceiverController(
         val protoMessage = GameMessage.parseFrom(protoBytes)
         val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
 
-        logger.info("Message received from ${address.address}, $protoMessage")
+        logger.info("Message received from ${address.address}")
 
 
 
@@ -105,7 +105,7 @@ class ReceiverController(
                 if (waitingForAck.containsKey(address) && waitingForAck[address] == msgSeq) {
                     waitingForAck.remove(address)
                     synchronized(receivedErrors) {
-                        receivedErrors[address] = message as Error
+                        receivedErrors[address] = message
                     }
                     logger.info("Error message confirmed from ${address.address}")
                 }

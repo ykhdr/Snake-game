@@ -72,10 +72,10 @@ class FieldController(
             val config = state.getConfig()
             val foods = state.getFoods()
 
-            if (foods.size != config.foodStatic) {
+            if (foods.size < config.foodStatic) {
                 val newFoods = mutableListOf<Coord>()
 
-                for (i in 0..config.foodStatic - foods.size) {
+                for (i in 0 until config.foodStatic - foods.size) {
                     var coord = Coord((0..config.width).random(), (0..config.height).random())
                     while (foods.contains(coord)) {
                         coord = Coord((0..config.width).random(), (0..config.height).random())
@@ -217,7 +217,6 @@ class FieldController(
 
     private val createSnakesTask = {
         if (stateHolder.isNodeMaster()) {
-            logger.info("Create snake task run")
             val state = stateHolder.getState()
             val playersToAdding = state.getPlayersToAdding()
             val availableCoords = state.getAvailableCoords().toMutableList()
