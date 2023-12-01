@@ -18,12 +18,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun GameStartButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun GameStartButton(modifier: Modifier = Modifier, onClick: () -> Unit, isEnabled : Boolean) {
     Box(modifier) {
         Button(
             modifier = Modifier.fillMaxSize(0.9f),
             onClick = onClick,
             shape = RoundedCornerShape(12.dp),
+            enabled = isEnabled,
             content = {
                 Text(
                     text = "New Game",

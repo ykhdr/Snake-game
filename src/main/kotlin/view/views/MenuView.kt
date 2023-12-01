@@ -60,7 +60,7 @@ fun MenuView(client: Client) = Surface(
                 }
 
                 playersState.value = state.getPlayers().toTypedArray()
-                if (state.getPlayers().isNotEmpty()){
+                if (state.getPlayers().isNotEmpty()) {
                     curNodePlayer.value = arrayOf(state.getCurNodePlayer())
                 }
 //                cells.value.clear()
@@ -109,12 +109,14 @@ fun MenuView(client: Client) = Surface(
 
                 GameStartButton(
                     modifier = Modifier.weight(1f),
-                    onClick = { openDialog.value = true }
+                    onClick = { openDialog.value = true },
+                    isEnabled = !isGameRunning.value
                 )
 
                 LeaveButton(
                     modifier = Modifier.weight(1f),
-                    onClick = { client.getLobbyController().leave() }
+                    onClick = { client.getLobbyController().leave() },
+                    isEnabled = isGameRunning.value
                 )
 
             }

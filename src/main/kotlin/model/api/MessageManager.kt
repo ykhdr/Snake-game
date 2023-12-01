@@ -69,21 +69,6 @@ class MessageManager(
         Unit
     }
 
-    // Подтерждения только в рамках игры
-    private val ackConfirmationTask = {
-//        if (stateHolder.isNodeMaster()) {
-        val state = stateHolder.getState()
-
-        if (state.isGameRunning()) {
-            runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
-//                ackConfirm(config)
-            }.onFailure { e ->
-                logger.warn("Game config is empty", e)
-            }
-        }
-//        }
-    }
-
     // TODO надо подумаьт над тем, что будет, когда ресивер отпадет и не будет отвечать совсем
     // TODO пересмотреть этот метод
 
@@ -128,8 +113,10 @@ class MessageManager(
 //    }
 
     private val pingTask = {
-//        if (stateHolder.isNodeMaster()) {
-//            runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
+        if (stateHolder.isNodeMaster()) {
+//            runCatching {
+//                stateHolder.getState().getConfig()
+//            }.onSuccess { config ->
 //                val stateDelay = config.stateDelayMs / 10
 //                synchronized(messageTimestamps) {
 //                    for (message in messageTimestamps) {
@@ -145,7 +132,7 @@ class MessageManager(
 //            }.onFailure { e ->
 //                logger.warn("Game config is empty", e)
 //            }
-//        }
+        }
     }
 
     private val announcementTask = {
@@ -234,10 +221,6 @@ class MessageManager(
 
         scheduledExecutor.scheduleWithFixedDelay(
             receiveNodeMessagesTask, 0, 1, TimeUnit.MILLISECONDS
-        )
-
-        scheduledExecutor.scheduleWithFixedDelay(
-            ackConfirmationTask, 0, 400, TimeUnit.MILLISECONDS
         )
 
         scheduledExecutor.scheduleWithFixedDelay(
@@ -491,7 +474,7 @@ class MessageManager(
             is Ping -> {
                 synchronized(messageTimestamps) {
                     messageTimestamps.removeIf { timestamp ->
-                        timestamp.message.address == ack.address && timestamp.message.msgSeq == timestamp.message.msgSeq
+                        timestamp.message.address == ack.address
                     }
                 }
                 logger.info("Ping ack confirmed")

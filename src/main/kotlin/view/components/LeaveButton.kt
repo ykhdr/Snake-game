@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -14,14 +15,16 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import jdk.jfr.Enabled
 
 @Composable
-fun LeaveButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun LeaveButton(modifier: Modifier = Modifier, onClick: () -> Unit, isEnabled: Boolean) {
     Box(modifier) {
         Button(
             modifier = Modifier.fillMaxSize(0.9f),
             onClick = onClick,
             shape = RoundedCornerShape(12.dp),
+            enabled = isEnabled
         ) {
             Text(
                 text = "Leave lobby",
