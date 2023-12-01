@@ -215,8 +215,8 @@ class MessageManager(
                     .map { p -> State(p.ip, master.id, p.id, MessageSequence.getNextSequence(), gameState) }.toList()
 
                 for (message in messages) {
-                    sendMessage(message)
                     waitAckOnMessage(message)
+                    sendMessage(message)
                     logger.info("State sent to ${message.address}")
                 }
             }.onFailure { e ->
@@ -264,11 +264,12 @@ class MessageManager(
         synchronized(ackConfirmations) {
             val message = ackConfirmations.stream()
                 .map { conf -> conf.message }
-                .filter { msg -> msg.address == ack.address && msg.msgSeq == ack.msgSeq }
+                .filter { msg -> msg.msgSeq == ack.msgSeq }
                 .findFirst()
 
             if (message.isPresent) {
                 handleAckOnMessage(message.get(), ack)
+                ackConfirmations.removeIf { conf -> conf.message.msgSeq == ack.msgSeq }
             }
         }
     }
