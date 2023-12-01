@@ -90,7 +90,7 @@ class MessageManager(
         val ackDelay = gameConfig.stateDelayMs / 10
         synchronized(ackConfirmations) {
             for (ackConfirmation in ackConfirmations) {
-                if (receiverController.isAckInWaitingList(ackConfirmation.message.address)) {
+                if (receiverController.isAckInWaitingList(ackConfirmation.message.address, ackConfirmation.message.msgSeq)) {
                     val currentTime = System.currentTimeMillis()
                     if (ackDelay > ackConfirmation.messageSentTime - currentTime) {
                         sendMessage(ackConfirmation.message)
@@ -98,12 +98,12 @@ class MessageManager(
                     }
                 } else {
                     runCatching {
-                        receiverController.getReceivedAckByAddress(ackConfirmation.message.address)
+                        receiverController.getReceivedAck(ackConfirmation.message.address, ackConfirmation.message.msgSeq)
                     }.onSuccess { ack ->
                         handleAckOnMessage(ackConfirmation.message, ack)
                     }.onFailure {
                         runCatching {
-                            receiverController.getReceivedErrorByAddress(ackConfirmation.message.address)
+                            receiverController.getReceivedError(ackConfirmation.message.address, ackConfirmation.message.msgSeq)
                         }.onSuccess { message ->
                             handleMessage(message)
                         }
@@ -173,6 +173,7 @@ class MessageManager(
 
     private val requestSenderTask = {
         val state = stateHolder.getState()
+        println("h")
         if (state.isGameRunning()) {
             checkSteerRequest(state)
             checkLeaveRequest(state)

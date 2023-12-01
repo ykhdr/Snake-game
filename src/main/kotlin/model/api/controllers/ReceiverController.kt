@@ -7,6 +7,7 @@ import model.dto.messages.Error
 import model.dto.messages.Message
 import model.exceptions.UndefinedMessageTypeError
 import model.mappers.ProtoMapper
+import model.models.util.MessageInfo
 import mu.KotlinLogging
 import java.io.Closeable
 import java.net.DatagramPacket
@@ -14,11 +15,12 @@ import java.net.DatagramSocket
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
 import java.net.SocketException
+import kotlin.math.log
 
 
 class ReceiverController(
     config: NetworkConfig
-) : Closeable{
+) : Closeable {
     companion object {
         private const val BUFFER_SIZE = 1024
     }
@@ -28,13 +30,12 @@ class ReceiverController(
     private val protoMapper = ProtoMapper
     private val buffer = ByteArray(BUFFER_SIZE)
 
-    private val waitingForAck = mutableMapOf<InetSocketAddress, Long>()
-    private val receivedAck = mutableMapOf<InetSocketAddress, Ack>()
-    private val receivedErrors = mutableMapOf<InetSocketAddress, Error>()
+    private val waitingForAck = mutableListOf<MessageInfo>()
+    private val receivedAck = mutableListOf<Ack>()
+    private val receivedErrors = mutableListOf<Error>()
 
     private val multicastSocket: MulticastSocket = initMulticastSocket(config)
-    private val nodeSocket : DatagramSocket = config.nodeSocket
-
+    private val nodeSocket: DatagramSocket = config.nodeSocket
 
 
     /**
@@ -48,9 +49,7 @@ class ReceiverController(
         val protoMessage = GameMessage.parseFrom(protoBytes)
         val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
 
-        logger.info("Message received from ${address.address}")
-
-
+        logger.info("Group message received from ${address.address}")
 
         val message = protoMapper.toMessage(
             protoMessage,
@@ -63,16 +62,14 @@ class ReceiverController(
         return message
     }
 
-    fun receiveNodeMessage() : Message {
+    fun receiveNodeMessage(): Message {
         val datagramPacket = DatagramPacket(buffer, buffer.size)
         nodeSocket.receive(datagramPacket)
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
         val protoMessage = GameMessage.parseFrom(protoBytes)
         val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
 
-        logger.info("Message received from ${address.address}")
-
-
+        logger.info("Node message received from ${address.address}")
 
         val message = protoMapper.toMessage(
             protoMessage,
@@ -88,10 +85,13 @@ class ReceiverController(
     private fun checkOnAck(message: Message, msgSeq: Long, address: InetSocketAddress) {
         if (message is Ack) {
             synchronized(waitingForAck) {
-                if (waitingForAck.containsKey(address) && waitingForAck[address] == msgSeq) {
-                    waitingForAck.remove(address)
+                runCatching {
+                    waitingForAck.stream().filter { info -> info.address == address && info.msgSequence == msgSeq }
+                        .findFirst().get()
+                }.onSuccess { info ->
+                    waitingForAck.remove(info)
                     synchronized(receivedAck) {
-                        receivedAck[address] = message
+                        receivedAck.add(message)
                     }
                     logger.info("Ack confirmed from ${address.address}")
                 }
@@ -102,10 +102,13 @@ class ReceiverController(
     private fun checkOnError(message: Message, msgSeq: Long, address: InetSocketAddress) {
         if (message is Error) {
             synchronized(waitingForAck) {
-                if (waitingForAck.containsKey(address) && waitingForAck[address] == msgSeq) {
-                    waitingForAck.remove(address)
+                runCatching {
+                    waitingForAck.stream().filter { info -> info.address == address && info.msgSequence == msgSeq }
+                        .findFirst().get()
+                }.onSuccess { info ->
+                    waitingForAck.remove(info)
                     synchronized(receivedErrors) {
-                        receivedErrors[address] = message
+                        receivedErrors.add(message)
                     }
                     logger.info("Error message confirmed from ${address.address}")
                 }
@@ -115,39 +118,49 @@ class ReceiverController(
 
     fun addNodeForWaitingAck(address: InetSocketAddress, msqSeq: Long) {
         synchronized(waitingForAck) {
-            waitingForAck.put(address, msqSeq)
+            waitingForAck.add(MessageInfo(address, msqSeq))
         }
     }
 
-    fun isAckInWaitingList(address: InetSocketAddress): Boolean {
+    fun isAckInWaitingList(address: InetSocketAddress, msgSeq: Long): Boolean {
         synchronized(waitingForAck) {
-            return waitingForAck.containsKey(address)
+            return waitingForAck.any { info -> info.address == address && info.msgSequence == msgSeq }
         }
     }
 
     /**
      * @throws NoSuchElementException если такой Ack не пришел
      */
-    fun getReceivedAckByAddress(address: InetSocketAddress): Ack {
+    fun getReceivedAck(address: InetSocketAddress, msgSeq: Long): Ack {
         synchronized(receivedAck) {
-            val ack = receivedAck[address]
-            receivedAck.remove(address)
-            return ack ?: throw NoSuchElementException("Ack with this address has not in received Ack")
+            runCatching {
+                receivedAck.first { a -> a.address == address && a.msgSeq == msgSeq }
+            }.onSuccess { ack ->
+                receivedAck.remove(ack)
+                return ack
+            }
+
+            throw NoSuchElementException("Ack with this address has not in received Ack")
         }
     }
 
     /**
      * @throws NoSuchElementException если такой Error не пришел
      */
-    fun getReceivedErrorByAddress(address: InetSocketAddress): Error {
+    fun getReceivedError(address: InetSocketAddress, msgSeq: Long): Error {
         synchronized(receivedErrors) {
-            val error = receivedErrors[address]
-            receivedErrors.remove(address)
-            return error ?: throw NoSuchElementException("Error message with this address has not in received Errors")
+            runCatching {
+                receivedErrors.first { a -> a.address == address && a.msgSeq == msgSeq }
+            }.onSuccess { error ->
+                receivedErrors.remove(error)
+                return error
+            }
+
+            throw NoSuchElementException("Error with this address has not in received Errors")
         }
     }
 
-    private fun initMulticastSocket(config : NetworkConfig): MulticastSocket {
+    private fun initMulticastSocket(config: NetworkConfig): MulticastSocket {
         //TODO добавить проверки на валидность адреса
         val socket = MulticastSocket(config.groupAddress.port)
         socket.joinGroup(
@@ -160,6 +173,6 @@ class ReceiverController(
 
     override fun close() {
         multicastSocket.close()
-        logger.info ("Multicast socket closed")
+        logger.info("Multicast socket closed")
     }
 }
