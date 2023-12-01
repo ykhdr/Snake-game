@@ -4,5 +4,6 @@ import java.net.InetSocketAddress
 
 class Error(
     address: InetSocketAddress,
+    msgSeq: Long,
     val errorMessage: String,
-) : Message(address)
+) : Message(address = address, msgSeq = msgSeq)

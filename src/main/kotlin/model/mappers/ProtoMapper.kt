@@ -216,7 +216,7 @@ object ProtoMapper {
         else if (message.hasJoin())
             toJoin(message.join, address)
         else if (message.hasError())
-            toError(message.error, address)
+            toError(message.error, message.msgSeq, address)
         else if (message.hasPing())
             toPing(address)
         else if (message.hasRoleChange())
@@ -256,8 +256,9 @@ object ProtoMapper {
         requestedRole = toNodeRole(proto.requestedRole),
     )
 
-    private fun toError(proto: SnakesProto.GameMessage.ErrorMsg, address: InetSocketAddress) = Error(
+    private fun toError(proto: SnakesProto.GameMessage.ErrorMsg, msgSeq: Long, address: InetSocketAddress) = Error(
         address = address,
+        msgSeq = msgSeq,
         errorMessage = proto.errorMessage
     )
 

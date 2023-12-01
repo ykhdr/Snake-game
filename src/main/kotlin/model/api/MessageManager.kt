@@ -70,17 +70,17 @@ class MessageManager(
 
     // Подтерждения только в рамках игры
     private val ackConfirmationTask = {
-        if (stateHolder.isNodeMaster()) {
-            val state = stateHolder.getState()
+//        if (stateHolder.isNodeMaster()) {
+        val state = stateHolder.getState()
 
-            if (state.getNodeRole() != NodeRole.VIEWER) {
-                runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
-                    ackConfirm(config)
-                }.onFailure { e ->
-                    logger.warn("Game config is empty", e)
-                }
+        if (state.isGameRunning()) {
+            runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
+                ackConfirm(config)
+            }.onFailure { e ->
+                logger.warn("Game config is empty", e)
             }
         }
+//        }
     }
 
     // TODO надо подумаьт над тем, что будет, когда ресивер отпадет и не будет отвечать совсем
@@ -90,7 +90,11 @@ class MessageManager(
         val ackDelay = gameConfig.stateDelayMs / 10
         synchronized(ackConfirmations) {
             for (ackConfirmation in ackConfirmations) {
-                if (receiverController.isAckInWaitingList(ackConfirmation.message.address, ackConfirmation.message.msgSeq)) {
+                if (receiverController.isAckInWaitingList(
+                        ackConfirmation.message.address,
+                        ackConfirmation.message.msgSeq
+                    )
+                ) {
                     val currentTime = System.currentTimeMillis()
                     if (ackDelay > ackConfirmation.messageSentTime - currentTime) {
                         sendMessage(ackConfirmation.message)
@@ -98,14 +102,22 @@ class MessageManager(
                     }
                 } else {
                     runCatching {
-                        receiverController.getReceivedAck(ackConfirmation.message.address, ackConfirmation.message.msgSeq)
+                        receiverController.getReceivedAck(
+                            ackConfirmation.message.address,
+                            ackConfirmation.message.msgSeq
+                        )
                     }.onSuccess { ack ->
                         handleAckOnMessage(ackConfirmation.message, ack)
+                        ackConfirmations.remove(ackConfirmation)
                     }.onFailure {
                         runCatching {
-                            receiverController.getReceivedError(ackConfirmation.message.address, ackConfirmation.message.msgSeq)
+                            receiverController.getReceivedError(
+                                ackConfirmation.message.address,
+                                ackConfirmation.message.msgSeq
+                            )
                         }.onSuccess { message ->
                             handleMessage(message)
+                            ackConfirmations.remove(ackConfirmation)
                         }
                     }
 
@@ -173,7 +185,7 @@ class MessageManager(
 
     private val requestSenderTask = {
         val state = stateHolder.getState()
-        println("h")
+        println("${this.ackConfirmations}")
         if (state.isGameRunning()) {
             checkSteerRequest(state)
             checkLeaveRequest(state)
@@ -355,9 +367,9 @@ class MessageManager(
         logger.info("Steer message sent")
     }
 
-    private fun sendErrorMessage(address: InetSocketAddress, errorMessage: String) {
+    private fun sendErrorMessage(address: InetSocketAddress, msgSeq: Long, errorMessage: String) {
         val message = Error(
-            address = address, errorMessage = errorMessage
+            address = address, msgSeq = msgSeq, errorMessage = errorMessage
         )
 
         sendMessage(message)
@@ -497,12 +509,16 @@ class MessageManager(
                 val stateEditor = stateHolder.getStateEditor()
 
                 if (!stateHolder.isNodeMaster()) {
-                    sendErrorMessage(message.address, "No game on node")
+                    sendErrorMessage(message.address, message.msgSeq, "No game on node")
                     return
                 }
 
                 if (message.requestedRole == NodeRole.DEPUTY || message.requestedRole == NodeRole.MASTER) {
-                    sendErrorMessage(message.address, "The requested role is not available to join the game with it")
+                    sendErrorMessage(
+                        message.address,
+                        message.msgSeq,
+                        "The requested role is not available to join the game with it"
+                    )
                 }
 
                 val player = GamePlayer(
@@ -525,7 +541,7 @@ class MessageManager(
                         sendAck(message.address, message.msgSeq, curNodePlayer.id, player.id)
                         logger.info("Join confirmed")
                     }.onFailure { e ->
-                        sendErrorMessage(message.address, e.message ?: "error")
+                        sendErrorMessage(message.address, message.msgSeq, e.message ?: "error")
                         logger.warn("Error on other node join request", e)
                     }
                 }
@@ -546,7 +562,7 @@ class MessageManager(
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
                 logger.info("Role change confirmed")
             }.onFailure { e ->
-                sendErrorMessage(message.address, e.message ?: "error")
+                sendErrorMessage(message.address, message.msgSeq, e.message ?: "error")
                 logger.warn("Error on role change", e)
             }
 
@@ -573,7 +589,7 @@ class MessageManager(
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
                 logger.info("Steer confirmed")
             }.onFailure { e ->
-                sendErrorMessage(message.address, e.message ?: "error")
+                sendErrorMessage(message.address, message.msgSeq, e.message ?: "error")
                 logger.warn("Error on steer", e)
             }
         }
