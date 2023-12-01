@@ -10,6 +10,7 @@ import model.models.requests.tasks.DeputyListenTaskRequest
 import model.models.requests.tasks.MoveSnakeTaskRequest
 import model.states.State
 import model.states.StateEditor
+import mu.KotlinLogging
 import java.net.InetSocketAddress
 import java.util.*
 
@@ -42,6 +43,8 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var gameCreateRequest: Optional<GameCreateRequest> = Optional.empty()
     private var deputyListenTaskRequest: DeputyListenTaskRequest = DeputyListenTaskRequest.DISABLE
     private var moveSnakeTaskRequest: MoveSnakeTaskRequest = MoveSnakeTaskRequest.DISABLE
+
+    private val logger = KotlinLogging.logger {}
 
     internal fun setOnStateEditListener(onStateEdit: (State) -> Unit) {
         this.onStateEdit = onStateEdit
@@ -203,6 +206,11 @@ internal class StateEditorImpl internal constructor() : StateEditor {
                 leavePlayer(player)
                 //TODO если мы становимся мастером, то надо ли здесь что то менять?
 
+
+                this.moveSnakeTaskRequest = MoveSnakeTaskRequest.RUN
+                //TODO возможно исключение
+                setGameAddress(curNodePlayer.get().ip)
+                logger.info { "Node has become Master node" }
                 // Выходящий игрок
                 //TODO нужно ли проверять на то что эта нода является deputy?
             } else if (senderRole == NodeRole.VIEWER && (receiverRole == NodeRole.MASTER || receiverRole == NodeRole.DEPUTY)) {

@@ -300,26 +300,48 @@ class MessageManager(
     }
 
     private fun checkLeaveRequest(state: model.states.State) {
-
-
         if (state.getLeaveRequest().isEmpty) {
             return
         }
 
         val roleChange = state.getLeaveRequest().get()
 
-//        if (roleChange.senderId == state.get)
+        runCatching {
+            state.getMasterPlayer()
+        }.onSuccess { master ->
+            if (master.id == roleChange.senderId) {
+                val randomPlayerOpt = state.getPlayers().stream()
+                    .filter { p -> p.id != master.id }
+                    .findAny()
 
-        sendRoleChangeMessage(
-            state.getGameAddress(),
-            roleChange.senderId,
-            roleChange.receiverId,
-            roleChange.senderRole,
-            roleChange.receiverRole
-        )
+                if (randomPlayerOpt.isPresent) {
+                    val randomPlayer = randomPlayerOpt.get()
+                    sendRoleChangeMessage(
+                        randomPlayer.ip,
+                        master.id,
+                        randomPlayer.id,
+                        NodeRole.VIEWER,
+                        NodeRole.MASTER
+                    )
+                }
 
-        stateHolder.getStateEditor().clearLeaveRequest()
-        logger.info("Leave request confirmed")
+                stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
+            } else {
+                sendRoleChangeMessage(
+                    state.getGameAddress(),
+                    roleChange.senderId,
+                    roleChange.receiverId,
+                    roleChange.senderRole,
+                    roleChange.receiverRole
+                )
+
+            }
+            stateHolder.getStateEditor().clearLeaveRequest()
+            logger.info("Leave request confirmed")
+
+        }.onFailure {
+            logger.warn { "No master player in game" }
+        }
     }
 
     private fun checkDeputyListenRequest(state: model.states.State) {
@@ -358,7 +380,6 @@ class MessageManager(
         }
 
     }
-
 
     private fun sendSteerMessage(address: InetSocketAddress, senderId: Int, receiverId: Int, direction: Direction) {
         val message = Steer(address, senderId, receiverId, MessageSequence.getNextSequence(), direction)

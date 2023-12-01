@@ -32,27 +32,22 @@ class LobbyControllerImpl(
         val state = context.stateHolder.getState()
 
         runCatching {
-            val receiverPlayer = state.getMasterPlayer()
-
+            state.getMasterPlayer()
+        }.onSuccess { receiverPlayer ->
             runCatching {
-                val senderPlayer = state.getCurNodePlayer()
-
-                if (state.getMasterPlayer() == senderPlayer) {
-                    context.stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
-                    logger.info("Current node player leave game")
-                } else {
-                    val leaveRequest = ChangeRoleRequest(
-                        senderPlayer.id,
-                        receiverPlayer.id,
-                        NodeRole.VIEWER,
-                        NodeRole.MASTER
-                    )
-                    context.stateHolder.getStateEditor().setLeaveRequest(leaveRequest)
-                    logger.info("Player ${senderPlayer.id} sent leave request to master ${receiverPlayer.id}")
-                }
+                state.getCurNodePlayer()
+            }.onSuccess { senderPlayer ->
+                val leaveRequest = ChangeRoleRequest(
+                    senderPlayer.id,
+                    receiverPlayer.id,
+                    NodeRole.VIEWER,
+                    NodeRole.MASTER
+                )
+                context.stateHolder.getStateEditor().setLeaveRequest(leaveRequest)
+                logger.info("Player ${senderPlayer.id} sent leave request to master ${receiverPlayer.id}")
 
             }.onFailure { e ->
-                throw e
+                logger.warn("Player can not send leave request", e)
             }
 
         }.onFailure { e ->
@@ -77,9 +72,9 @@ class LobbyControllerImpl(
         logger.info("Player create game create request")
     }
 
-    private fun connect2Host(joinRequest: JoinRequest){
+    private fun connect2Host(joinRequest: JoinRequest) {
         val announcement = findAnnouncement(joinRequest.address)
-        if (announcement.isPresent){
+        if (announcement.isPresent) {
             val ann = announcement.get()
             context.stateHolder.getStateEditor().setGameConfig(ann.games[0].config)
 
@@ -88,14 +83,14 @@ class LobbyControllerImpl(
         }
     }
 
-    private fun findAnnouncement(address: InetSocketAddress) : Optional<Announcement>{
+    private fun findAnnouncement(address: InetSocketAddress): Optional<Announcement> {
         val state = context.stateHolder.getState()
         val announcement = state.getAnnouncements()
             .stream()
             .filter { a -> a.address == address }
             .findFirst()
 
-        if(announcement.isEmpty) {
+        if (announcement.isEmpty) {
             logger.warn("Announcement with address $address has no found")
         }
 
