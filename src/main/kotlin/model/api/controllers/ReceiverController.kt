@@ -19,7 +19,8 @@ import kotlin.math.log
 
 
 class ReceiverController(
-    config: NetworkConfig
+    config: NetworkConfig,
+    private val onAckReceived: (ack: Ack) -> Unit
 ) : Closeable {
     companion object {
         private const val BUFFER_SIZE = 1024
@@ -89,9 +90,10 @@ class ReceiverController(
                     waitingForAck.first { info -> info.address == address && info.msgSequence == msgSeq }
                 }.onSuccess { info ->
                     waitingForAck.remove(info)
-                    synchronized(receivedAck) {
-                        receivedAck.add(message)
-                    }
+                    onAckReceived(message)
+//                    synchronized(receivedAck) {
+//                        receivedAck.add(message)
+//                    }
                     logger.info("Ack confirmed from ${address.address} with seq ${message.msgSeq}")
                 }
             }

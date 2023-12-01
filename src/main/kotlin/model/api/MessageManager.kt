@@ -3,7 +3,7 @@ package model.api
 import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
 import model.dto.messages.*
-import model.models.util.AckConfirmation
+import model.models.util.MessageTimestamp
 import model.models.contexts.NetworkContext
 import model.models.core.*
 import model.models.requests.tasks.DeputyListenTaskRequest
@@ -34,10 +34,10 @@ class MessageManager(
     private val threadExecutor = Executors.newCachedThreadPool()
     private val scheduledExecutor = Executors.newScheduledThreadPool(THREAD_POOL_SIZE)
 
-    private val ackConfirmations = mutableListOf<AckConfirmation>()
-    private val sentMessageTime = mutableMapOf<InetSocketAddress, Long>()
+    private val ackConfirmations = mutableListOf<MessageTimestamp>()
+    private val messageTimestamps = mutableListOf<MessageTimestamp>()
 
-    private val receiverController: ReceiverController = ReceiverController(context.networkConfig)
+    private val receiverController: ReceiverController = ReceiverController(context.networkConfig, this::onAckReceived)
     private val senderController: SenderController = SenderController(context.networkConfig)
 
     private var deputyListenTaskFuture: Optional<ScheduledFuture<*>> = Optional.empty()
@@ -76,7 +76,7 @@ class MessageManager(
 
         if (state.isGameRunning()) {
             runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
-                ackConfirm(config)
+//                ackConfirm(config)
             }.onFailure { e ->
                 logger.warn("Game config is empty", e)
             }
@@ -87,74 +87,77 @@ class MessageManager(
     // TODO надо подумаьт над тем, что будет, когда ресивер отпадет и не будет отвечать совсем
     // TODO пересмотреть этот метод
 
-    private fun ackConfirm(gameConfig: GameConfig) {
-        val ackDelay = gameConfig.stateDelayMs / 10
-        synchronized(ackConfirmations) {
-            for (ackConfirmation in ackConfirmations) {
-                if (receiverController.isAckInWaitingList(
-                        ackConfirmation.message.address,
-                        ackConfirmation.message.msgSeq
-                    )
-                ) {
-                    val currentTime = System.currentTimeMillis()
-                    if (ackDelay > ackConfirmation.messageSentTime - currentTime) {
-                        sendMessage(ackConfirmation.message)
-                        ackConfirmation.messageSentTime = currentTime
-                    }
-                } else {
-                    runCatching {
-                        receiverController.getReceivedAck(
-                            ackConfirmation.message.address,
-                            ackConfirmation.message.msgSeq
-                        )
-                    }.onSuccess { ack ->
-                        handleAckOnMessage(ackConfirmation.message, ack)
-                        ackConfirmations.remove(ackConfirmation)
-                    }.onFailure {
-                        runCatching {
-                            receiverController.getReceivedError(
-                                ackConfirmation.message.address,
-                                ackConfirmation.message.msgSeq
-                            )
-                        }.onSuccess { message ->
-                            handleMessage(message)
-                            ackConfirmations.remove(ackConfirmation)
-                        }
-                    }
-
-                }
-            }
-        }
-    }
+//    private fun ackConfirm(gameConfig: GameConfig) {
+//        val ackDelay = gameConfig.stateDelayMs / 10
+//        synchronized(ackConfirmations) {
+//            for (ackConfirmation in ackConfirmations) {
+//                if (receiverController.isAckInWaitingList(
+//                        ackConfirmation.message.address,
+//                        ackConfirmation.message.msgSeq
+//                    )
+//                ) {
+//                    val currentTime = System.currentTimeMillis()
+//                    if (ackDelay > ackConfirmation.messageSentTime - currentTime) {
+//                        sendMessage(ackConfirmation.message)
+//                        ackConfirmation.messageSentTime = currentTime
+//                    }
+//                } else {
+//                    runCatching {
+//                        receiverController.getReceivedAck(
+//                            ackConfirmation.message.address,
+//                            ackConfirmation.message.msgSeq
+//                        )
+//                    }.onSuccess { ack ->
+//                        handleAckOnMessage(ackConfirmation.message, ack)
+//                        ackConfirmations.remove(ackConfirmation)
+//                    }.onFailure {
+//                        runCatching {
+//                            receiverController.getReceivedError(
+//                                ackConfirmation.message.address,
+//                                ackConfirmation.message.msgSeq
+//                            )
+//                        }.onSuccess { message ->
+//                            handleMessage(message)
+//                            ackConfirmations.remove(ackConfirmation)
+//                        }
+//                    }
+//
+//                }
+//            }
+//        }
+//    }
 
     private val pingTask = {
-        if (stateHolder.isNodeMaster()) {
-            runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
-                var stateDelay: Int
-                synchronized(config) {
-                    stateDelay = config.stateDelayMs / 10
-                }
-                synchronized(sentMessageTime) {
-                    for (entry in sentMessageTime) {
-                        val currentTime = System.currentTimeMillis()
-                        if (entry.value > currentTime - stateDelay) {
-                            sendMessage(Ping(entry.key, MessageSequence.getNextSequence()))
-                            entry.setValue(currentTime)
-                        }
-                        logger.info("Ping sent to ${entry.key.address.hostAddress}")
-                    }
-
-                }
-            }.onFailure { e ->
-                logger.warn("Game config is empty", e)
-            }
-        }
+//        if (stateHolder.isNodeMaster()) {
+//            runCatching { stateHolder.getState().getConfig() }.onSuccess { config ->
+//                val stateDelay = config.stateDelayMs / 10
+//                synchronized(messageTimestamps) {
+//                    for (message in messageTimestamps) {
+//                        val currentTime = System.currentTimeMillis()
+//                        if (message.messageSentTime > currentTime - stateDelay) {
+//                            sendMessage(Ping(message.message.address, MessageSequence.getNextSequence()))
+//                            message.messageSentTime = currentTime
+//                        }
+//                        logger.info("Ping sent to ${message.message.address}")
+//                    }
+//
+//                }
+//            }.onFailure { e ->
+//                logger.warn("Game config is empty", e)
+//            }
+//        }
     }
 
     private val announcementTask = {
         if (stateHolder.isNodeMaster()) {
             runCatching { stateHolder.getGameAnnouncement() }.onSuccess { announcement ->
-                sendMessage(Announcement(context.networkConfig.groupAddress, MessageSequence.getNextSequence(), listOf(announcement)))
+                sendMessage(
+                    Announcement(
+                        context.networkConfig.groupAddress,
+                        MessageSequence.getNextSequence(),
+                        listOf(announcement)
+                    )
+                )
                 logger.info("Sent announcement to nodes")
             }.onFailure { e ->
                 logger.warn("Game Announcement is empty", e)
@@ -256,6 +259,19 @@ class MessageManager(
         logger.info("All tasks are running ")
     }
 
+
+    private fun onAckReceived(ack: Ack) {
+        synchronized(ackConfirmations) {
+            val message = ackConfirmations.stream()
+                .map { conf -> conf.message }
+                .filter { msg -> msg.address == ack.address && msg.msgSeq == ack.msgSeq }
+                .findFirst()
+
+            if (message.isPresent) {
+                handleAckOnMessage(message.get(), ack)
+            }
+        }
+    }
 
     override fun close() {
         threadExecutor.shutdown()
@@ -406,8 +422,10 @@ class MessageManager(
 
     //TODO перенести проверку
     private fun sendAnnouncement(address: InetSocketAddress) {
-        if (stateHolder.isNodeMaster() && stateHolder.getState().getNodeRole() == NodeRole.MASTER) {
-            runCatching { stateHolder.getGameAnnouncement() }.onSuccess { announcement ->
+        if (stateHolder.isNodeMaster()) {
+            runCatching {
+                stateHolder.getGameAnnouncement()
+            }.onSuccess { announcement ->
                 val message = Announcement(address, MessageSequence.getNextSequence(), listOf(announcement))
                 sendMessage(message)
                 logger.info("Announcement sent")
@@ -430,8 +448,8 @@ class MessageManager(
         senderController.sendMessage(message)
 
         if (message !is Announcement && message !is Ack && message !is Discover) {
-            synchronized(sentMessageTime) {
-                sentMessageTime[message.address] = System.currentTimeMillis()
+            synchronized(messageTimestamps) {
+                messageTimestamps.add(MessageTimestamp(System.currentTimeMillis(), message))
             }
         }
     }
@@ -439,7 +457,7 @@ class MessageManager(
     private fun waitAckOnMessage(message: Message) {
         val messageSentTime = System.currentTimeMillis()
         synchronized(ackConfirmations) {
-            ackConfirmations.add(AckConfirmation(messageSentTime, message))
+            ackConfirmations.add(MessageTimestamp(messageSentTime, message))
         }
         receiverController.addNodeForWaitingAck(message.address, message.msgSeq)
     }
@@ -470,7 +488,11 @@ class MessageManager(
             }
 
             is Ping -> {
-                synchronized(sentMessageTime) { sentMessageTime.remove(ack.address) }
+                synchronized(messageTimestamps) {
+                    messageTimestamps.removeIf { timestamp ->
+                        timestamp.message.address == ack.address && timestamp.message.msgSeq == timestamp.message.msgSeq
+                    }
+                }
                 logger.info("Ping ack confirmed")
             }
 

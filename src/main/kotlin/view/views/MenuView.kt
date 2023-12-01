@@ -60,7 +60,9 @@ fun MenuView(client: Client) = Surface(
                 }
 
                 playersState.value = state.getPlayers().toTypedArray()
-                curNodePlayer.value = arrayOf(state.getCurNodePlayer())
+                if (state.getPlayers().isNotEmpty()){
+                    curNodePlayer.value = arrayOf(state.getCurNodePlayer())
+                }
 //                cells.value.clear()
                 cells.value = cellsTmp
             }
