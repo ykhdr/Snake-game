@@ -6,8 +6,9 @@ import java.net.InetSocketAddress
 
 class Join(
     address: InetSocketAddress,
+    msgSeq : Long,
     val playerType: PlayerType = PlayerType.HUMAN,
     val playerName: String,
     val gameName: String,
     val requestedRole: NodeRole
-) : Message(address)
+) : Message(address, msgSeq = msgSeq)

@@ -5,5 +5,6 @@ import java.net.InetSocketAddress
 
 class Announcement(
     address: InetSocketAddress,
+    msgSeq: Long,
     val games: List<GameAnnouncement>
-) : Message(address)
+) : Message(address, msgSeq = msgSeq)

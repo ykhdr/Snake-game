@@ -4,4 +4,5 @@ import java.net.InetSocketAddress
 
 class Ping(
     address: InetSocketAddress,
-) : Message(address)
+    msgSeq: Long,
+) : Message(address, msgSeq = msgSeq)

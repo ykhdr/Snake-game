@@ -7,5 +7,6 @@ class State(
     address: InetSocketAddress,
     senderId: Int,
     receiverId: Int,
+    msgSeq : Long,
     val state: GameState
-) : Message(address, senderId, receiverId)
+) : Message(address, senderId, receiverId, msgSeq)

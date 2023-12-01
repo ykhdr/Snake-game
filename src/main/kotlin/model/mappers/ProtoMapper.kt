@@ -210,21 +210,21 @@ object ProtoMapper {
         return if (message.hasAck())
             toAck(message, address)
         else if (message.hasAnnouncement())
-            toAnnouncement(message.announcement, address)
+            toAnnouncement(message.announcement, message.msgSeq, address)
         else if (message.hasDiscover())
             toDiscover(address)
         else if (message.hasJoin())
-            toJoin(message.join, address)
+            toJoin(message.join, message.msgSeq, address)
         else if (message.hasError())
             toError(message.error, message.msgSeq, address)
         else if (message.hasPing())
-            toPing(address)
+            toPing(address, message.msgSeq)
         else if (message.hasRoleChange())
-            toRoleChange(message, address)
+            toRoleChange(message, message.msgSeq, address)
         else if (message.hasState())
-            toState(message.state, address, message.senderId, message.receiverId)
+            toState(message.state, address,  message.msgSeq, message.senderId,message.receiverId)
         else if (message.hasSteer())
-            toSteer(message.steer, address, message.senderId, message.receiverId)
+            toSteer(message.steer, address, message.msgSeq, message.senderId, message.receiverId)
         else
             throw UndefinedMessageTypeError(message = "No match type of message")
     }
@@ -238,21 +238,28 @@ object ProtoMapper {
         )
 
 
-    private fun toAnnouncement(proto: SnakesProto.GameMessage.AnnouncementMsg, address: InetSocketAddress) =
+    private fun toAnnouncement(
+        proto: SnakesProto.GameMessage.AnnouncementMsg,
+        msgSeq: Long,
+        address: InetSocketAddress
+    ) =
         Announcement(
             address = address,
+            msgSeq = msgSeq,
             games = proto.gamesList.map { game -> toGameAnnouncement(game) }
         )
 
+    //TODO добавить msgSeq
     private fun toDiscover(address: InetSocketAddress) = Discover(
         address = address,
     )
 
-    private fun toJoin(proto: SnakesProto.GameMessage.JoinMsg, address: InetSocketAddress) = Join(
+    private fun toJoin(proto: SnakesProto.GameMessage.JoinMsg, msgSeq: Long, address: InetSocketAddress) = Join(
         address = address,
         playerType = toPlayerType(proto.playerType),
         playerName = proto.playerName,
         gameName = proto.gameName,
+        msgSeq = msgSeq,
         requestedRole = toNodeRole(proto.requestedRole),
     )
 
@@ -262,11 +269,12 @@ object ProtoMapper {
         errorMessage = proto.errorMessage
     )
 
-    private fun toPing(address: InetSocketAddress) = Ping(
-        address = address
+    private fun toPing(address: InetSocketAddress, msgSeq: Long) = Ping(
+        address = address,
+        msgSeq = msgSeq
     )
 
-    private fun toRoleChange(proto: SnakesProto.GameMessage, address: InetSocketAddress): RoleChange {
+    private fun toRoleChange(proto: SnakesProto.GameMessage, msgSeq: Long, address: InetSocketAddress): RoleChange {
         if (!proto.hasRoleChange()) {
             throw UndefinedMessageTypeError(message = "Passed argument is nor role change message")
         }
@@ -277,32 +285,37 @@ object ProtoMapper {
             receiverId = proto.receiverId,
             //TODO check
             senderRole = toNodeRole(proto.roleChange.senderRole),
-            receiverRole = toNodeRole(proto.roleChange.receiverRole)
+            receiverRole = toNodeRole(proto.roleChange.receiverRole),
+            msgSeq = msgSeq
         )
     }
 
     private fun toState(
         proto: SnakesProto.GameMessage.StateMsg,
         address: InetSocketAddress,
+        msgSeq: Long,
         senderId: Int,
         receiverId: Int
     ) = State(
         address = address,
         senderId = senderId,
         receiverId = receiverId,
-        state = toGameState(proto.state)
+        state = toGameState(proto.state),
+        msgSeq = msgSeq
     )
 
     private fun toSteer(
         proto: SnakesProto.GameMessage.SteerMsg,
         address: InetSocketAddress,
+        msgSeq: Long,
         senderId: Int,
         receiverId: Int
     ) = Steer(
         address = address,
         senderId = senderId,
         receiverId = receiverId,
-        direction = toDirection(proto.direction)
+        direction = toDirection(proto.direction),
+        msgSeq = msgSeq
     )
 
     private fun toGameAnnouncement(proto: SnakesProto.GameAnnouncement) = GameAnnouncement(

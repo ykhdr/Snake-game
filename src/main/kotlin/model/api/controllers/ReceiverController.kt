@@ -49,7 +49,7 @@ class ReceiverController(
         val protoMessage = GameMessage.parseFrom(protoBytes)
         val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
 
-        logger.info("Group message received from ${address.address}")
+        logger.info("Group message received from ${address.address} with seq ${protoMessage.msgSeq}")
 
         val message = protoMapper.toMessage(
             protoMessage,
@@ -69,7 +69,7 @@ class ReceiverController(
         val protoMessage = GameMessage.parseFrom(protoBytes)
         val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
 
-        logger.info("Node message received from ${address.address}")
+        logger.info("Node message received from ${address.address} with seq ${protoMessage.msgSeq}")
 
         val message = protoMapper.toMessage(
             protoMessage,
@@ -86,14 +86,13 @@ class ReceiverController(
         if (message is Ack) {
             synchronized(waitingForAck) {
                 runCatching {
-                    waitingForAck.stream().filter { info -> info.address == address && info.msgSequence == msgSeq }
-                        .findFirst().get()
+                    waitingForAck.first { info -> info.address == address && info.msgSequence == msgSeq }
                 }.onSuccess { info ->
                     waitingForAck.remove(info)
                     synchronized(receivedAck) {
                         receivedAck.add(message)
                     }
-                    logger.info("Ack confirmed from ${address.address}")
+                    logger.info("Ack confirmed from ${address.address} with seq ${message.msgSeq}")
                 }
             }
         }
@@ -110,7 +109,7 @@ class ReceiverController(
                     synchronized(receivedErrors) {
                         receivedErrors.add(message)
                     }
-                    logger.info("Error message confirmed from ${address.address}")
+                    logger.info("Error message confirmed from ${address.address}  with seq ${message.msgSeq}")
                 }
             }
         }
@@ -133,16 +132,10 @@ class ReceiverController(
      */
     fun getReceivedAck(address: InetSocketAddress, msgSeq: Long): Ack {
         synchronized(receivedAck) {
-            runCatching {
-                receivedAck.first { a -> a.address == address && a.msgSeq == msgSeq }
-            }.onSuccess { ack ->
-                receivedAck.remove(ack)
-                return ack
-            }
-
-            throw NoSuchElementException("Ack with this address has not in received Ack")
+            return receivedAck.first { a -> a.address == address && a.msgSeq == msgSeq }
         }
     }
+
 
     /**
      * @throws NoSuchElementException если такой Error не пришел

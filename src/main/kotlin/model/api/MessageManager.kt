@@ -9,6 +9,7 @@ import model.models.core.*
 import model.models.requests.tasks.DeputyListenTaskRequest
 import model.states.StateHolder
 import model.utils.IdSequence
+import model.utils.MessageSequence
 import mu.KotlinLogging
 import java.io.Closeable
 import java.net.InetSocketAddress
@@ -137,7 +138,7 @@ class MessageManager(
                     for (entry in sentMessageTime) {
                         val currentTime = System.currentTimeMillis()
                         if (entry.value > currentTime - stateDelay) {
-                            sendMessage(Ping(entry.key))
+                            sendMessage(Ping(entry.key, MessageSequence.getNextSequence()))
                             entry.setValue(currentTime)
                         }
                         logger.info("Ping sent to ${entry.key.address.hostAddress}")
@@ -153,7 +154,7 @@ class MessageManager(
     private val announcementTask = {
         if (stateHolder.isNodeMaster()) {
             runCatching { stateHolder.getGameAnnouncement() }.onSuccess { announcement ->
-                sendMessage(Announcement(context.networkConfig.groupAddress, listOf(announcement)))
+                sendMessage(Announcement(context.networkConfig.groupAddress, MessageSequence.getNextSequence(), listOf(announcement)))
                 logger.info("Sent announcement to nodes")
             }.onFailure { e ->
                 logger.warn("Game Announcement is empty", e)
@@ -208,7 +209,7 @@ class MessageManager(
 
                 val messages = players.stream()
                     .filter { p -> p != master }
-                    .map { p -> State(p.ip, master.id, p.id, gameState) }.toList()
+                    .map { p -> State(p.ip, master.id, p.id, MessageSequence.getNextSequence(), gameState) }.toList()
 
                 for (message in messages) {
                     sendMessage(message)
@@ -360,7 +361,7 @@ class MessageManager(
 
 
     private fun sendSteerMessage(address: InetSocketAddress, senderId: Int, receiverId: Int, direction: Direction) {
-        val message = Steer(address, senderId, receiverId, direction)
+        val message = Steer(address, senderId, receiverId, MessageSequence.getNextSequence(), direction)
 
         sendMessage(message)
         waitAckOnMessage(message)
@@ -379,21 +380,26 @@ class MessageManager(
 
     private fun sendJoinMessage(address: InetSocketAddress, playerName: String, gameName: String, role: NodeRole) {
         val message = Join(
-            address = address, playerName = playerName, gameName = gameName, requestedRole = role
+            address = address,
+            playerName = playerName,
+            gameName = gameName,
+            requestedRole = role,
+            msgSeq = MessageSequence.getNextSequence()
         )
 
-        sendMessage(message)
         waitAckOnMessage(message)
+        sendMessage(message)
         logger.info("Join message sent")
     }
 
     private fun sendRoleChangeMessage(
         address: InetSocketAddress, senderId: Int, receiverId: Int, senderRole: NodeRole, receiverRole: NodeRole
     ) {
-        val message = RoleChange(address, senderId, receiverId, senderRole, receiverRole)
+        val message =
+            RoleChange(address, senderId, receiverId, MessageSequence.getNextSequence(), senderRole, receiverRole)
 
-        sendMessage(message)
         waitAckOnMessage(message)
+        sendMessage(message)
         logger.info("Role change message sent")
     }
 
@@ -402,7 +408,7 @@ class MessageManager(
     private fun sendAnnouncement(address: InetSocketAddress) {
         if (stateHolder.isNodeMaster() && stateHolder.getState().getNodeRole() == NodeRole.MASTER) {
             runCatching { stateHolder.getGameAnnouncement() }.onSuccess { announcement ->
-                val message = Announcement(address, listOf(announcement))
+                val message = Announcement(address, MessageSequence.getNextSequence(), listOf(announcement))
                 sendMessage(message)
                 logger.info("Announcement sent")
             }.onFailure { e ->

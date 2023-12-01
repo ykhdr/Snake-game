@@ -8,5 +8,6 @@ class Steer(
     address: InetSocketAddress,
     senderId : Int,
     receiverId: Int,
+    msgSeq : Long,
     val direction: Direction
-) : Message(address, senderId, receiverId)
+) : Message(address, senderId, receiverId, msgSeq)

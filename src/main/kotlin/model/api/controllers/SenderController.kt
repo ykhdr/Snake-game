@@ -21,13 +21,12 @@ class SenderController(config: NetworkConfig) : Closeable {
     private val logger = KotlinLogging.logger {}
 
     fun sendMessage(message: Message) {
-        message.msgSeq = MessageSequence.getNextSequence()
         val address = message.address
         val packet = DatagramPacket(buffer, BUFFER_SIZE, address)
         val protoMessage = mapper.toProtoMessage(message)
         packet.setData(protoMessage.toByteArray())
         datagramSocket.send(packet)
-
+        logger.info("Message with seq ${message.msgSeq} sent")
     }
 
     override fun close() {
