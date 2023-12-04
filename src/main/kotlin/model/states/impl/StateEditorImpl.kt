@@ -37,6 +37,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     private var nodeId: Optional<Int> = Optional.empty()
     private val errors: Queue<String> = LinkedList()
     private var availableCoords: MutableList<Coord> = mutableListOf()
+    private val changeRoleRequests: MutableList<ChangeRoleRequest> = mutableListOf()
     private var joinRequest: Optional<JoinRequest> = Optional.empty()
     private var steerRequest: Optional<SteerRequest> = Optional.empty()
     private var leaveRequest: Optional<ChangeRoleRequest> = Optional.empty()
@@ -233,6 +234,14 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         }
     }
 
+    override fun addChangeRoleRequests(players: List<ChangeRoleRequest>) {
+        this.changeRoleRequests.addAll(players)
+    }
+
+    override fun removeChangeRoleRequests(players: List<ChangeRoleRequest>) {
+        this.changeRoleRequests.removeAll(players)
+    }
+
     override fun clearDeputyListenTaskToRun() {
         this.deputyListenTaskRequest = DeputyListenTaskRequest.DISABLE
     }
@@ -349,6 +358,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             playerName,
             errors,
             availableCoords,
+            changeRoleRequests,
             joinRequest,
             steerRequest,
             leaveRequest,

@@ -69,49 +69,6 @@ class MessageManager(
         Unit
     }
 
-    // TODO надо подумаьт над тем, что будет, когда ресивер отпадет и не будет отвечать совсем
-    // TODO пересмотреть этот метод
-
-//    private fun ackConfirm(gameConfig: GameConfig) {
-//        val ackDelay = gameConfig.stateDelayMs / 10
-//        synchronized(ackConfirmations) {
-//            for (ackConfirmation in ackConfirmations) {
-//                if (receiverController.isAckInWaitingList(
-//                        ackConfirmation.message.address,
-//                        ackConfirmation.message.msgSeq
-//                    )
-//                ) {
-//                    val currentTime = System.currentTimeMillis()
-//                    if (ackDelay > ackConfirmation.messageSentTime - currentTime) {
-//                        sendMessage(ackConfirmation.message)
-//                        ackConfirmation.messageSentTime = currentTime
-//                    }
-//                } else {
-//                    runCatching {
-//                        receiverController.getReceivedAck(
-//                            ackConfirmation.message.address,
-//                            ackConfirmation.message.msgSeq
-//                        )
-//                    }.onSuccess { ack ->
-//                        handleAckOnMessage(ackConfirmation.message, ack)
-//                        ackConfirmations.remove(ackConfirmation)
-//                    }.onFailure {
-//                        runCatching {
-//                            receiverController.getReceivedError(
-//                                ackConfirmation.message.address,
-//                                ackConfirmation.message.msgSeq
-//                            )
-//                        }.onSuccess { message ->
-//                            handleMessage(message)
-//                            ackConfirmations.remove(ackConfirmation)
-//                        }
-//                    }
-//
-//                }
-//            }
-//        }
-//    }
-
     private val pingTask = {
         if (stateHolder.isNodeMaster()) {
 //            runCatching {
@@ -165,11 +122,11 @@ class MessageManager(
         val nodeRole = state.getNodeRole()
         if (nodeRole == NodeRole.DEPUTY) {
 //            val messages: List<State> =
-//                state.getDeputyListeners().map { address -> State(address, stateHolder.getGameState()) }
+//                state.getDeputyListeners().map { address -> State(address stateHolder.getGameState()) }
 //
 //            for (message in messages) {
-//                sendMessage(message)
 //                waitAckOnMessage(message)
+//                sendMessage(message)
 //            }
 
             logger.info("Sent state to deputy listeners")
@@ -179,7 +136,6 @@ class MessageManager(
 
     private val requestSenderTask = {
         val state = stateHolder.getState()
-        println("${this.ackConfirmations}")
         if (state.isGameRunning()) {
             checkSteerRequest(state)
             checkLeaveRequest(state)

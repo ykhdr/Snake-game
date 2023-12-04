@@ -72,6 +72,10 @@ interface StateEditor {
      */
     fun updateRole(id: Int, senderRole: NodeRole, receiverRole: NodeRole)
 
+    fun addChangeRoleRequests(players: List<ChangeRoleRequest>)
+
+    fun removeChangeRoleRequests(players: List<ChangeRoleRequest>)
+
     fun setState(newState: GameState)
 
 

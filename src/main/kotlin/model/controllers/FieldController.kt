@@ -172,6 +172,7 @@ class FieldController(
                         //TODO нужно у игроков поменять + Ловить исключение
                         val player = players.stream().filter { p -> p.id == otherSnake.playerId }.findFirst().get()
                         players[j] = player.copy(role = NodeRole.VIEWER, score = 0)
+                        // здесь нужно посылать запрос на smert
                         deadPlayers.add(players[j])
                     }
                 }

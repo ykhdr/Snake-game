@@ -58,6 +58,7 @@ interface State : ClientState {
     fun getGameAddress() : InetSocketAddress
     fun getPlayerName() : String
     fun getAvailableCoords() : List<Coord>
+    fun getChangeRoleRequests(): List<ChangeRoleRequest>
     fun getJoinRequest() : Optional<JoinRequest>
     fun getSteerRequest() : Optional<SteerRequest>
     fun getLeaveRequest() : Optional<ChangeRoleRequest>

@@ -26,6 +26,7 @@ internal class StateImpl internal constructor(
     private val playerName: String,
     private val errors: Queue<String>,
     private val availableCoords: List<Coord>,
+    private val changeRoleRequests: List<ChangeRoleRequest>,
     private val joinRequest: Optional<JoinRequest>,
     private val steerRequest: Optional<SteerRequest>,
     private val leaveRequest: Optional<ChangeRoleRequest>,
@@ -60,6 +61,8 @@ internal class StateImpl internal constructor(
         curNodePlayer.orElseThrow { NoSuchElementException("Current node player is empty") }
 
     override fun isGameRunning(): Boolean = gameAddress.isPresent
+
+    override fun getChangeRoleRequests(): List<ChangeRoleRequest> = changeRoleRequests
 
     override fun getGameName(): String = gameName.orElseThrow { NoSuchElementException("Game name is empty") }
     override fun getGameAddress(): InetSocketAddress =
