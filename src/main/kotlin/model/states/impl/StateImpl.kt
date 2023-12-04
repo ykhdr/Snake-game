@@ -42,7 +42,7 @@ internal class StateImpl internal constructor(
     override fun getPlayers(): List<GamePlayer> = players
     override fun getDeputyListeners(): List<InetSocketAddress> = deputyListeners
 
-    override fun getConfig(): GameConfig = config.orElseThrow { NoSuchElementException("State order is empty") }
+    override fun getConfig(): GameConfig = config.orElseThrow { NoSuchElementException("Config is empty") }
     override fun getStateOrder(): Int = stateOrder.orElseThrow { NoSuchElementException("State order is empty") }
     override fun getErrors(): Queue<String> = errors
     override fun getAnnouncements(): List<Announcement> = announcements
@@ -61,7 +61,7 @@ internal class StateImpl internal constructor(
 
     override fun isGameRunning(): Boolean = gameAddress.isPresent
 
-    override fun getGameName(): String = gameName.orElseThrow { NoSuchElementException("State order is empty") }
+    override fun getGameName(): String = gameName.orElseThrow { NoSuchElementException("Game name is empty") }
     override fun getGameAddress(): InetSocketAddress =
         gameAddress.orElseThrow { NoSuchElementException("State order is empty") }
 

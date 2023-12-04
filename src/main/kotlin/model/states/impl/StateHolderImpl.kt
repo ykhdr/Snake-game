@@ -19,15 +19,13 @@ class StateHolderImpl : StateHolder {
         return cachedState.getNodeRole() == NodeRole.MASTER
     }
 
-    override fun getGameAnnouncement(): GameAnnouncement {
+    override fun getGameAnnouncement() = GameAnnouncement(
+        cachedState.getPlayers(),
+        cachedState.getConfig(),
+        cachedState.getAvailableCoords().isNotEmpty(),
+        cachedState.getGameName()
+    )
 
-        return GameAnnouncement(
-            cachedState.getPlayers(),
-            cachedState.getConfig(),
-            cachedState.getAvailableCoords().isNotEmpty(),
-            cachedState.getGameName()
-        )
-    }
 
     override fun getState(): State {
         cachedState = stateEditor.edit()
@@ -35,14 +33,12 @@ class StateHolderImpl : StateHolder {
     }
 
     override fun getStateEditor(): StateEditor = stateEditor
-    override fun getGameState(): GameState {
-        return GameState(
-            cachedState.getStateOrder(),
-            cachedState.getSnakes(),
-            cachedState.getFoods(),
-            cachedState.getPlayers(),
-        )
-    }
+    override fun getGameState() = GameState(
+        cachedState.getStateOrder(),
+        cachedState.getSnakes(),
+        cachedState.getFoods(),
+        cachedState.getPlayers(),
+    )
 
     internal fun setOnStateEditListener(onStateEdit: (State) -> Unit) {
         this.stateEditor.setOnStateEditListener(onStateEdit)

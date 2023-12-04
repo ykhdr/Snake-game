@@ -201,15 +201,13 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
                 // От мастера о том, что он выходит и мы становимся главным
             } else if (senderRole == NodeRole.VIEWER && player.role == NodeRole.MASTER && receiverRole == NodeRole.MASTER) {
-                nodeRole = NodeRole.MASTER
-                player.role = NodeRole.VIEWER
+                setGameAddress(curNodePlayer.get().ip)
                 leavePlayer(player)
-                //TODO если мы становимся мастером, то надо ли здесь что то менять?
-
+                nodeRole = NodeRole.MASTER
+                curNodePlayer.get().role = NodeRole.MASTER
 
                 this.moveSnakeTaskRequest = MoveSnakeTaskRequest.RUN
-                //TODO возможно исключение
-                setGameAddress(curNodePlayer.get().ip)
+
                 logger.info { "Node has become Master node" }
                 // Выходящий игрок
                 //TODO нужно ли проверять на то что эта нода является deputy?

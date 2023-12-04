@@ -137,7 +137,9 @@ class MessageManager(
 
     private val announcementTask = {
         if (stateHolder.isNodeMaster()) {
-            runCatching { stateHolder.getGameAnnouncement() }.onSuccess { announcement ->
+            runCatching {
+                stateHolder.getGameAnnouncement()
+            }.onSuccess { announcement ->
                 sendMessage(
                     Announcement(
                         context.networkConfig.groupAddress,
@@ -150,6 +152,7 @@ class MessageManager(
                 logger.warn("Game Announcement is empty", e)
             }
 
+            Unit
         }
     }
 
@@ -489,6 +492,7 @@ class MessageManager(
                 val stateEditor = stateHolder.getStateEditor()
                 stateEditor.setNodeId(ack.receiverId)
                 stateEditor.setGameAddress(ack.address)
+                stateEditor.setGameName(message.gameName)
                 logger.info("Join ack confirmed")
             }
 
