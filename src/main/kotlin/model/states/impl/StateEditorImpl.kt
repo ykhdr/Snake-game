@@ -165,6 +165,22 @@ internal class StateEditorImpl internal constructor() : StateEditor {
     }
 
     @Synchronized
+    override fun leavePlayer(player: GamePlayer) {
+        this.players.remove(player)
+        this.snakes.removeIf { s -> s.playerId == player.id }
+    }
+
+    override fun updatePlayerRole(player: GamePlayer, newRole: NodeRole) {
+        runCatching {
+            this.players.first { p -> p == player }
+        }.onSuccess { p ->
+            p.role = newRole
+        }.onFailure { e ->
+            logger.warn("Unknown player", e)
+        }
+    }
+
+    @Synchronized
     override fun setGameConfig(gameConfig: GameConfig) {
         this.config = Optional.of(gameConfig)
     }
@@ -219,9 +235,10 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
                 // От главного умершему
             } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.VIEWER &&
-                (player.role == NodeRole.NORMAL || player.role == NodeRole.DEPUTY)
+                (player.role == NodeRole.MASTER || player.role == NodeRole.DEPUTY)
             ) {
-                nodeRole = NodeRole.VIEWER
+//                nodeRole = NodeRole.VIEWER
+                setNodeRole(NodeRole.VIEWER)
 
                 // От главного новому заместителю
             } else if (senderRole == NodeRole.MASTER && receiverRole == NodeRole.DEPUTY) {
@@ -326,6 +343,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         moveSnakeTaskRequest = MoveSnakeTaskRequest.RUN
     }
 
+
     private fun resetState() {
         this.foods.clear()
         this.snakes.clear()
@@ -337,11 +355,6 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.gameName = Optional.empty()
         this.gameAddress = Optional.empty()
         this.availableCoords.clear()
-    }
-
-    private fun leavePlayer(player: GamePlayer) {
-        this.players.remove(player)
-        this.snakes.removeIf { s -> s.playerId == player.id }
     }
 
     @Synchronized

@@ -58,6 +58,10 @@ interface StateEditor {
 
     fun setPlayerName(name: String)
 
+    fun leavePlayer(player : GamePlayer)
+
+    fun updatePlayerRole(player: GamePlayer, newRole: NodeRole)
+
     fun setGameConfig(gameConfig: GameConfig)
 
     fun setNodeId(id: Int)
@@ -76,26 +80,26 @@ interface StateEditor {
 
     fun removeChangeRoleRequests(players: List<ChangeRoleRequest>)
 
-    fun setState(newState: GameState)
 
+    fun setState(newState: GameState)
 
     /**
      * @throws UnknownPlayerError если змейка с таким playerId не была найдена
      */
     fun updateSnakeDirection(playerId: Int, direction: Direction)
-
     fun setJoinRequest(joinRequest: JoinRequest)
+
     fun clearJoinRequest()
-
     fun setSteerRequest(steerRequest: SteerRequest)
+
     fun clearSteerRequest()
-
     fun setLeaveRequest(leaveRequest: ChangeRoleRequest)
-    fun clearLeaveRequest()
 
+    fun clearLeaveRequest()
     fun setGameCreateRequest(gameCreateRequest: GameCreateRequest)
+
     fun clearGameCreateRequest()
 
-    fun clearDeputyListenTaskToRun()
 
+    fun clearDeputyListenTaskToRun()
 }

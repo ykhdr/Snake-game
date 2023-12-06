@@ -376,12 +376,16 @@ class MessageManager(
                             request.senderRole,
                             request.receiverRole
                         )
+
+                        if (request.receiverRole == NodeRole.VIEWER) {
+                            stateHolder.getStateEditor().removePlayer(player)
+                        }
                     }
-                }.onFailure { e->
-                    logger.warn("Error on checking change role requests ",e)
+                }.onFailure { e ->
+                    logger.warn("Error on checking change role requests ", e)
                 }
-            }.onFailure {e->
-                logger.warn("Error on checking change role requests ",e)
+            }.onFailure { e ->
+                logger.warn("Error on checking change role requests ", e)
             }
         }
 
@@ -510,8 +514,20 @@ class MessageManager(
             }
 
             is RoleChange -> {
-                stateHolder.getStateEditor().setNodeRole(message.senderRole)
-                logger.info("Role change ack confirmed")
+                val state = stateHolder.getState()
+
+                runCatching {
+                    state.getPlayers().first { p -> p.id == message.receiverId }
+                }.onSuccess { player ->
+                    if (message.receiverRole == NodeRole.VIEWER) {
+                        stateHolder.getStateEditor().leavePlayer(player)
+                    } else {
+                        stateHolder.getStateEditor().updatePlayerRole(player, message.receiverRole)
+                    }
+                    logger.info("Role change ack confirmed")
+                }.onFailure { e ->
+                    logger.warn("Error in RoleChange ", e)
+                }
             }
 
             is State -> {}//TODO подумать как этом можно обработать

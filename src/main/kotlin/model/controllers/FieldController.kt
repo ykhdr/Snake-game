@@ -194,55 +194,62 @@ class FieldController(
 
             }
 
+            if (master in deadPlayers && state.getPlayers().all { p -> p.role == NodeRole.VIEWER && p != master }) {
+                state.getPlayers()
+                    .filter { p -> p != master }
+                    .forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
+                stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
+            } else {
 
-            val changeRoleRequests = deadPlayers.stream()
-                .map { player ->
-                    ChangeRoleRequest(
-                        master.id,
-                        player.id,
-                        NodeRole.MASTER,
-                        NodeRole.VIEWER
-                    )
-                }.toList()
+                val changeRoleRequests = deadPlayers.stream()
+                    .map { player ->
+                        ChangeRoleRequest(
+                            master.id,
+                            player.id,
+                            NodeRole.MASTER,
+                            NodeRole.VIEWER
+                        )
+                    }.toList()
 
-            stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
+                stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
 
 
-            deadPlayers.removeIf { p ->  p.id == master.id}
-            snakesToDelete.removeIf {s -> s.playerId == master.id}
+                deadPlayers.removeIf { p -> p.id == master.id }
+                snakesToDelete.removeIf { s -> s.playerId == master.id }
 
-            players.removeAll(deadPlayers)
-            snakes.removeAll(snakesToDelete)
-            newCoords.removeAll(coordsToDelete)
+                players.removeAll(deadPlayers)
+                snakes.removeAll(snakesToDelete)
+                newCoords.removeAll(coordsToDelete)
 
-            for (i in 0 until newCoords.size) {
-                val snake = snakes[i]
-                val coord = newCoords[i]
-                val newSnakePoints = mutableListOf<Coord>()
+                for (i in 0 until newCoords.size) {
+                    val snake = snakes[i]
+                    val coord = newCoords[i]
+                    val newSnakePoints = mutableListOf<Coord>()
 
-                newSnakePoints.add(coord)
-                newSnakePoints.addAll(snake.points)
+                    newSnakePoints.add(coord)
+                    newSnakePoints.addAll(snake.points)
 
-                if (coord in foods) {
-                    foods.remove(coord)
-                    //TODO ловить исключение
-                    val player = players.stream().filter { p -> p.id == snake.playerId }.findFirst().get()
-                    players[i] = player.copy(score = player.score + 1)
+                    if (coord in foods) {
+                        foods.remove(coord)
+                        //TODO ловить исключение
+                        val player = players.stream().filter { p -> p.id == snake.playerId }.findFirst().get()
+                        players[i] = player.copy(score = player.score + 1)
 
-                } else {
-                    //TODO ловить исключение
-                    newSnakePoints.removeLast()
+                    } else {
+                        //TODO ловить исключение
+                        newSnakePoints.removeLast()
+                    }
+
+                    snakes[i] = snake.copy(points = newSnakePoints)
+                    logger.info("Snake ${snakes[i].playerId} moved to ${newCoords[i]}")
                 }
 
-                snakes[i] = snake.copy(points = newSnakePoints)
-                logger.info("Snake ${snakes[i].playerId} moved to ${newCoords[i]}")
+                stateHolder.getStateEditor().setFoods(foods)
+                stateHolder.getStateEditor().setSnakes(snakes)
+                stateHolder.getStateEditor().updatePlayers(players)
+                stateHolder.getStateEditor().updatePlayers(deadPlayers)
+                stateHolder.getStateEditor().setStateOrder(state.getStateOrder() + 1)
             }
-
-            stateHolder.getStateEditor().setFoods(foods)
-            stateHolder.getStateEditor().setSnakes(snakes)
-            stateHolder.getStateEditor().updatePlayers(players)
-            stateHolder.getStateEditor().updatePlayers(deadPlayers)
-            stateHolder.getStateEditor().setStateOrder(state.getStateOrder() + 1)
         }
     }
 
