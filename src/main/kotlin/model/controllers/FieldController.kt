@@ -2,6 +2,7 @@ package model.controllers
 
 import model.models.contexts.Context
 import model.models.core.*
+import model.models.requests.ChangeRoleRequest
 import model.models.requests.GameCreateRequest
 import model.models.requests.tasks.MoveSnakeTaskRequest
 import model.states.State
@@ -13,6 +14,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import javax.swing.text.View
 import kotlin.math.abs
 import kotlin.random.Random
 
@@ -72,7 +74,7 @@ class FieldController(
             val config = state.getConfig()
             val foods = state.getFoods()
 
-            if (foods.size < config.foodStatic) {
+            if (foods.size < config.foodStatic + state.getPlayers().size) {
                 val newFoods = mutableListOf<Coord>()
 
                 for (i in 0 until config.foodStatic - foods.size) {
@@ -90,12 +92,13 @@ class FieldController(
     }
 
     private val moveSnakesTask = {
-        if (stateHolder.isNodeMaster()) {
+        if (stateHolder.isNodeMaster() && stateHolder.getState().getPlayers().isNotEmpty()) {
             val state = stateHolder.getState()
             val newCoords = mutableListOf<Coord>()
             val snakes = state.getSnakes().toMutableList()
             val foods = state.getFoods().toMutableList()
             val players = state.getPlayers().toMutableList()
+            val master = state.getMasterPlayer()
 
             for (snake in snakes) {
                 val direction = snake.headDirection
@@ -139,17 +142,16 @@ class FieldController(
                 }
 
                 newCoords.add(newCoord)
-                //TODO дальше итерируемся по змейкам и смотрим их координаты. - DONE
-                //TODO обработатать случай, когда сразу несколько змеек врезаются в одну клетку - DONE
-                //TODO то есть Сначала мы выситываем новые координаты змеек, а уже потом только смотрим врезались ли они или нет
-
-                //TODO просмотреть случай когда следующая клетка в направлении пустая, еда, другая змейка
             }
 
             val snakesToDelete = mutableListOf<Snake>()
             val coordsToDelete = mutableListOf<Coord>()
             val deadPlayers = mutableListOf<GamePlayer>()
 
+
+            val allSnakesCoords = snakes.stream()
+                .map { snake -> snake.points }
+                .toList()
 
             for (i in 0 until newCoords.size) {
                 val coord = newCoords[i]
@@ -160,6 +162,19 @@ class FieldController(
                     val player = players.stream().filter { p -> p.id == snakes[i].playerId }.findFirst().get()
                     players[i] = player.copy(role = NodeRole.VIEWER, score = 0)
                     deadPlayers.add(players[i])
+                    logger.info("Player ${players[i].id} dead")
+                    continue
+                }
+
+                for (snakeCoords in allSnakesCoords) {
+                    if (coord in snakeCoords) {
+                        snakesToDelete.add(snakes[i])
+                        coordsToDelete.add(coord)
+                        val player = players.stream().filter { p -> p.id == snakes[i].playerId }.findFirst().get()
+                        players[i] = player.copy(role = NodeRole.VIEWER, score = 0)
+                        logger.info("Player ${players[i].id} dead")
+                        deadPlayers.add(players[i])
+                    }
                 }
 
                 for (j in i + 1 until newCoords.size) {
@@ -172,21 +187,36 @@ class FieldController(
                         //TODO нужно у игроков поменять + Ловить исключение
                         val player = players.stream().filter { p -> p.id == otherSnake.playerId }.findFirst().get()
                         players[j] = player.copy(role = NodeRole.VIEWER, score = 0)
-                        // здесь нужно посылать запрос на smert
                         deadPlayers.add(players[j])
+                        logger.info("Player ${players[j].id} dead")
                     }
                 }
+
             }
 
-            //
-            //TODO нужно ли как то уведомлять игроков?
+
+            val changeRoleRequests = deadPlayers.stream()
+                .map { player ->
+                    ChangeRoleRequest(
+                        master.id,
+                        player.id,
+                        NodeRole.MASTER,
+                        NodeRole.VIEWER
+                    )
+                }.toList()
+
+            stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
+
+
+            deadPlayers.removeIf { p ->  p.id == master.id}
+            snakesToDelete.removeIf {s -> s.playerId == master.id}
+
             players.removeAll(deadPlayers)
             snakes.removeAll(snakesToDelete)
             newCoords.removeAll(coordsToDelete)
 
             for (i in 0 until newCoords.size) {
                 val snake = snakes[i]
-                //TODO exc in here
                 val coord = newCoords[i]
                 val newSnakePoints = mutableListOf<Coord>()
 

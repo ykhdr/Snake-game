@@ -142,6 +142,7 @@ class MessageManager(
             checkDeputyListenRequest(state)
         }
         checkJoinRequest(state)
+        checkChangeRoleRequests(state)
         logger.info("All request tasks checked")
     }
 
@@ -270,7 +271,7 @@ class MessageManager(
         }.onSuccess { master ->
             if (master.id == roleChange.senderId) {
                 val randomPlayerOpt = state.getPlayers().stream()
-                    .filter { p -> p.id != master.id }
+                    .filter { p -> p.id != master.id && p.role != NodeRole.VIEWER }
                     .findAny()
 
                 if (randomPlayerOpt.isPresent) {
@@ -338,6 +339,49 @@ class MessageManager(
             }
         }
 
+    }
+
+    private fun checkChangeRoleRequests(state: model.states.State) {
+        val requests = state.getChangeRoleRequests()
+
+        for (request in requests) {
+            runCatching {
+                state.getPlayers().first { p -> p.id == request.receiverId }
+            }.onSuccess { player ->
+                runCatching {
+                    state.getMasterPlayer()
+                }.onSuccess { master ->
+                    if (master.id == player.id) {
+                        val randomPlayerOpt = state.getPlayers().stream()
+                            .filter { p -> p.id != master.id && p.role != NodeRole.VIEWER }
+                            .findAny()
+
+                        if (randomPlayerOpt.isPresent) {
+                            val randomPlayer = randomPlayerOpt.get()
+                            sendRoleChangeMessage(
+                                randomPlayer.ip,
+                                master.id,
+                                randomPlayer.id,
+                                NodeRole.VIEWER,
+                                NodeRole.MASTER
+                            )
+                        }
+
+                        stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
+                    } else {
+                        sendRoleChangeMessage(
+                            player.ip,
+                            request.senderId,
+                            request.receiverId,
+                            request.senderRole,
+                            request.receiverRole
+                        )
+                    }
+                }
+            }
+        }
+
+        stateHolder.getStateEditor().removeChangeRoleRequests(requests)
     }
 
     private fun sendSteerMessage(address: InetSocketAddress, senderId: Int, receiverId: Int, direction: Direction) {

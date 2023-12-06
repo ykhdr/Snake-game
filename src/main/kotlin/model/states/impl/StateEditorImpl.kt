@@ -47,6 +47,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
     private val logger = KotlinLogging.logger {}
 
+    @Synchronized
     internal fun setOnStateEditListener(onStateEdit: (State) -> Unit) {
         this.onStateEdit = onStateEdit
     }
@@ -230,18 +231,21 @@ internal class StateEditorImpl internal constructor() : StateEditor {
                 throw NodeRoleHasNotPrivilegesError("sender node has not privileges to change role")
             }
         }.onFailure {
-            throw UnknownPlayerError("player did not find in game")
+            throw UnknownPlayerError("player with id $id did not find in game")
         }
     }
 
+    @Synchronized
     override fun addChangeRoleRequests(players: List<ChangeRoleRequest>) {
         this.changeRoleRequests.addAll(players)
     }
 
+    @Synchronized
     override fun removeChangeRoleRequests(players: List<ChangeRoleRequest>) {
         this.changeRoleRequests.removeAll(players)
     }
 
+    @Synchronized
     override fun clearDeputyListenTaskToRun() {
         this.deputyListenTaskRequest = DeputyListenTaskRequest.DISABLE
     }
@@ -358,7 +362,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
             playerName,
             errors,
             availableCoords,
-            changeRoleRequests,
+            changeRoleRequests.toList(),
             joinRequest,
             steerRequest,
             leaveRequest,
