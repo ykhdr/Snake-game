@@ -26,6 +26,12 @@ class FieldController(
         val height: Int,
     )
 
+    private data class MoveItem(
+        var player: GamePlayer,
+        var snake: Snake,
+        val newCoord: Coord
+    )
+
     companion object {
         private const val SCHEDULED_PULL_SIZE = 6
         private const val INITIAL_DELAY = 0L
@@ -38,7 +44,6 @@ class FieldController(
     private val stateHolder = context.stateHolder
 
     private var fieldSize = FieldSize(0, 0)
-    private var isNewGame = AtomicBoolean(false)
 
     private val schedulerExecutor = Executors.newScheduledThreadPool(SCHEDULED_PULL_SIZE)
 
@@ -51,10 +56,7 @@ class FieldController(
             val state = stateHolder.getState()
             val config = state.getConfig()
 
-            // TODO посмотреть, надо ли тут это вообще
-            if (isNewGame.get()) {
-                fieldSize = FieldSize(config.width, config.height)
-            }
+            fieldSize = FieldSize(config.width, config.height)
 
             state.getCurNodePlayer()
 
@@ -77,7 +79,7 @@ class FieldController(
             if (foods.size < config.foodStatic + state.getPlayers().size) {
                 val newFoods = mutableListOf<Coord>()
 
-                for (i in 0 until config.foodStatic - foods.size) {
+                for (i in 0 until config.foodStatic + state.getPlayers().size - foods.size) {
                     var coord = Coord((0..config.width).random(), (0..config.height).random())
                     while (foods.contains(coord)) {
                         coord = Coord((0..config.width).random(), (0..config.height).random())
@@ -94,11 +96,12 @@ class FieldController(
     private val moveSnakesTask = {
         if (stateHolder.isNodeMaster() && stateHolder.getState().getPlayers().isNotEmpty()) {
             val state = stateHolder.getState()
-            val newCoords = mutableListOf<Coord>()
             val snakes = state.getSnakes().toMutableList()
             val foods = state.getFoods().toMutableList()
             val players = state.getPlayers().toMutableList()
             val master = state.getMasterPlayer()
+
+            val moveItems = mutableListOf<MoveItem>()
 
             for (snake in snakes) {
                 val direction = snake.headDirection
@@ -141,71 +144,82 @@ class FieldController(
                     }
                 }
 
-                newCoords.add(newCoord)
+
+                runCatching {
+                    players.first { p -> p.id == snake.playerId }
+                }.onSuccess { player ->
+                    moveItems.add(
+                        MoveItem(
+                            player,
+                            snake,
+                            newCoord
+                        )
+                    )
+                }.onFailure { e ->
+                    logger.warn("Error on move snakes", e)
+                }
+
+
             }
 
-            val snakesToDelete = mutableListOf<Snake>()
-            val coordsToDelete = mutableListOf<Coord>()
-            val deadPlayers = mutableListOf<GamePlayer>()
-
+            val moveItemsToDelete = mutableListOf<MoveItem>()
 
             val allSnakesCoords = snakes.stream()
                 .map { snake -> snake.points }
                 .toList()
 
-            for (i in 0 until newCoords.size) {
-                val coord = newCoords[i]
+            for (i in 0 until moveItems.size) {
+                val coord = moveItems[i].newCoord
 
-                if (coord in snakes[i].points) {
-                    snakesToDelete.add(snakes[i])
-                    coordsToDelete.add(coord)
-                    val player = players.stream().filter { p -> p.id == snakes[i].playerId }.findFirst().get()
-                    players[i] = player.copy(role = NodeRole.VIEWER, score = 0)
-                    deadPlayers.add(players[i])
-                    logger.info("Player ${players[i].id} dead")
+                if (coord in moveItems[i].snake.points) {
+                    moveItemsToDelete.add(
+                        moveItems[i].copy(
+                            player = moveItems[i].player.copy(role = NodeRole.VIEWER, score = 0)
+                        ),
+                    )
+
+                    logger.info("Player ${moveItems[i].player.id} dead")
                     continue
                 }
 
                 for (snakeCoords in allSnakesCoords) {
                     if (coord in snakeCoords) {
-                        snakesToDelete.add(snakes[i])
-                        coordsToDelete.add(coord)
-                        val player = players.stream().filter { p -> p.id == snakes[i].playerId }.findFirst().get()
-                        players[i] = player.copy(role = NodeRole.VIEWER, score = 0)
-                        logger.info("Player ${players[i].id} dead")
-                        deadPlayers.add(players[i])
+                        moveItemsToDelete.add(
+                            moveItems[i].copy(
+                                player = moveItems[i].player.copy(role = NodeRole.VIEWER, score = 0)
+                            ),
+                        )
+                        logger.info("Player ${moveItems[i].player.id} dead")
                     }
                 }
 
-                for (j in i + 1 until newCoords.size) {
-                    if (coord == newCoords[j]) {
-                        val otherSnake = snakes[j]
-                        if (otherSnake !in snakesToDelete)
-                            snakesToDelete.add(otherSnake)
-
-                        coordsToDelete.add(coord)
-                        //TODO нужно у игроков поменять + Ловить исключение
-                        val player = players.stream().filter { p -> p.id == otherSnake.playerId }.findFirst().get()
-                        players[j] = player.copy(role = NodeRole.VIEWER, score = 0)
-                        deadPlayers.add(players[j])
-                        logger.info("Player ${players[j].id} dead")
+                for (j in i + 1 until moveItems.size) {
+                    if (coord == moveItems[j].newCoord) {
+                        val otherSnake = moveItems[j].snake
+                        if (moveItems[j] !in moveItemsToDelete)
+                            moveItemsToDelete.add(moveItems[j])
+                        moveItems[j].player = moveItems[j].player.copy(role = NodeRole.VIEWER, score = 0)
+                        logger.info("Player ${moveItems[j].player.id} dead")
                     }
                 }
 
             }
 
-            if (master in deadPlayers && state.getPlayers().all { p -> p.role == NodeRole.VIEWER && p != master }) {
+            if (
+                master in moveItemsToDelete.map { i -> i.player } &&
+                state.getPlayers().all { p -> p.role == NodeRole.VIEWER && p != master }
+            ) {
                 state.getPlayers()
                     .filter { p -> p != master }
                     .forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
                 stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
             } else {
 
-                val changeRoleRequests = deadPlayers.stream()
-                    .map { player ->
+                val changeRoleRequests = moveItemsToDelete
+                    .map { item ->
                         ChangeRoleRequest(
                             master.id,
-                            player.id,
+                            item.player.id,
                             NodeRole.MASTER,
                             NodeRole.VIEWER
                         )
@@ -214,16 +228,18 @@ class FieldController(
                 stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
 
 
-                deadPlayers.removeIf { p -> p.id == master.id }
-                snakesToDelete.removeIf { s -> s.playerId == master.id }
+//                deadPlayers.removeIf { p -> p.id == master.id }
+//                snakesToDelete.removeIf { s -> s.playerId == master.id }
 
-                players.removeAll(deadPlayers)
-                snakes.removeAll(snakesToDelete)
-                newCoords.removeAll(coordsToDelete)
+//                players.removeAll(deadPlayers)
+//                snakes.removeAll(snakesToDelete)
+//                newCoords.removeAll(coordsToDelete)
 
-                for (i in 0 until newCoords.size) {
-                    val snake = snakes[i]
-                    val coord = newCoords[i]
+                moveItems.removeAll(moveItemsToDelete)
+
+                for (i in 0 until moveItems.size) {
+                    val snake = moveItems[i].snake
+                    val coord = moveItems[i].newCoord
                     val newSnakePoints = mutableListOf<Coord>()
 
                     newSnakePoints.add(coord)
@@ -232,22 +248,21 @@ class FieldController(
                     if (coord in foods) {
                         foods.remove(coord)
                         //TODO ловить исключение
-                        val player = players.stream().filter { p -> p.id == snake.playerId }.findFirst().get()
-                        players[i] = player.copy(score = player.score + 1)
-
+                        val player = moveItems[i].player
+                        moveItems[i] = moveItems[i].copy(player = player.copy(score = player.score + 1))
                     } else {
                         //TODO ловить исключение
                         newSnakePoints.removeLast()
                     }
 
-                    snakes[i] = snake.copy(points = newSnakePoints)
-                    logger.info("Snake ${snakes[i].playerId} moved to ${newCoords[i]}")
+                    moveItems[i].snake = snake.copy(points = newSnakePoints)
+                    logger.info("Snake ${snakes[i].playerId} moved to ${moveItems[i].newCoord}")
                 }
 
                 stateHolder.getStateEditor().setFoods(foods)
-                stateHolder.getStateEditor().setSnakes(snakes)
-                stateHolder.getStateEditor().updatePlayers(players)
-                stateHolder.getStateEditor().updatePlayers(deadPlayers)
+                stateHolder.getStateEditor().setSnakes(moveItems.map { i -> i.snake })
+                stateHolder.getStateEditor().updatePlayers(moveItems.map { i -> i.player })
+                stateHolder.getStateEditor().updatePlayers(moveItemsToDelete.map { i -> i.player })
                 stateHolder.getStateEditor().setStateOrder(state.getStateOrder() + 1)
             }
         }
