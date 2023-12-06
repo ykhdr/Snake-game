@@ -23,8 +23,12 @@ class SenderController(config: NetworkConfig) : Closeable {
     fun sendMessage(message: Message) {
         val address = message.address
         val packet = DatagramPacket(buffer, BUFFER_SIZE, address)
-        val protoMessage = mapper.toProtoMessage(message)
-        packet.setData(protoMessage.toByteArray())
+        try {
+            val protoMessage = mapper.toProtoMessage(message)
+            packet.setData(protoMessage.toByteArray())
+        } catch (e : Exception){
+            logger.warn("Errreeeeeeeeeeeeor: ", e)
+        }
         datagramSocket.send(packet)
         logger.info("Message with seq ${message.msgSeq} sent")
     }

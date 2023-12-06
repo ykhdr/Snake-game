@@ -35,7 +35,7 @@ object ProtoMapper {
         return SnakesProto.GameMessage.newBuilder()
             .setAnnouncement(
                 SnakesProto.GameMessage.AnnouncementMsg.newBuilder()
-                    .addAllGames(announcement.games.map { game -> toProtoGameAnnouncement(game) })
+                    .addAllGames(announcement.games.map { game -> toProtoGameAnnouncement(game) }.toList())
                     .build()
             )
             .setMsgSeq(announcement.msgSeq)
@@ -186,7 +186,7 @@ object ProtoMapper {
         return SnakesProto.GamePlayer.newBuilder()
             .setName(player.name)
             .setId(player.id)
-            .setIpAddress(player.ip.address.toString())
+            .setIpAddress(if (player.ip.address == null) GamePlayer.DEFAULT_STR_IP else player.ip.address.toString())
             .setPort(player.port)
             .setRole(toProtoNodeRole(player.role))
             .setType(toProtoPlayerType(player.type))
@@ -222,7 +222,7 @@ object ProtoMapper {
         else if (message.hasRoleChange())
             toRoleChange(message, message.msgSeq, address)
         else if (message.hasState())
-            toState(message.state, address,  message.msgSeq, message.senderId,message.receiverId)
+            toState(message.state, address, message.msgSeq, message.senderId, message.receiverId)
         else if (message.hasSteer())
             toSteer(message.steer, address, message.msgSeq, message.senderId, message.receiverId)
         else
@@ -328,7 +328,10 @@ object ProtoMapper {
     private fun toGamePlayer(proto: SnakesProto.GamePlayer) = GamePlayer(
         name = proto.name,
         id = proto.id,
-        ip = InetSocketAddress(proto.ipAddress ?: GamePlayer.DEFAULT_STR_IP, proto.port),
+        ip = InetSocketAddress(
+            proto.ipAddress ?: GamePlayer.DEFAULT_STR_IP,
+            if (proto.hasPort()) proto.port else GamePlayer.DEFAULT_PORT
+        ),
         port = if (proto.hasPort()) proto.port else GamePlayer.DEFAULT_PORT,
         role = toNodeRole(proto.role),
         type = if (proto.hasType()) toPlayerType(proto.type) else GamePlayer.DEFAULT_PLAYER_TYPE,

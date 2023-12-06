@@ -377,7 +377,11 @@ class MessageManager(
                             request.receiverRole
                         )
                     }
+                }.onFailure { e->
+                    logger.warn("Error on checking change role requests ",e)
                 }
+            }.onFailure {e->
+                logger.warn("Error on checking change role requests ",e)
             }
         }
 
