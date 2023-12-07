@@ -248,7 +248,7 @@ class MessageManager(
 
         runCatching {
             sendJoinMessage(
-                join.address, state.getPlayerName(), join.gameName, join.requestedRole
+                join.address, join.playerName, join.gameName, join.requestedRole
             )
         }.onFailure { e ->
             logger.warn("Error on sending join message", e)

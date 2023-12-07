@@ -207,7 +207,7 @@ class FieldController(
 
             if (
                 master in moveItemsToDelete.map { i -> i.player } &&
-                state.getPlayers().all { p -> p.role == NodeRole.VIEWER && p != master }
+                players.all { p -> p.role == NodeRole.VIEWER && p != master }
             ) {
                 state.getPlayers()
                     .filter { p -> p != master }

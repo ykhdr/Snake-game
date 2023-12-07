@@ -18,13 +18,13 @@ class LobbyControllerImpl(
 
     private val logger = KotlinLogging.logger {}
 
-    override fun join(address: InetSocketAddress, gameName: String) {
-        val joinRequest = JoinRequest(address, gameName, NodeRole.NORMAL)
+    override fun join(address: InetSocketAddress, playerName: String, gameName: String) {
+        val joinRequest = JoinRequest(address, playerName, gameName, NodeRole.NORMAL)
         connect2Host(joinRequest)
     }
 
-    override fun watch(address: InetSocketAddress, gameName: String) {
-        val joinRequest = JoinRequest(address, gameName, NodeRole.VIEWER)
+    override fun watch(address: InetSocketAddress,playerName: String, gameName: String) {
+        val joinRequest = JoinRequest(address, playerName, gameName, NodeRole.VIEWER)
         connect2Host(joinRequest)
     }
 

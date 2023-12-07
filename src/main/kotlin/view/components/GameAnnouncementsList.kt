@@ -8,19 +8,15 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
-import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.dp
-import model.client.Client
 import model.controllers.LobbyController
 import model.dto.messages.Announcement
-import model.models.core.GameAnnouncement
-import model.models.core.NodeRole
-import java.util.*
 
 
 @Composable
@@ -31,15 +27,11 @@ fun GameAnnouncementsList(lobbyController: LobbyController, modifier: Modifier, 
         shape = RoundedCornerShape(15.dp),
         border = BorderStroke(0.5.dp, color = Color.LightGray)
     ) {
+        val openViewDialog = remember { mutableStateOf(false) }
+        val openJoinDialog = remember { mutableStateOf(false) }
+
+
         Box {
-//            if (announcements.isEmpty()) {
-//                CircularProgressIndicator(
-//                    Modifier.size(256.dp).align(Alignment.Center),
-//                    strokeWidth = 32.dp,
-//                    strokeCap = StrokeCap.Round,
-//                    color = Color(225, 225, 225)
-//                )
-//            }
             val state = rememberLazyListState()
             LazyColumn(modifier = Modifier.fillMaxSize(), state = state, content = {
                 items(announcements.size) { index ->
@@ -48,16 +40,36 @@ fun GameAnnouncementsList(lobbyController: LobbyController, modifier: Modifier, 
                         games = announcement.games,
                         address = announcement.address,
                         onView = { address, gameName ->
-                            lobbyController.watch(
+                            openViewDialog.value = true
+                            JoinGameDialog(
+                                openViewDialog,
                                 address,
                                 gameName,
-                            )
+                            ) { watchAddress, playerName, watchGameName ->
+                                lobbyController.watch(
+                                    watchAddress,
+                                    playerName,
+                                    watchGameName,
+                                )
+                            }
+
                         },
                         onJoin = { address, gameName ->
-                            lobbyController.join(
-                                address,
-                                gameName,
-                            )
+                            openJoinDialog.value = true
+                            if (openViewDialog.value) {
+
+                                JoinGameDialog(
+                                    openJoinDialog,
+                                    address,
+                                    gameName,
+                                ) { joinAddress, playerName, joinGameName ->
+                                    lobbyController.join(
+                                        joinAddress,
+                                        playerName,
+                                        joinGameName,
+                                    )
+                                }
+                            }
                         },
                         last = index == announcements.size - 1
                     )
@@ -72,6 +84,7 @@ fun GameAnnouncementsList(lobbyController: LobbyController, modifier: Modifier, 
                 )
             )
         }
+
 
     }
 }
