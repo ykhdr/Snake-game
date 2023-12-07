@@ -20,7 +20,7 @@ fun JoinGameButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
             shape = RoundedCornerShape(12.dp),
             content = {
                 Text(
-                    text = "Join game",
+                    text = "Войти",
                 )
             }
         )

@@ -23,7 +23,7 @@ class LobbyControllerImpl(
         connect2Host(joinRequest)
     }
 
-    override fun watch(address: InetSocketAddress,playerName: String, gameName: String) {
+    override fun view(address: InetSocketAddress, playerName: String, gameName: String) {
         val joinRequest = JoinRequest(address, playerName, gameName, NodeRole.VIEWER)
         connect2Host(joinRequest)
     }

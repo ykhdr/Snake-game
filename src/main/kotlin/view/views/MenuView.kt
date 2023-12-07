@@ -15,6 +15,8 @@ import model.dto.messages.Announcement
 import model.models.core.*
 import model.states.ClientState
 import view.components.*
+import view.models.JoinConfig
+import java.util.*
 
 @Preview
 @Composable
@@ -23,7 +25,14 @@ fun MenuView(client: Client) = Surface(
     modifier = Modifier
         .fillMaxSize()
 ) {
-    val openDialog = remember { mutableStateOf(false) }
+    val openGameStartDialog = remember { mutableStateOf(false) }
+    val joinGameConfig =
+        remember { mutableStateOf(JoinConfig(mutableStateOf(false), Optional.empty(), Optional.empty())) }
+
+    val viewGameConfig =
+        remember { mutableStateOf(JoinConfig(mutableStateOf(false), Optional.empty(), Optional.empty())) }
+
+
     val isGameRunning = remember { mutableStateOf(false) }
     val announcements = remember { mutableStateOf(listOf<Announcement>()) }
     val config = remember { mutableStateOf(GameConfig()) }
@@ -63,35 +72,41 @@ fun MenuView(client: Client) = Surface(
                 if (state.getPlayers().isNotEmpty()) {
                     curNodePlayer.value = arrayOf(state.getCurNodePlayer())
                 }
-//                cells.value.clear()
                 cells.value = cellsTmp
             }
         }
-//        observeGameState(client, config, playersState, fadedColorsEnable, cells, isGameRunning, announcements)
     }
 
-    if (openDialog.value) {
+    if (viewGameConfig.value.openDialog.value){
+        JoinGameDialog(
+            viewGameConfig.value,
+            client.getLobbyController()::view
+        )
+    }
+
+
+    if (joinGameConfig.value.openDialog.value){
+        JoinGameDialog(
+            joinGameConfig.value,
+            client.getLobbyController()::join
+        )
+    }
+
+    if (openGameStartDialog.value) {
         GameStartDialog(
-            openDialog,
+            openGameStartDialog,
             client.getLobbyController()::createGame
         )
     }
 
-    Row(
-//        horizontalArrangement = Arrangement.spacedBy(5.dp),
-//        modifier = Modifier.padding(5.dp)
-    ) {
+    Row {
 
         Column(
             modifier = Modifier.weight(8f),
 
             ) {
-//            Card(
-//                modifier = Modifier.fillMaxSize(),
-//            ) {
             if (isGameRunning.value) {
                 GameView(config.value, cells)
-//                }
             }
         }
 
@@ -109,7 +124,7 @@ fun MenuView(client: Client) = Surface(
 
                 GameStartButton(
                     modifier = Modifier.weight(1f),
-                    onClick = { openDialog.value = true },
+                    onClick = { openGameStartDialog.value = true },
                     isEnabled = !isGameRunning.value
                 )
 
@@ -167,7 +182,8 @@ fun MenuView(client: Client) = Surface(
                 modifier = Modifier.weight(7f)
             ) {
                 GameAnnouncementsList(
-                    client.getLobbyController(),
+                    joinGameConfig.value,
+                    viewGameConfig.value,
                     Modifier,
                     announcements.value,
                 )

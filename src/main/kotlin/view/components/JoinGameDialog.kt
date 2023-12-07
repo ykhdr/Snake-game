@@ -10,15 +10,14 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import view.models.JoinConfig
 import java.net.InetSocketAddress
 import java.util.*
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun JoinGameDialog(
-    openDialog: MutableState<Boolean>,
-    address: InetSocketAddress,
-    gameName: String,
+    joinConfig: JoinConfig,
     joinGame: (address: InetSocketAddress, playerName: String, gameName: String) -> Unit
 ){
     val defaultPlayerName = "Player ${UUID.randomUUID().toString().subSequence(1..3)}"
@@ -27,7 +26,7 @@ fun JoinGameDialog(
 
     AlertDialog(
         onDismissRequest = {
-            openDialog.value = false
+            joinConfig.openDialog.value = false
         },
         title = {
             Text("Подключение к игре")
@@ -35,7 +34,7 @@ fun JoinGameDialog(
         text = {
             Column {
                 val padding = 6.dp
-                val itemModifier = Modifier.padding(padding)
+                val itemModifier = Modifier
 
                 OutlinedTextField(
                     label = {
@@ -63,7 +62,7 @@ fun JoinGameDialog(
         },
         dismissButton = {
             CancelButton {
-                openDialog.value = false
+                joinConfig.openDialog.value = false
             }
         },
         confirmButton = {
@@ -73,12 +72,12 @@ fun JoinGameDialog(
                 }
 
                 joinGame(
-                    address,
+                    joinConfig.address.get(),
                     playerNameText,
-                    gameName,
+                    joinConfig.gameName.get(),
                 )
 
-                openDialog.value = false
+                joinConfig.openDialog.value = false
             }
         }
     )
