@@ -173,6 +173,10 @@ class MessageManager(
         }
     }
 
+    private val announcementUpdateTask = {
+        stateHolder.getStateEditor().clearAnnouncements()
+    }
+
 
     init {
         scheduledExecutor.scheduleWithFixedDelay(
@@ -197,6 +201,9 @@ class MessageManager(
 
         scheduledExecutor.scheduleWithFixedDelay(
             stateTask, 0, 500, TimeUnit.MILLISECONDS
+        )
+        scheduledExecutor.scheduleWithFixedDelay(
+            announcementUpdateTask, 0, 5000, TimeUnit.MILLISECONDS
         )
 
         logger.info("All tasks are running ")

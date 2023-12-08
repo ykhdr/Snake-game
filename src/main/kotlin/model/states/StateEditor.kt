@@ -41,6 +41,8 @@ interface StateEditor {
 
     fun removeAnnouncement(announcement: Announcement): Boolean
 
+    fun clearAnnouncements()
+
     fun addSnake(snake: Snake)
 
     fun setSnakes(snakes: List<Snake>)

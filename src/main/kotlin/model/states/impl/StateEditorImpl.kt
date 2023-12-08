@@ -170,6 +170,10 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.snakes.removeIf { s -> s.playerId == player.id }
     }
 
+    override fun clearAnnouncements() {
+        this.announcements.clear()
+    }
+
     override fun updatePlayerRole(player: GamePlayer, newRole: NodeRole) {
         runCatching {
             this.players.first { p -> p == player }
