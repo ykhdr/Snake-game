@@ -10,6 +10,7 @@ import model.models.requests.tasks.DeputyListenTaskRequest
 import model.models.requests.tasks.MoveSnakeTaskRequest
 import model.states.State
 import model.states.StateEditor
+import model.utils.IdSequence
 import mu.KotlinLogging
 import java.net.InetSocketAddress
 import java.util.*
@@ -226,7 +227,9 @@ internal class StateEditorImpl internal constructor() : StateEditor {
                 setGameAddress(curNodePlayer.get().ip)
                 nodeRole = NodeRole.MASTER
                 curNodePlayer.get().role = NodeRole.MASTER
+                IdSequence.setStartId(players.maxOf { p -> p.id} + 1)
                 leavePlayer(player)
+
 
                 this.moveSnakeTaskRequest = MoveSnakeTaskRequest.RUN
 
@@ -359,6 +362,7 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         this.gameName = Optional.empty()
         this.gameAddress = Optional.empty()
         this.availableCoords.clear()
+        this.curNodePlayer = Optional.empty()
     }
 
     @Synchronized
