@@ -94,104 +94,89 @@ class FieldController(
     }
 
     private val moveSnakesTask = {
-        if (stateHolder.isNodeMaster() && stateHolder.getState().getPlayers().isNotEmpty()) {
-            val state = stateHolder.getState()
-            val snakes = state.getSnakes().toMutableList()
-            val foods = state.getFoods().toMutableList()
-            val players = state.getPlayers().toMutableList()
-            val master = state.getMasterPlayer()
+        try {
 
-            val moveItems = mutableListOf<MoveItem>()
 
-            for (snake in snakes) {
-                val direction = snake.headDirection
-                val curCoord = snake.points[0]
+            if (stateHolder.isNodeMaster() && stateHolder.getState().getPlayers().isNotEmpty()) {
+                val state = stateHolder.getState()
+                val snakes = state.getSnakes().toMutableList()
+                val foods = state.getFoods().toMutableList()
+                val players = state.getPlayers().toMutableList()
+                val master = state.getMasterPlayer()
 
-                val newCoord: Coord
+                val moveItems = mutableListOf<MoveItem>()
 
-                when (direction) {
-                    Direction.UP -> {
-                        newCoord = if (curCoord.y == 0) {
-                            Coord(curCoord.x, fieldSize.height - 1)
-                        } else {
-                            Coord(curCoord.x, curCoord.y - 1)
+                for (snake in snakes) {
+                    val direction = snake.headDirection
+                    val curCoord = snake.points[0]
+
+                    val newCoord: Coord
+
+                    when (direction) {
+                        Direction.UP -> {
+                            newCoord = if (curCoord.y == 0) {
+                                Coord(curCoord.x, fieldSize.height - 1)
+                            } else {
+                                Coord(curCoord.x, curCoord.y - 1)
+                            }
+
                         }
 
-                    }
+                        Direction.DOWN -> {
+                            newCoord = if (curCoord.y == fieldSize.height - 1) {
+                                Coord(curCoord.x, 0)
+                            } else {
+                                Coord(curCoord.x, curCoord.y + 1)
+                            }
+                        }
 
-                    Direction.DOWN -> {
-                        newCoord = if (curCoord.y == fieldSize.height - 1) {
-                            Coord(curCoord.x, 0)
-                        } else {
-                            Coord(curCoord.x, curCoord.y + 1)
+                        Direction.LEFT -> {
+                            newCoord = if (curCoord.x == 0) {
+                                Coord(fieldSize.width - 1, curCoord.y)
+                            } else {
+                                Coord(curCoord.x - 1, curCoord.y)
+                            }
+                        }
+
+                        Direction.RIGHT -> {
+                            newCoord = if (curCoord.x == fieldSize.width - 1) {
+                                Coord(0, curCoord.y)
+                            } else {
+                                Coord(curCoord.x + 1, curCoord.y)
+                            }
                         }
                     }
 
-                    Direction.LEFT -> {
-                        newCoord = if (curCoord.x == 0) {
-                            Coord(fieldSize.width - 1, curCoord.y)
-                        } else {
-                            Coord(curCoord.x - 1, curCoord.y)
-                        }
-                    }
 
-                    Direction.RIGHT -> {
-                        newCoord = if (curCoord.x == fieldSize.width - 1) {
-                            Coord(0, curCoord.y)
-                        } else {
-                            Coord(curCoord.x + 1, curCoord.y)
-                        }
-                    }
-                }
-
-
-                runCatching {
-                    players.first { p -> p.id == snake.playerId }
-                }.onSuccess { player ->
-                    moveItems.add(
-                        MoveItem(
-                            player,
-                            snake,
-                            newCoord
+                    runCatching {
+                        players.first { p -> p.id == snake.playerId }
+                    }.onSuccess { player ->
+                        moveItems.add(
+                            MoveItem(
+                                player,
+                                snake,
+                                newCoord
+                            )
                         )
-                    )
-                }.onFailure { e ->
-                    logger.warn("Error on move snakes", e)
-                }
-
-
-            }
-
-            val moveItemsToDelete = mutableListOf<MoveItem>()
-
-            var isMasterDead = false
-
-            val allSnakesCoords = snakes.stream()
-                .map { snake -> snake.points }
-                .toList()
-
-            for (i in 0 until moveItems.size) {
-                val coord = moveItems[i].newCoord
-
-                if (coord in moveItems[i].snake.points) {
-                    if (moveItems[i].player == master && !isMasterDead) {
-                        isMasterDead = true
-                        moveItemsToDelete.add(moveItems[i])
-                    } else {
-                        moveItemsToDelete.add(
-                            moveItems[i].copy(
-                                player = moveItems[i].player.copy(role = NodeRole.VIEWER, score = 0)
-                            ),
-                        )
+                    }.onFailure { e ->
+                        logger.warn("Error on move snakes", e)
                     }
 
 
-                    logger.info("Player ${moveItems[i].player.id} dead")
-                    continue
                 }
 
-                for (snakeCoords in allSnakesCoords) {
-                    if (coord in snakeCoords) {
+                val moveItemsToDelete = mutableListOf<MoveItem>()
+
+                var isMasterDead = false
+
+                val allSnakesCoords = snakes.stream()
+                    .map { snake -> snake.points }
+                    .toList()
+
+                for (i in 0 until moveItems.size) {
+                    val coord = moveItems[i].newCoord
+
+                    if (coord in moveItems[i].snake.points) {
                         if (moveItems[i].player == master && !isMasterDead) {
                             isMasterDead = true
                             moveItemsToDelete.add(moveItems[i])
@@ -202,79 +187,114 @@ class FieldController(
                                 ),
                             )
                         }
+
+
                         logger.info("Player ${moveItems[i].player.id} dead")
+                        continue
                     }
+
+                    for (snakeCoords in allSnakesCoords) {
+                        if (coord in snakeCoords) {
+                            if (moveItems[i].player == master && !isMasterDead) {
+                                isMasterDead = true
+                                moveItemsToDelete.add(moveItems[i])
+                            } else {
+                                moveItemsToDelete.add(
+                                    moveItems[i].copy(
+                                        player = moveItems[i].player.copy(role = NodeRole.VIEWER, score = 0)
+                                    ),
+                                )
+                            }
+                            logger.info("Player ${moveItems[i].player.id} dead")
+                        }
+                    }
+
+                    for (j in i + 1 until moveItems.size) {
+                        if (coord == moveItems[j].newCoord) {
+                            if (moveItems[i].player == master && !isMasterDead) {
+                                isMasterDead = true
+                                moveItemsToDelete.add(moveItems[j])
+                            } else {
+                                if (moveItems[j] !in moveItemsToDelete)
+                                    moveItemsToDelete.add(moveItems[j])
+//                            moveItems[j].player = moveItems[j].player.copy(role = NodeRole.VIEWER, score = 0)
+                            }
+
+                            logger.info("Player ${moveItems[j].player.id} dead")
+                        }
+                    }
+
                 }
 
-                for (j in i + 1 until moveItems.size) {
-                    if (coord == moveItems[j].newCoord) {
-                        if (moveItems[i].player == master && !isMasterDead) {
-                            isMasterDead = true
-                            moveItemsToDelete.add(moveItems[j])
+                if (isMasterDead) {
+                    if (moveItems.map { i -> i.player }
+                            .filter { p -> p != master }
+                            .all { p -> p.role == NodeRole.VIEWER }
+                    ) {
+
+                        state.getPlayers()
+                            .filter { p -> p != master }
+                            .forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
+                        stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
+                    } else {
+                        stateHolder.getStateEditor().addChangeRoleRequests(
+                            listOf(
+                                ChangeRoleRequest(
+                                    master.id,
+                                    master.id,
+                                    NodeRole.MASTER,
+                                    NodeRole.VIEWER
+                                )
+                            )
+                        )
+                    }
+                } else {
+
+                    val changeRoleRequests = moveItemsToDelete
+                        .map { item ->
+                            ChangeRoleRequest(
+                                master.id,
+                                item.player.id,
+                                NodeRole.MASTER,
+                                NodeRole.VIEWER
+                            )
+                        }.toList()
+
+                    stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
+
+                    moveItems.removeAll { i -> moveItemsToDelete.find { id -> i.player.id == id.player.id } != null }
+
+                    for (i in 0 until moveItems.size) {
+                        val snake = moveItems[i].snake
+                        val coord = moveItems[i].newCoord
+                        val newSnakePoints = mutableListOf<Coord>()
+
+                        newSnakePoints.add(coord)
+                        newSnakePoints.addAll(snake.points)
+
+                        if (coord in foods) {
+                            foods.remove(coord)
+                            //TODO ловить исключение
+                            val player = moveItems[i].player
+                            moveItems[i] = moveItems[i].copy(player = player.copy(score = player.score + 1))
                         } else {
-                            if (moveItems[j] !in moveItemsToDelete)
-                                moveItemsToDelete.add(moveItems[j])
-//                            moveItems[j].player = moveItems[j].player.copy(role = NodeRole.VIEWER, score = 0)
+                            //TODO ловить исключение
+                            newSnakePoints.removeLast()
                         }
 
-                        logger.info("Player ${moveItems[j].player.id} dead")
-                    }
-                }
-
-            }
-
-            if (isMasterDead && moveItems.map { i -> i.player }
-                    .filter { p -> p != master }
-                    .all { p -> p.role == NodeRole.VIEWER }
-            ) {
-                state.getPlayers()
-                    .filter { p -> p != master }
-                    .forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
-                stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
-            } else {
-
-                val changeRoleRequests = moveItemsToDelete
-                    .map { item ->
-                        ChangeRoleRequest(
-                            master.id,
-                            item.player.id,
-                            NodeRole.MASTER,
-                            NodeRole.VIEWER
-                        )
-                    }.toList()
-
-                stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
-
-                moveItems.removeAll{i -> moveItemsToDelete.find {id -> i.player.id == id.player.id} != null}
-
-                for (i in 0 until moveItems.size) {
-                    val snake = moveItems[i].snake
-                    val coord = moveItems[i].newCoord
-                    val newSnakePoints = mutableListOf<Coord>()
-
-                    newSnakePoints.add(coord)
-                    newSnakePoints.addAll(snake.points)
-
-                    if (coord in foods) {
-                        foods.remove(coord)
-                        //TODO ловить исключение
-                        val player = moveItems[i].player
-                        moveItems[i] = moveItems[i].copy(player = player.copy(score = player.score + 1))
-                    } else {
-                        //TODO ловить исключение
-                        newSnakePoints.removeLast()
+                        moveItems[i].snake = snake.copy(points = newSnakePoints)
+                        logger.info("Snake ${snakes[i].playerId} moved to ${moveItems[i].newCoord}")
                     }
 
-                    moveItems[i].snake = snake.copy(points = newSnakePoints)
-                    logger.info("Snake ${snakes[i].playerId} moved to ${moveItems[i].newCoord}")
+                    stateHolder.getStateEditor().setFoods(foods)
+                    stateHolder.getStateEditor().setSnakes(moveItems.map { i -> i.snake })
+                    stateHolder.getStateEditor().updatePlayers(moveItems.map { i -> i.player })
+                    stateHolder.getStateEditor().setStateOrder(state.getStateOrder() + 1)
+                    moveItemsToDelete.map { i -> i.player }.forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
                 }
-
-                stateHolder.getStateEditor().setFoods(foods)
-                stateHolder.getStateEditor().setSnakes(moveItems.map { i -> i.snake })
-                stateHolder.getStateEditor().updatePlayers(moveItems.map { i -> i.player })
-                moveItemsToDelete.map{i -> i.player}.forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
-                stateHolder.getStateEditor().setStateOrder(state.getStateOrder() + 1)
             }
+        } catch (e : Exception){
+            e.printStackTrace()
         }
     }
 

@@ -74,17 +74,18 @@ class MessageManager(
             runCatching {
                 stateHolder.getState().getConfig()
             }.onSuccess { config ->
+                val pingedAddresses = mutableListOf<InetSocketAddress>()
                 val stateDelay = config.stateDelayMs / 10
                 synchronized(messageTimestamps) {
                     for (message in messageTimestamps) {
                         val currentTime = System.currentTimeMillis()
-                        if (message.messageSentTime > currentTime - stateDelay) {
+                        if (message.message.address !in pingedAddresses && message.messageSentTime > currentTime - stateDelay) {
                             sendMessage(Ping(message.message.address, MessageSequence.getNextSequence()))
-                            message.messageSentTime = currentTime
+                            pingedAddresses.add(message.message.address)
+                            logger.info("Ping sent to ${message.message.address}")
                         }
-                        logger.info("Ping sent to ${message.message.address}")
                     }
-
+                    messageTimestamps.removeIf{ p -> p.message.address in pingedAddresses}
                 }
             }.onFailure { e ->
                 logger.warn("Game config is empty", e)
@@ -121,13 +122,21 @@ class MessageManager(
 
         val nodeRole = state.getNodeRole()
         if (nodeRole == NodeRole.DEPUTY) {
-//            val messages: List<State> =
-//                state.getDeputyListeners().map { address -> State(address stateHolder.getGameState()) }
-//
-//            for (message in messages) {
-//                waitAckOnMessage(message)
-//                sendMessage(message)
-//            }
+            val messages: List<State> =
+                state.getDeputyListeners().map { address ->
+                    State(
+                        address,
+                        state.getCurNodePlayer().id,
+                        state.getPlayers().first { p -> p.ip == address }.id,
+                        MessageSequence.getNextSequence(),
+                        stateHolder.getGameState()
+                    )
+                }
+
+            for (message in messages) {
+                waitAckOnMessage(message)
+                sendMessage(message)
+            }
 
             logger.info("Sent state to deputy listeners")
         }
@@ -147,29 +156,33 @@ class MessageManager(
     }
 
     private val stateTask = {
-        if (stateHolder.isNodeMaster()) {
-            val state = stateHolder.getState()
+        try {
+            if (stateHolder.isNodeMaster()) {
+                val state = stateHolder.getState()
 
 
-            runCatching {
-                state.getCurNodePlayer()
-            }.onSuccess { master ->
-                val players = state.getPlayers()
-                val gameState = stateHolder.getGameState()
+                runCatching {
+                    state.getCurNodePlayer()
+                }.onSuccess { master ->
+                    val players = state.getPlayers()
+                    val gameState = stateHolder.getGameState()
 
-                val messages = players.stream()
-                    .filter { p -> p != master }
-                    .map { p -> State(p.ip, master.id, p.id, MessageSequence.getNextSequence(), gameState) }.toList()
+                    val messages = players
+                        .filter { p -> p != master }
+                        .map { p -> State(p.ip, master.id, p.id, MessageSequence.getNextSequence(), gameState) }
 
-                for (message in messages) {
-                    waitAckOnMessage(message)
-                    sendMessage(message)
-                    logger.info("State sent to ${message.address}")
+                    for (message in messages) {
+                        waitAckOnMessage(message)
+                        sendMessage(message)
+                        logger.info("State sent to ${message.address}")
+                    }
+                }.onFailure { e ->
+                    logger.warn("Error on sending state task", e)
                 }
-            }.onFailure { e ->
-                logger.warn("Error on sending state task", e)
-            }
 
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -292,11 +305,16 @@ class MessageManager(
                     )
                 } else {
                     for (player in state.getPlayers().filter { p -> p != master }) {
+                        sendRoleChangeMessage(
+                            state.getGameAddress(),
+                            master.id,
+                            player.id,
+                            NodeRole.MASTER,
+                            NodeRole.VIEWER
+                        )
                         stateHolder.getStateEditor().leavePlayer(player)
                     }
                 }
-
-                stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
             } else {
                 sendRoleChangeMessage(
                     state.getGameAddress(),
@@ -305,11 +323,11 @@ class MessageManager(
                     roleChange.senderRole,
                     roleChange.receiverRole
                 )
-
             }
             stateHolder.getStateEditor().clearLeaveRequest()
             logger.info("Leave request confirmed")
 
+            stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
         }.onFailure {
             logger.warn { "No master player in game" }
         }
@@ -570,7 +588,7 @@ class MessageManager(
             is Error -> {
                 stateHolder.getStateEditor().addError(message.errorMessage)
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
-                logger.info("Error confirmed")
+                logger.info("Error confirmed : ${message.errorMessage}")
             }
 
             is Join -> {
