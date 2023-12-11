@@ -214,7 +214,7 @@ class FieldController(
                         } else {
                             if (moveItems[j] !in moveItemsToDelete)
                                 moveItemsToDelete.add(moveItems[j])
-                            moveItems[j].player = moveItems[j].player.copy(role = NodeRole.VIEWER, score = 0)
+//                            moveItems[j].player = moveItems[j].player.copy(role = NodeRole.VIEWER, score = 0)
                         }
 
                         logger.info("Player ${moveItems[j].player.id} dead")
@@ -245,7 +245,7 @@ class FieldController(
 
                 stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
 
-                moveItems.removeAll(moveItemsToDelete)
+                moveItems.removeAll{i -> moveItemsToDelete.find {id -> i.player.id == id.player.id} != null}
 
                 for (i in 0 until moveItems.size) {
                     val snake = moveItems[i].snake
@@ -272,7 +272,7 @@ class FieldController(
                 stateHolder.getStateEditor().setFoods(foods)
                 stateHolder.getStateEditor().setSnakes(moveItems.map { i -> i.snake })
                 stateHolder.getStateEditor().updatePlayers(moveItems.map { i -> i.player })
-                stateHolder.getStateEditor().updatePlayers(moveItemsToDelete.map { i -> i.player })
+                moveItemsToDelete.map{i -> i.player}.forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
                 stateHolder.getStateEditor().setStateOrder(state.getStateOrder() + 1)
             }
         }

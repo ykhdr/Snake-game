@@ -71,24 +71,24 @@ class MessageManager(
 
     private val pingTask = {
         if (stateHolder.isNodeMaster()) {
-//            runCatching {
-//                stateHolder.getState().getConfig()
-//            }.onSuccess { config ->
-//                val stateDelay = config.stateDelayMs / 10
-//                synchronized(messageTimestamps) {
-//                    for (message in messageTimestamps) {
-//                        val currentTime = System.currentTimeMillis()
-//                        if (message.messageSentTime > currentTime - stateDelay) {
-//                            sendMessage(Ping(message.message.address, MessageSequence.getNextSequence()))
-//                            message.messageSentTime = currentTime
-//                        }
-//                        logger.info("Ping sent to ${message.message.address}")
-//                    }
-//
-//                }
-//            }.onFailure { e ->
-//                logger.warn("Game config is empty", e)
-//            }
+            runCatching {
+                stateHolder.getState().getConfig()
+            }.onSuccess { config ->
+                val stateDelay = config.stateDelayMs / 10
+                synchronized(messageTimestamps) {
+                    for (message in messageTimestamps) {
+                        val currentTime = System.currentTimeMillis()
+                        if (message.messageSentTime > currentTime - stateDelay) {
+                            sendMessage(Ping(message.message.address, MessageSequence.getNextSequence()))
+                            message.messageSentTime = currentTime
+                        }
+                        logger.info("Ping sent to ${message.message.address}")
+                    }
+
+                }
+            }.onFailure { e ->
+                logger.warn("Game config is empty", e)
+            }
         }
     }
 
@@ -200,7 +200,7 @@ class MessageManager(
         )
 
         scheduledExecutor.scheduleWithFixedDelay(
-            stateTask, 0, 500, TimeUnit.MILLISECONDS
+            stateTask, 0, 200, TimeUnit.MILLISECONDS
         )
         scheduledExecutor.scheduleWithFixedDelay(
             announcementUpdateTask, 0, 5000, TimeUnit.MILLISECONDS
@@ -290,6 +290,10 @@ class MessageManager(
                         NodeRole.VIEWER,
                         NodeRole.MASTER
                     )
+                } else {
+                    for (player in state.getPlayers().filter { p -> p != master }) {
+                        stateHolder.getStateEditor().leavePlayer(player)
+                    }
                 }
 
                 stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
