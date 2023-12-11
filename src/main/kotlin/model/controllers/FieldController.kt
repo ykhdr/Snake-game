@@ -164,6 +164,8 @@ class FieldController(
 
             val moveItemsToDelete = mutableListOf<MoveItem>()
 
+            var isMasterDead = false
+
             val allSnakesCoords = snakes.stream()
                 .map { snake -> snake.points }
                 .toList()
@@ -172,11 +174,17 @@ class FieldController(
                 val coord = moveItems[i].newCoord
 
                 if (coord in moveItems[i].snake.points) {
-                    moveItemsToDelete.add(
-                        moveItems[i].copy(
-                            player = moveItems[i].player.copy(role = NodeRole.VIEWER, score = 0)
-                        ),
-                    )
+                    if (moveItems[i].player == master && !isMasterDead) {
+                        isMasterDead = true
+                        moveItemsToDelete.add(moveItems[i])
+                    } else {
+                        moveItemsToDelete.add(
+                            moveItems[i].copy(
+                                player = moveItems[i].player.copy(role = NodeRole.VIEWER, score = 0)
+                            ),
+                        )
+                    }
+
 
                     logger.info("Player ${moveItems[i].player.id} dead")
                     continue
@@ -184,30 +192,40 @@ class FieldController(
 
                 for (snakeCoords in allSnakesCoords) {
                     if (coord in snakeCoords) {
-                        moveItemsToDelete.add(
-                            moveItems[i].copy(
-                                player = moveItems[i].player.copy(role = NodeRole.VIEWER, score = 0)
-                            ),
-                        )
+                        if (moveItems[i].player == master && !isMasterDead) {
+                            isMasterDead = true
+                            moveItemsToDelete.add(moveItems[i])
+                        } else {
+                            moveItemsToDelete.add(
+                                moveItems[i].copy(
+                                    player = moveItems[i].player.copy(role = NodeRole.VIEWER, score = 0)
+                                ),
+                            )
+                        }
                         logger.info("Player ${moveItems[i].player.id} dead")
                     }
                 }
 
                 for (j in i + 1 until moveItems.size) {
                     if (coord == moveItems[j].newCoord) {
-                        val otherSnake = moveItems[j].snake
-                        if (moveItems[j] !in moveItemsToDelete)
+                        if (moveItems[i].player == master && !isMasterDead) {
+                            isMasterDead = true
                             moveItemsToDelete.add(moveItems[j])
-                        moveItems[j].player = moveItems[j].player.copy(role = NodeRole.VIEWER, score = 0)
+                        } else {
+                            if (moveItems[j] !in moveItemsToDelete)
+                                moveItemsToDelete.add(moveItems[j])
+                            moveItems[j].player = moveItems[j].player.copy(role = NodeRole.VIEWER, score = 0)
+                        }
+
                         logger.info("Player ${moveItems[j].player.id} dead")
                     }
                 }
 
             }
 
-            if (
-                master in moveItemsToDelete.map { i -> i.player } &&
-                players.all { p -> p.role == NodeRole.VIEWER && p != master }
+            if (isMasterDead && moveItems.map { i -> i.player }
+                    .filter { p -> p != master }
+                    .all { p -> p.role == NodeRole.VIEWER }
             ) {
                 state.getPlayers()
                     .filter { p -> p != master }
@@ -226,14 +244,6 @@ class FieldController(
                     }.toList()
 
                 stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
-
-
-//                deadPlayers.removeIf { p -> p.id == master.id }
-//                snakesToDelete.removeIf { s -> s.playerId == master.id }
-
-//                players.removeAll(deadPlayers)
-//                snakes.removeAll(snakesToDelete)
-//                newCoords.removeAll(coordsToDelete)
 
                 moveItems.removeAll(moveItemsToDelete)
 
@@ -301,7 +311,6 @@ class FieldController(
 
     private val checkGameRequestTask = {
         val state = stateHolder.getState()
-//        logger.warn("${state.getSnakes()},${state.getFoods().size}")
         val gameCreateRequestOpt = state.getGameCreateRequest()
         if (gameCreateRequestOpt.isPresent) {
             createGame(state, gameCreateRequestOpt.get())

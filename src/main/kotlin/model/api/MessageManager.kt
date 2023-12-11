@@ -358,7 +358,7 @@ class MessageManager(
                 runCatching {
                     state.getMasterPlayer()
                 }.onSuccess { master ->
-                    if (master.id == player.id) {
+                    if (master.id == player.id && request.receiverRole == NodeRole.VIEWER) {
                         val randomPlayerOpt = state.getPlayers().stream()
                             .filter { p -> p.id != master.id && p.role != NodeRole.VIEWER }
                             .findAny()
