@@ -643,7 +643,6 @@ class MessageManager(
 
             is RoleChange -> runCatching {
                 stateHolder.getStateEditor().updateRole(message.senderId, message.senderRole, message.receiverRole)
-//                println("$message")
             }.onSuccess {
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
                 logger.info("Role change confirmed")
@@ -662,8 +661,6 @@ class MessageManager(
                     stateHolder.getStateEditor().setGameAddress(message.address)
                     stateHolder.getStateEditor().setNodeId(message.receiverId)
                     stateHolder.getStateEditor().setState(message.state)
-//                    sendErrorMessage(message.address, e.message ?: "error")
-//                    logger.warn("Error on state", e)
                 }
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
                 logger.info("State confirmed")
