@@ -6,7 +6,7 @@ import java.net.InetSocketAddress
 data class GamePlayer(
     val name: String,
     val id: Int,
-    val ip: InetSocketAddress = DEFAULT_LOCAL_IP,
+    var ip: InetSocketAddress = DEFAULT_LOCAL_IP,
     val port: Int = DEFAULT_PORT,
     var role: NodeRole,
     val type: PlayerType = DEFAULT_PLAYER_TYPE,
