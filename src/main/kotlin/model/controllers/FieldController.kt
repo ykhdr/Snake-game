@@ -167,8 +167,6 @@ class FieldController(
 
                 val moveItemsToDelete = mutableListOf<MoveItem>()
 
-                var isMasterDead = false
-
                 val allSnakesCoords = snakes.stream()
                     .map { snake -> snake.points }
                     .toList()
@@ -177,17 +175,7 @@ class FieldController(
                     val coord = moveItems[i].newCoord
 
                     if (coord in moveItems[i].snake.points) {
-                        if (moveItems[i].player == master && !isMasterDead) {
-                            isMasterDead = true
-                            moveItemsToDelete.add(moveItems[i])
-                        } else {
-                            moveItemsToDelete.add(
-                                moveItems[i].copy(
-                                    player = moveItems[i].player.copy(role = NodeRole.VIEWER, score = 0)
-                                ),
-                            )
-                        }
-
+                        moveItemsToDelete.add(moveItems[i])
 
                         logger.info("Player ${moveItems[i].player.id} dead")
                         continue
@@ -195,29 +183,16 @@ class FieldController(
 
                     for (snakeCoords in allSnakesCoords) {
                         if (coord in snakeCoords) {
-                            if (moveItems[i].player == master && !isMasterDead) {
-                                isMasterDead = true
-                                moveItemsToDelete.add(moveItems[i])
-                            } else {
-                                moveItemsToDelete.add(
-                                    moveItems[i].copy(
-                                        player = moveItems[i].player.copy(role = NodeRole.VIEWER, score = 0)
-                                    ),
-                                )
-                            }
+                            moveItemsToDelete.add(moveItems[i])
+
                             logger.info("Player ${moveItems[i].player.id} dead")
                         }
                     }
 
                     for (j in i + 1 until moveItems.size) {
                         if (coord == moveItems[j].newCoord) {
-                            if (moveItems[i].player == master && !isMasterDead) {
-                                isMasterDead = true
+                            if (moveItems[j] !in moveItemsToDelete) {
                                 moveItemsToDelete.add(moveItems[j])
-                            } else {
-                                if (moveItems[j] !in moveItemsToDelete)
-                                    moveItemsToDelete.add(moveItems[j])
-//                            moveItems[j].player = moveItems[j].player.copy(role = NodeRole.VIEWER, score = 0)
                             }
 
                             logger.info("Player ${moveItems[j].player.id} dead")
@@ -226,74 +201,50 @@ class FieldController(
 
                 }
 
-                if (isMasterDead) {
-                    if (moveItems.map { i -> i.player }
-                            .filter { p -> p != master }
-                            .all { p -> p.role == NodeRole.VIEWER }
-                    ) {
 
-                        state.getPlayers()
-                            .filter { p -> p != master }
-                            .forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
-                        stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
-                    } else {
-                        stateHolder.getStateEditor().addChangeRoleRequests(
-                            listOf(
-                                ChangeRoleRequest(
-                                    master.id,
-                                    master.id,
-                                    NodeRole.MASTER,
-                                    NodeRole.VIEWER
-                                )
-                            )
+                val changeRoleRequests = moveItemsToDelete
+                    .map { item ->
+                        ChangeRoleRequest(
+                            master.id,
+                            item.player.id,
+                            NodeRole.MASTER,
+                            NodeRole.VIEWER
                         )
-                    }
-                } else {
+                    }.toList()
 
-                    val changeRoleRequests = moveItemsToDelete
-                        .map { item ->
-                            ChangeRoleRequest(
-                                master.id,
-                                item.player.id,
-                                NodeRole.MASTER,
-                                NodeRole.VIEWER
-                            )
-                        }.toList()
+                stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
 
-                    stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
+                moveItems.removeAll { i -> moveItemsToDelete.find { id -> i.player.id == id.player.id } != null }
 
-                    moveItems.removeAll { i -> moveItemsToDelete.find { id -> i.player.id == id.player.id } != null }
+                for (i in 0 until moveItems.size) {
+                    val snake = moveItems[i].snake
+                    val coord = moveItems[i].newCoord
+                    val newSnakePoints = mutableListOf<Coord>()
 
-                    for (i in 0 until moveItems.size) {
-                        val snake = moveItems[i].snake
-                        val coord = moveItems[i].newCoord
-                        val newSnakePoints = mutableListOf<Coord>()
+                    newSnakePoints.add(coord)
+                    newSnakePoints.addAll(snake.points)
 
-                        newSnakePoints.add(coord)
-                        newSnakePoints.addAll(snake.points)
-
-                        if (coord in foods) {
-                            foods.remove(coord)
-                            //TODO ловить исключение
-                            val player = moveItems[i].player
-                            moveItems[i] = moveItems[i].copy(player = player.copy(score = player.score + 1))
-                        } else {
-                            //TODO ловить исключение
-                            newSnakePoints.removeLast()
-                        }
-
-                        moveItems[i].snake = snake.copy(points = newSnakePoints)
-                        logger.info("Snake ${snakes[i].playerId} moved to ${moveItems[i].newCoord}")
+                    if (coord in foods) {
+                        foods.remove(coord)
+                        //TODO ловить исключение
+                        val player = moveItems[i].player
+                        moveItems[i] = moveItems[i].copy(player = player.copy(score = player.score + 1))
+                    } else {
+                        //TODO ловить исключение
+                        newSnakePoints.removeLast()
                     }
 
-                    stateHolder.getStateEditor().setFoods(foods)
-                    stateHolder.getStateEditor().setSnakes(moveItems.map { i -> i.snake })
-                    stateHolder.getStateEditor().updatePlayers(moveItems.map { i -> i.player })
-                    stateHolder.getStateEditor().setStateOrder(state.getStateOrder() + 1)
-                    moveItemsToDelete.map { i -> i.player }.forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
+                    moveItems[i].snake = snake.copy(points = newSnakePoints)
+                    logger.info("Snake ${snakes[i].playerId} moved to ${moveItems[i].newCoord}")
                 }
+
+                stateHolder.getStateEditor().setFoods(foods)
+                stateHolder.getStateEditor().setSnakes(moveItems.map { i -> i.snake })
+                stateHolder.getStateEditor().updatePlayers(moveItems.map { i -> i.player })
+                stateHolder.getStateEditor().setStateOrder(state.getStateOrder() + 1)
+                moveItemsToDelete.map { i -> i.player }.forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
             }
-        } catch (e : Exception){
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }

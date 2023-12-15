@@ -85,7 +85,7 @@ class MessageManager(
                             logger.info("Ping sent to ${message.message.address}")
                         }
                     }
-                    messageTimestamps.removeIf{ p -> p.message.address in pingedAddresses}
+                    messageTimestamps.removeIf { p -> p.message.address in pingedAddresses }
                 }
             }.onFailure { e ->
                 logger.warn("Game config is empty", e)
@@ -373,31 +373,17 @@ class MessageManager(
     private fun checkChangeRoleRequests(state: model.states.State) {
         val requests = state.getChangeRoleRequests()
 
-        for (request in requests) {
-            runCatching {
-                state.getPlayers().first { p -> p.id == request.receiverId }
-            }.onSuccess { player ->
+        runCatching {
+            state.getMasterPlayer()
+        }.onSuccess { master ->
+            for (request in requests) {
                 runCatching {
-                    state.getMasterPlayer()
-                }.onSuccess { master ->
-                    if (master.id == player.id && request.receiverRole == NodeRole.VIEWER) {
-                        val randomPlayerOpt = state.getPlayers().stream()
-                            .filter { p -> p.id != master.id && p.role != NodeRole.VIEWER }
-                            .findAny()
+                    state.getPlayers().first { p -> p.id == request.receiverId }
+                }.onSuccess { player ->
+                    if (master.id != player.id) {
 
-                        if (randomPlayerOpt.isPresent) {
-                            val randomPlayer = randomPlayerOpt.get()
-                            sendRoleChangeMessage(
-                                randomPlayer.ip,
-                                master.id,
-                                randomPlayer.id,
-                                NodeRole.VIEWER,
-                                NodeRole.MASTER
-                            )
-                        }
 
-                        stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
-                    } else {
+
                         sendRoleChangeMessage(
                             player.ip,
                             request.senderId,
@@ -410,12 +396,35 @@ class MessageManager(
                             stateHolder.getStateEditor().removePlayer(player)
                         }
                     }
+
                 }.onFailure { e ->
                     logger.warn("Error on checking change role requests ", e)
                 }
-            }.onFailure { e ->
-                logger.warn("Error on checking change role requests ", e)
             }
+
+            val masterRequest = requests.find {r -> r.receiverId == master.id && r.receiverRole == NodeRole.VIEWER}
+
+            if (masterRequest != null){
+                val randomPlayerOpt = state.getPlayers().stream()
+                    .filter { p -> p.id != master.id && p.role != NodeRole.VIEWER }
+                    .findAny()
+
+                if (randomPlayerOpt.isPresent) {
+                    val randomPlayer = randomPlayerOpt.get()
+                    sendRoleChangeMessage(
+                        randomPlayer.ip,
+                        master.id,
+                        randomPlayer.id,
+                        NodeRole.VIEWER,
+                        NodeRole.MASTER
+                    )
+                }
+
+                stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
+            }
+
+        }.onFailure { e ->
+            logger.warn("Error on checking change role requests ", e)
         }
 
         stateHolder.getStateEditor().removeChangeRoleRequests(requests)
