@@ -150,6 +150,8 @@ class MessageManager(
             checkLeaveRequest(state)
             checkDeputyListenRequest(state)
         }
+        println(state.getPlayers().toString())
+
         checkJoinRequest(state)
         checkChangeRoleRequests(state)
         logger.info("All request tasks checked")
@@ -324,10 +326,11 @@ class MessageManager(
                     roleChange.receiverRole
                 )
             }
+
             stateHolder.getStateEditor().clearLeaveRequest()
             logger.info("Leave request confirmed")
 
-            stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
+//            stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
         }.onFailure {
             logger.warn { "No master player in game" }
         }
@@ -373,17 +376,34 @@ class MessageManager(
     private fun checkChangeRoleRequests(state: model.states.State) {
         val requests = state.getChangeRoleRequests()
 
-        runCatching {
-            state.getMasterPlayer()
-        }.onSuccess { master ->
-            for (request in requests) {
+        for (request in requests) {
+            runCatching {
+                state.getPlayers().first { p -> p.id == request.receiverId }
+            }.onSuccess { player ->
                 runCatching {
-                    state.getPlayers().first { p -> p.id == request.receiverId }
-                }.onSuccess { player ->
-                    if (master.id != player.id) {
+                    state.getMasterPlayer()
+                }.onSuccess { master ->
+                    if (master.id == player.id && request.receiverRole == NodeRole.VIEWER) {
+                        val randomPlayerOpt = state.getPlayers().stream()
+                            .filter { p -> p.id != master.id && p.role != NodeRole.VIEWER }
+                            .findAny()
 
+                        val masterId = master.id
 
+                        stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
 
+                        if (randomPlayerOpt.isPresent) {
+                            val randomPlayer = randomPlayerOpt.get()
+                            sendRoleChangeMessage(
+                                randomPlayer.ip,
+                                masterId,
+                                randomPlayer.id,
+                                NodeRole.VIEWER,
+                                NodeRole.MASTER
+                            )
+                        }
+
+                    } else {
                         sendRoleChangeMessage(
                             player.ip,
                             request.senderId,
@@ -396,35 +416,12 @@ class MessageManager(
                             stateHolder.getStateEditor().removePlayer(player)
                         }
                     }
-
                 }.onFailure { e ->
                     logger.warn("Error on checking change role requests ", e)
                 }
+            }.onFailure { e ->
+                logger.warn("Error on checking change role requests ", e)
             }
-
-            val masterRequest = requests.find {r -> r.receiverId == master.id && r.receiverRole == NodeRole.VIEWER}
-
-            if (masterRequest != null){
-                val randomPlayerOpt = state.getPlayers().stream()
-                    .filter { p -> p.id != master.id && p.role != NodeRole.VIEWER }
-                    .findAny()
-
-                if (randomPlayerOpt.isPresent) {
-                    val randomPlayer = randomPlayerOpt.get()
-                    sendRoleChangeMessage(
-                        randomPlayer.ip,
-                        master.id,
-                        randomPlayer.id,
-                        NodeRole.VIEWER,
-                        NodeRole.MASTER
-                    )
-                }
-
-                stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
-            }
-
-        }.onFailure { e ->
-            logger.warn("Error on checking change role requests ", e)
         }
 
         stateHolder.getStateEditor().removeChangeRoleRequests(requests)
@@ -516,6 +513,14 @@ class MessageManager(
         receiverController.addNodeForWaitingAck(message.address, message.msgSeq)
     }
 
+
+    private fun updatePlayerIp(players: List<GamePlayer>, id: Int, ip: InetSocketAddress) {
+        runCatching {
+            players.first { p -> p.id == id }.ip = ip
+        }.onSuccess {
+            stateHolder.getStateEditor().updatePlayers(players)
+        }
+    }
 
     /**
      * Обрабатывает приходящие Ack-и на сообщения
@@ -671,6 +676,9 @@ class MessageManager(
                     stateHolder.getStateEditor().setNodeId(message.receiverId)
                     stateHolder.getStateEditor().setState(message.state)
                 }
+
+                updatePlayerIp(state.getPlayers(), message.senderId, message.address)
+
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
                 logger.info("State confirmed")
             }

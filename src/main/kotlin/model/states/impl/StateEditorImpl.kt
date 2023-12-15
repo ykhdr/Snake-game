@@ -12,6 +12,7 @@ import model.states.State
 import model.states.StateEditor
 import model.utils.IdSequence
 import mu.KotlinLogging
+import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.util.*
 
@@ -224,9 +225,12 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
                 // От мастера о том, что он выходит и мы становимся главным
             } else if (senderRole == NodeRole.VIEWER && player.role == NodeRole.MASTER && receiverRole == NodeRole.MASTER) {
-                setGameAddress(curNodePlayer.get().ip)
+                val localAddress = InetSocketAddress(44444)
+                setGameAddress(localAddress)
+
                 nodeRole = NodeRole.MASTER
                 curNodePlayer.get().role = NodeRole.MASTER
+                curNodePlayer.get().ip = localAddress
                 IdSequence.setStartId(players.maxOf { p -> p.id} + 1)
                 leavePlayer(player)
 
