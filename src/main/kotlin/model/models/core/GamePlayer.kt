@@ -1,6 +1,5 @@
 package model.models.core
 
-import java.net.InetAddress
 import java.net.InetSocketAddress
 
 data class GamePlayer(
@@ -18,5 +17,7 @@ data class GamePlayer(
         const val DEFAULT_SCORE = 0
         val DEFAULT_PLAYER_TYPE = PlayerType.HUMAN
         val DEFAULT_LOCAL_IP = InetSocketAddress(DEFAULT_PORT)
+
+        val UNKNOWN_PLAYER = GamePlayer("Unkown", 0, role = NodeRole.EMPTY)
     }
 }

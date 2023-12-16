@@ -13,8 +13,6 @@ import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
-import javax.swing.text.View
 import kotlin.math.abs
 import kotlin.random.Random
 
@@ -95,8 +93,6 @@ class FieldController(
 
     private val moveSnakesTask = {
         try {
-
-
             if (stateHolder.isNodeMaster() && stateHolder.getState().getPlayers().isNotEmpty()) {
                 val state = stateHolder.getState()
                 val snakes = state.getSnakes().toMutableList()
@@ -105,67 +101,16 @@ class FieldController(
                 val master = state.getMasterPlayer()
 
                 val moveItems = mutableListOf<MoveItem>()
+                val moveItemsToDelete = mutableListOf<MoveItem>()
 
                 for (snake in snakes) {
-                    val direction = snake.headDirection
-                    val curCoord = snake.points[0]
-
-                    val newCoord: Coord
-
-                    when (direction) {
-                        Direction.UP -> {
-                            newCoord = if (curCoord.y == 0) {
-                                Coord(curCoord.x, fieldSize.height - 1)
-                            } else {
-                                Coord(curCoord.x, curCoord.y - 1)
-                            }
-
-                        }
-
-                        Direction.DOWN -> {
-                            newCoord = if (curCoord.y == fieldSize.height - 1) {
-                                Coord(curCoord.x, 0)
-                            } else {
-                                Coord(curCoord.x, curCoord.y + 1)
-                            }
-                        }
-
-                        Direction.LEFT -> {
-                            newCoord = if (curCoord.x == 0) {
-                                Coord(fieldSize.width - 1, curCoord.y)
-                            } else {
-                                Coord(curCoord.x - 1, curCoord.y)
-                            }
-                        }
-
-                        Direction.RIGHT -> {
-                            newCoord = if (curCoord.x == fieldSize.width - 1) {
-                                Coord(0, curCoord.y)
-                            } else {
-                                Coord(curCoord.x + 1, curCoord.y)
-                            }
-                        }
-                    }
-
-
-                    runCatching {
+                    val player = runCatching {
                         players.first { p -> p.id == snake.playerId }
-                    }.onSuccess { player ->
-                        moveItems.add(
-                            MoveItem(
-                                player,
-                                snake,
-                                newCoord
-                            )
-                        )
-                    }.onFailure { e ->
-                        logger.warn("Error on move snakes", e)
-                    }
+                    }.getOrDefault(GamePlayer.UNKNOWN_PLAYER)
 
-
+                    moveItems.add(getNewSnakeCoord(snake, player))
                 }
 
-                val moveItemsToDelete = mutableListOf<MoveItem>()
 
                 val allSnakesCoords = snakes.stream()
                     .map { snake -> snake.points }
@@ -203,6 +148,7 @@ class FieldController(
 
 
                 val changeRoleRequests = moveItemsToDelete
+                    .filter { item -> item.player != GamePlayer.UNKNOWN_PLAYER }
                     .map { item ->
                         ChangeRoleRequest(
                             master.id,
@@ -213,7 +159,9 @@ class FieldController(
                     }.toList()
 
 
-                moveItems.removeAll { i -> moveItemsToDelete.filter{ it.player != master}.find { id -> i.player.id == id.player.id } != null }
+                moveItems.removeAll { i ->
+                    moveItemsToDelete.filter { it.player != master }.find { id -> i.player.id == id.player.id } != null
+                }
 
                 for (i in 0 until moveItems.size) {
                     val snake = moveItems[i].snake
@@ -225,12 +173,17 @@ class FieldController(
 
                     if (coord in foods) {
                         foods.remove(coord)
-                        //TODO ловить исключение
+
                         val player = moveItems[i].player
-                        moveItems[i] = moveItems[i].copy(player = player.copy(score = player.score + 1))
+                        if (player != GamePlayer.UNKNOWN_PLAYER) {
+                            moveItems[i] = moveItems[i].copy(player = player.copy(score = player.score + 1))
+                        }
                     } else {
-                        //TODO ловить исключение
-                        newSnakePoints.removeLast()
+                        runCatching {
+                            newSnakePoints.removeLast()
+                        }.onFailure {
+                            logger.warn("Cannot remove last coord for player ${snake.playerId} snake")
+                            }
                     }
 
                     moveItems[i].snake = snake.copy(points = newSnakePoints)
@@ -239,15 +192,17 @@ class FieldController(
 
                 stateHolder.getStateEditor().setFoods(foods)
                 stateHolder.getStateEditor().setSnakes(moveItems.map { i -> i.snake })
-                stateHolder.getStateEditor().updatePlayers(moveItems.map { i -> i.player })
+                stateHolder.getStateEditor().updatePlayers(moveItems
+                    .filter { i -> i.player != GamePlayer.UNKNOWN_PLAYER }
+                    .map { i -> i.player })
                 stateHolder.getStateEditor().setStateOrder(state.getStateOrder() + 1)
                 stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
-//                moveItemsToDelete.map { i -> i.player }.forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
+
 
     private val createSnakesTask = {
         if (stateHolder.isNodeMaster()) {
@@ -333,6 +288,54 @@ class FieldController(
         )
 
         logger.info("FieldController tasks running")
+    }
+
+    private fun getNewSnakeCoord(snake: Snake, player: GamePlayer): MoveItem {
+        val direction = snake.headDirection
+        val curCoord = snake.points[0]
+
+        val newCoord: Coord
+
+        when (direction) {
+            Direction.UP -> {
+                newCoord = if (curCoord.y == 0) {
+                    Coord(curCoord.x, fieldSize.height - 1)
+                } else {
+                    Coord(curCoord.x, curCoord.y - 1)
+                }
+
+            }
+
+            Direction.DOWN -> {
+                newCoord = if (curCoord.y == fieldSize.height - 1) {
+                    Coord(curCoord.x, 0)
+                } else {
+                    Coord(curCoord.x, curCoord.y + 1)
+                }
+            }
+
+            Direction.LEFT -> {
+                newCoord = if (curCoord.x == 0) {
+                    Coord(fieldSize.width - 1, curCoord.y)
+                } else {
+                    Coord(curCoord.x - 1, curCoord.y)
+                }
+            }
+
+            Direction.RIGHT -> {
+                newCoord = if (curCoord.x == fieldSize.width - 1) {
+                    Coord(0, curCoord.y)
+                } else {
+                    Coord(curCoord.x + 1, curCoord.y)
+                }
+            }
+        }
+
+        return MoveItem(
+            player,
+            snake,
+            newCoord
+        )
     }
 
     private fun createGame(state: State, gameCreateRequest: GameCreateRequest) {

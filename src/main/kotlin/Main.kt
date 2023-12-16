@@ -1,5 +1,4 @@
 import androidx.compose.material.MaterialTheme
-import androidx.compose.runtime.*
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -10,11 +9,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import model.client.Client
 import model.models.core.Direction
-import model.models.core.GameAnnouncement
-import model.models.core.NodeRole
-import model.states.ClientState
 import view.views.MenuView
-import java.net.InetSocketAddress
 
 fun main() = application {
     val client = Client()

@@ -3,11 +3,9 @@ package model.api.controllers
 import model.api.config.NetworkConfig
 import model.dto.messages.Message
 import model.mappers.ProtoMapper
-import model.utils.MessageSequence
 import mu.KotlinLogging
 import java.io.Closeable
 import java.net.DatagramPacket
-import java.net.DatagramSocket
 
 class SenderController(config: NetworkConfig) : Closeable {
     companion object {

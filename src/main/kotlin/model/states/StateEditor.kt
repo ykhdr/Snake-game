@@ -4,11 +4,11 @@ import model.dto.messages.Announcement
 import model.exceptions.NoSpaceOnFieldError
 import model.exceptions.NodeRoleHasNotPrivilegesError
 import model.exceptions.UnknownPlayerError
-import model.models.requests.JoinRequest
-import model.models.requests.SteerRequest
 import model.models.core.*
 import model.models.requests.ChangeRoleRequest
 import model.models.requests.GameCreateRequest
+import model.models.requests.JoinRequest
+import model.models.requests.SteerRequest
 import java.net.InetSocketAddress
 
 /**
@@ -59,6 +59,8 @@ interface StateEditor {
     fun setGameAddress(address: InetSocketAddress)
 
     fun setPlayerName(name: String)
+
+    fun fullLeavePlayer(player : GamePlayer)
 
     fun leavePlayer(player : GamePlayer)
 

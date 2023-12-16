@@ -3,10 +3,12 @@ package model.api
 import model.api.controllers.ReceiverController
 import model.api.controllers.SenderController
 import model.dto.messages.*
-import model.models.util.MessageTimestamp
 import model.models.contexts.NetworkContext
-import model.models.core.*
+import model.models.core.Direction
+import model.models.core.GamePlayer
+import model.models.core.NodeRole
 import model.models.requests.tasks.DeputyListenTaskRequest
+import model.models.util.MessageTimestamp
 import model.states.StateHolder
 import model.utils.IdSequence
 import model.utils.MessageSequence
@@ -315,7 +317,7 @@ class MessageManager(
                             NodeRole.MASTER,
                             NodeRole.VIEWER
                         )
-                        stateHolder.getStateEditor().leavePlayer(player)
+                        stateHolder.getStateEditor().fullLeavePlayer(player)
                     }
                 }
             } else {
@@ -399,7 +401,7 @@ class MessageManager(
 
 
                     if (request.receiverRole == NodeRole.VIEWER) {
-                        stateHolder.getStateEditor().leavePlayer(player)
+                        stateHolder.getStateEditor().fullLeavePlayer(player)
                     }
                 }.onFailure { e ->
                     logger.warn("Error on checking change role requests ", e)
@@ -519,15 +521,6 @@ class MessageManager(
         receiverController.addNodeForWaitingAck(message.address, message.msgSeq)
     }
 
-
-    private fun updatePlayerIp(players: List<GamePlayer>, id: Int, ip: InetSocketAddress) {
-        runCatching {
-            players.first { p -> p.id == id }.ip = ip
-        }.onSuccess {
-            stateHolder.getStateEditor().updatePlayers(players)
-        }
-    }
-
     /**
      * Обрабатывает приходящие Ack-и на сообщения
      */
@@ -569,7 +562,7 @@ class MessageManager(
                     state.getPlayers().first { p -> p.id == message.receiverId }
                 }.onSuccess { player ->
                     if (message.receiverRole == NodeRole.VIEWER) {
-                        stateHolder.getStateEditor().leavePlayer(player)
+                        stateHolder.getStateEditor().fullLeavePlayer(player)
                     } else {
                         stateHolder.getStateEditor().updatePlayerRole(player, message.receiverRole)
                     }

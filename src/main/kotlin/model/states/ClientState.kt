@@ -1,9 +1,10 @@
 package model.states
 
 import model.dto.messages.Announcement
-import model.models.core.*
-import java.net.InetSocketAddress
-import java.util.NoSuchElementException
+import model.models.core.Coord
+import model.models.core.GameConfig
+import model.models.core.GamePlayer
+import model.models.core.Snake
 
 interface ClientState {
     fun getFoods() : List<Coord>

@@ -1,7 +1,7 @@
 package model.utils
 
 object IdSequence {
-    private var currentId = 0
+    private var currentId = 1
 
     fun setStartId(id: Int){
         currentId = id

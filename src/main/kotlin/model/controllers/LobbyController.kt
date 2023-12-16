@@ -1,6 +1,5 @@
 package model.controllers
 
-import model.models.core.NodeRole
 import java.net.InetSocketAddress
 
 interface LobbyController : Controller {

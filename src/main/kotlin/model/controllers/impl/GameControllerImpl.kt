@@ -3,8 +3,8 @@ package model.controllers.impl
 import model.controllers.GameController
 import model.exceptions.NoGameError
 import model.models.contexts.Context
-import model.models.requests.SteerRequest
 import model.models.core.Direction
+import model.models.requests.SteerRequest
 import mu.KotlinLogging
 
 class GameControllerImpl(

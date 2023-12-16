@@ -8,7 +8,6 @@ import androidx.compose.material.Card
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import model.dto.messages.Announcement
 import model.models.core.GameAnnouncement
 import java.net.InetSocketAddress
 

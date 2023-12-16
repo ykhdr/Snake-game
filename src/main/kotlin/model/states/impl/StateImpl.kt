@@ -2,13 +2,15 @@ package model.states.impl
 
 import model.dto.messages.Announcement
 import model.models.core.*
-import model.models.requests.*
+import model.models.requests.ChangeRoleRequest
+import model.models.requests.GameCreateRequest
+import model.models.requests.JoinRequest
+import model.models.requests.SteerRequest
 import model.models.requests.tasks.DeputyListenTaskRequest
 import model.models.requests.tasks.MoveSnakeTaskRequest
 import model.states.State
 import java.net.InetSocketAddress
 import java.util.*
-import kotlin.NoSuchElementException
 
 internal class StateImpl internal constructor(
     private val foods: List<Coord>,

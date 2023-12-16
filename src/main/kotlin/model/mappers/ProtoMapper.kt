@@ -4,7 +4,6 @@ import me.ippolitov.fit.snakes.SnakesProto
 import model.dto.messages.*
 import model.exceptions.UndefinedMessageTypeError
 import model.models.core.*
-import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
 

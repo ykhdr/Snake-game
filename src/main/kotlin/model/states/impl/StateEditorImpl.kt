@@ -5,14 +5,16 @@ import model.exceptions.NoSpaceOnFieldError
 import model.exceptions.NodeRoleHasNotPrivilegesError
 import model.exceptions.UnknownPlayerError
 import model.models.core.*
-import model.models.requests.*
+import model.models.requests.ChangeRoleRequest
+import model.models.requests.GameCreateRequest
+import model.models.requests.JoinRequest
+import model.models.requests.SteerRequest
 import model.models.requests.tasks.DeputyListenTaskRequest
 import model.models.requests.tasks.MoveSnakeTaskRequest
 import model.states.State
 import model.states.StateEditor
 import model.utils.IdSequence
 import mu.KotlinLogging
-import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.util.*
 
@@ -175,9 +177,15 @@ internal class StateEditorImpl internal constructor(
     }
 
     @Synchronized
-    override fun leavePlayer(player: GamePlayer) {
+    override fun fullLeavePlayer(player: GamePlayer) {
         this.players.remove(player)
         this.snakes.removeIf { s -> s.playerId == player.id }
+    }
+
+    @Synchronized
+    override fun leavePlayer(player: GamePlayer) {
+        this.players.remove(player)
+        runCatching {  this.snakes.first { s -> s.playerId == player.id }.state = SnakeState.ZOMBIE }
     }
 
     override fun clearAnnouncements() {
@@ -239,7 +247,7 @@ internal class StateEditorImpl internal constructor(
                 curNodePlayer.get().role = NodeRole.MASTER
                 curNodePlayer.get().ip = nodeAddress
                 IdSequence.setStartId(players.maxOf { p -> p.id} + 1)
-                leavePlayer(player)
+                fullLeavePlayer(player)
 
 
                 this.moveSnakeTaskRequest = MoveSnakeTaskRequest.RUN
@@ -248,7 +256,6 @@ internal class StateEditorImpl internal constructor(
                 // Выходящий игрок
                 //TODO нужно ли проверять на то что эта нода является deputy?
             } else if (senderRole == NodeRole.VIEWER && (receiverRole == NodeRole.MASTER || receiverRole == NodeRole.DEPUTY)) {
-                player.role = NodeRole.VIEWER
                 leavePlayer(player)
 
                 // От главного умершему

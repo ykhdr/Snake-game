@@ -2,7 +2,7 @@ package view.models
 
 import androidx.compose.runtime.MutableState
 import java.net.InetSocketAddress
-import java.util.Optional
+import java.util.*
 
 data class JoinConfig(
     val openDialog : MutableState<Boolean>,
