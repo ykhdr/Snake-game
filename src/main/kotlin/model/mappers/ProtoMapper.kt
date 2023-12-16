@@ -186,7 +186,7 @@ object ProtoMapper {
         return SnakesProto.GamePlayer.newBuilder()
             .setName(player.name)
             .setId(player.id)
-            .setIpAddress(if (player.ip.address == null) GamePlayer.DEFAULT_STR_IP else player.ip.address.toString())
+            .setIpAddress(player.ip.toString())
             .setPort(player.port)
             .setRole(toProtoNodeRole(player.role))
             .setType(toProtoPlayerType(player.type))
