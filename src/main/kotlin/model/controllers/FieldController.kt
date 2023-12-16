@@ -212,9 +212,8 @@ class FieldController(
                         )
                     }.toList()
 
-                stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
 
-                moveItems.removeAll { i -> moveItemsToDelete.find { id -> i.player.id == id.player.id } != null }
+                moveItems.removeAll { i -> moveItemsToDelete.filter{ it.player != master}.find { id -> i.player.id == id.player.id } != null }
 
                 for (i in 0 until moveItems.size) {
                     val snake = moveItems[i].snake
@@ -242,6 +241,7 @@ class FieldController(
                 stateHolder.getStateEditor().setSnakes(moveItems.map { i -> i.snake })
                 stateHolder.getStateEditor().updatePlayers(moveItems.map { i -> i.player })
                 stateHolder.getStateEditor().setStateOrder(state.getStateOrder() + 1)
+                stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
                 moveItemsToDelete.map { i -> i.player }.forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
             }
         } catch (e: Exception) {

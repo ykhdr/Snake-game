@@ -149,11 +149,12 @@ class MessageManager(
             checkSteerRequest(state)
             checkLeaveRequest(state)
             checkDeputyListenRequest(state)
+            checkChangeRoleRequests(state)
         }
+
         println(state.getPlayers().toString())
 
         checkJoinRequest(state)
-        checkChangeRoleRequests(state)
         logger.info("All request tasks checked")
     }
 
@@ -330,7 +331,7 @@ class MessageManager(
             stateHolder.getStateEditor().clearLeaveRequest()
             logger.info("Leave request confirmed")
 
-//            stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
+            stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
         }.onFailure {
             logger.warn { "No master player in game" }
         }
@@ -375,56 +376,61 @@ class MessageManager(
 
     private fun checkChangeRoleRequests(state: model.states.State) {
         val requests = state.getChangeRoleRequests()
+        stateHolder.getStateEditor().removeChangeRoleRequests(requests)
 
-        for (request in requests) {
-            runCatching {
-                state.getPlayers().first { p -> p.id == request.receiverId }
-            }.onSuccess { player ->
+
+
+        runCatching {
+            state.getMasterPlayer()
+        }.onSuccess { master ->
+            for (request in requests.filter { it.receiverId != master.id }) {
                 runCatching {
-                    state.getMasterPlayer()
-                }.onSuccess { master ->
-                    if (master.id == player.id && request.receiverRole == NodeRole.VIEWER) {
-                        val randomPlayerOpt = state.getPlayers().stream()
-                            .filter { p -> p.id != master.id && p.role != NodeRole.VIEWER }
-                            .findAny()
+                    state.getPlayers().first { p -> p.id == request.receiverId }
+                }.onSuccess { player ->
 
-                        val masterId = master.id
 
-                        stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
+                    sendRoleChangeMessage(
+                        player.ip,
+                        request.senderId,
+                        request.receiverId,
+                        request.senderRole,
+                        request.receiverRole
+                    )
 
-                        if (randomPlayerOpt.isPresent) {
-                            val randomPlayer = randomPlayerOpt.get()
-                            sendRoleChangeMessage(
-                                randomPlayer.ip,
-                                masterId,
-                                randomPlayer.id,
-                                NodeRole.VIEWER,
-                                NodeRole.MASTER
-                            )
-                        }
 
-                    } else {
-                        sendRoleChangeMessage(
-                            player.ip,
-                            request.senderId,
-                            request.receiverId,
-                            request.senderRole,
-                            request.receiverRole
-                        )
-
-                        if (request.receiverRole == NodeRole.VIEWER) {
-                            stateHolder.getStateEditor().removePlayer(player)
-                        }
+                    if (request.receiverRole == NodeRole.VIEWER) {
+                        stateHolder.getStateEditor().leavePlayer(player)
                     }
                 }.onFailure { e ->
                     logger.warn("Error on checking change role requests ", e)
                 }
-            }.onFailure { e ->
-                logger.warn("Error on checking change role requests ", e)
             }
-        }
 
-        stateHolder.getStateEditor().removeChangeRoleRequests(requests)
+            val masterRequest = requests.find { it.receiverId == master.id }
+
+            if (masterRequest != null && masterRequest.receiverRole == NodeRole.VIEWER) {
+                val randomPlayerOpt = state.getPlayers().stream()
+                    .filter { p -> p.id != master.id && p.role != NodeRole.VIEWER }
+                    .findAny()
+
+                val masterId = master.id
+
+                if (randomPlayerOpt.isPresent) {
+                    val randomPlayer = randomPlayerOpt.get()
+                    sendRoleChangeMessage(
+                        randomPlayer.ip,
+                        masterId,
+                        randomPlayer.id,
+                        NodeRole.VIEWER,
+                        NodeRole.MASTER
+                    )
+                }
+
+                stateHolder.getStateEditor().setNodeRole(NodeRole.VIEWER)
+            }
+        }.onFailure { e ->
+            logger.warn("Error on checking change role requests ", e)
+        }
     }
 
     private fun sendSteerMessage(address: InetSocketAddress, senderId: Int, receiverId: Int, direction: Direction) {
@@ -667,6 +673,12 @@ class MessageManager(
 
             is State -> {
                 val state = stateHolder.getState()
+
+                if (!state.isGameRunning()) {
+                    logger.info("Unknown state confirmed")
+                    return
+                }
+
                 runCatching { state.getStateOrder() }.onSuccess { stateOrder ->
                     if (message.state.stateOrder > stateOrder) {
                         stateHolder.getStateEditor().setState(message.state)
