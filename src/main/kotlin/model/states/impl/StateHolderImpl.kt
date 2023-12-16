@@ -6,9 +6,13 @@ import model.models.core.NodeRole
 import model.states.State
 import model.states.StateEditor
 import model.states.StateHolder
+import java.net.InetSocketAddress
+import java.net.SocketAddress
 
-class StateHolderImpl : StateHolder {
-    private val stateEditor = StateEditorImpl()
+class StateHolderImpl(
+    nodeAddress: SocketAddress
+) : StateHolder {
+    private val stateEditor = StateEditorImpl(nodeAddress as InetSocketAddress)
 
     override fun isNodeMaster(): Boolean {
         return stateEditor.edit().getNodeRole() == NodeRole.MASTER

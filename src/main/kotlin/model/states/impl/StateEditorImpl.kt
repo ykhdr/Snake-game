@@ -16,7 +16,9 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.util.*
 
-internal class StateEditorImpl internal constructor() : StateEditor {
+internal class StateEditorImpl internal constructor(
+    private val nodeAddress : InetSocketAddress
+) : StateEditor {
     companion object {
         private const val DEFAULT_PLAYER_NAME = "Player"
     }
@@ -231,12 +233,11 @@ internal class StateEditorImpl internal constructor() : StateEditor {
 
                 // От мастера о том, что он выходит и мы становимся главным
             } else if (senderRole == NodeRole.VIEWER && player.role == NodeRole.MASTER && receiverRole == NodeRole.MASTER) {
-                val localAddress = InetSocketAddress(44444)
-                setGameAddress(localAddress)
+                setGameAddress(nodeAddress)
 
                 nodeRole = NodeRole.MASTER
                 curNodePlayer.get().role = NodeRole.MASTER
-                curNodePlayer.get().ip = localAddress
+                curNodePlayer.get().ip = nodeAddress
                 IdSequence.setStartId(players.maxOf { p -> p.id} + 1)
                 leavePlayer(player)
 

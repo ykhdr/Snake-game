@@ -9,10 +9,16 @@ import model.models.contexts.NetworkContext
 import model.states.ClientState
 import model.states.impl.StateHolderImpl
 import java.io.Closeable
+import java.net.InetSocketAddress
 
 class Client : Closeable {
-    private val stateHolder = StateHolderImpl()
-    private val context = NetworkContext(NetworkConfig(), stateHolder)
+    private val networkConfig = NetworkConfig()
+    private val stateHolder = StateHolderImpl(
+        if (networkConfig.nodeSocket.localSocketAddress != null) networkConfig.nodeSocket.localSocketAddress else InetSocketAddress(
+            4444
+        )
+    )
+    private val context = NetworkContext(networkConfig, stateHolder)
 
     private val gameController = GameControllerImpl(context)
     private val lobbyController = LobbyControllerImpl(context)
