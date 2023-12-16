@@ -4,6 +4,8 @@ import me.ippolitov.fit.snakes.SnakesProto
 import model.dto.messages.*
 import model.exceptions.UndefinedMessageTypeError
 import model.models.core.*
+import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.InetSocketAddress
 
 object ProtoMapper {
@@ -325,18 +327,21 @@ object ProtoMapper {
         gameName = proto.gameName
     )
 
-    private fun toGamePlayer(proto: SnakesProto.GamePlayer) = GamePlayer(
-        name = proto.name,
-        id = proto.id,
-        ip = InetSocketAddress(
-            proto.ipAddress ?: GamePlayer.DEFAULT_STR_IP,
-            if (proto.hasPort()) proto.port else GamePlayer.DEFAULT_PORT
-        ),
-        port = if (proto.hasPort()) proto.port else GamePlayer.DEFAULT_PORT,
-        role = toNodeRole(proto.role),
-        type = if (proto.hasType()) toPlayerType(proto.type) else GamePlayer.DEFAULT_PLAYER_TYPE,
-        score = proto.score
-    )
+    private fun toGamePlayer(proto: SnakesProto.GamePlayer): GamePlayer {
+        val inetAddress = kotlin.runCatching { InetAddress.getByName(proto.ipAddress)}
+        return GamePlayer(
+            name = proto.name,
+            id = proto.id,
+            ip = InetSocketAddress(
+                inetAddress.getOrDefault(InetAddress.getByName(GamePlayer.DEFAULT_STR_IP)),
+                if (proto.hasPort()) proto.port else GamePlayer.DEFAULT_PORT
+            ),
+            port = if (proto.hasPort()) proto.port else GamePlayer.DEFAULT_PORT,
+            role = toNodeRole(proto.role),
+            type = if (proto.hasType()) toPlayerType(proto.type) else GamePlayer.DEFAULT_PLAYER_TYPE,
+            score = proto.score
+        )
+    }
 
     private fun toSnake(proto: SnakesProto.GameState.Snake) = Snake(
         playerId = proto.playerId,

@@ -3,15 +3,18 @@ package model.api.controllers
 import me.ippolitov.fit.snakes.SnakesProto.GameMessage
 import model.api.config.NetworkConfig
 import model.dto.messages.Ack
+import model.dto.messages.Announcement
 import model.dto.messages.Error
 import model.dto.messages.Message
 import model.exceptions.UndefinedMessageTypeError
 import model.mappers.ProtoMapper
+import model.models.core.NodeRole
 import model.models.util.MessageInfo
 import mu.KotlinLogging
 import java.io.Closeable
 import java.net.DatagramPacket
 import java.net.DatagramSocket
+import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.MulticastSocket
 import java.net.SocketException
@@ -46,6 +49,7 @@ class ReceiverController(
     fun receiveGroupMessage(): Message {
         val datagramPacket = DatagramPacket(buffer, buffer.size)
         multicastSocket.receive(datagramPacket)
+
         val protoBytes = datagramPacket.data.copyOf(datagramPacket.length)
         val protoMessage = GameMessage.parseFrom(protoBytes)
         val address = InetSocketAddress(datagramPacket.address, datagramPacket.port)
