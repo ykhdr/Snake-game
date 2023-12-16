@@ -689,7 +689,7 @@ class MessageManager(
                     stateHolder.getStateEditor().setState(message.state)
                 }
 
-                updatePlayerIp(state.getPlayers(), message.senderId, message.address)
+//                updatePlayerIp(state.getPlayers(), message.senderId, message.address)
 
                 sendAck(message.address, message.msgSeq, message.receiverId, message.senderId)
                 logger.info("State confirmed")

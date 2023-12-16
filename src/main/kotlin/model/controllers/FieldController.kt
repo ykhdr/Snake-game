@@ -242,7 +242,7 @@ class FieldController(
                 stateHolder.getStateEditor().updatePlayers(moveItems.map { i -> i.player })
                 stateHolder.getStateEditor().setStateOrder(state.getStateOrder() + 1)
                 stateHolder.getStateEditor().addChangeRoleRequests(changeRoleRequests)
-                moveItemsToDelete.map { i -> i.player }.forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
+//                moveItemsToDelete.map { i -> i.player }.forEach { p -> stateHolder.getStateEditor().leavePlayer(p) }
             }
         } catch (e: Exception) {
             e.printStackTrace()

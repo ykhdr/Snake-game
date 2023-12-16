@@ -72,7 +72,13 @@ internal class StateEditorImpl internal constructor() : StateEditor {
         for (i in 0 until this.players.size) {
             if (this.players[i].id in playersIds) {
                 //TODO ловить исключение или указать его прокидывание
-                this.players[i] = players.stream().filter { p -> p.id == players[i].id }.findFirst().get()
+                runCatching {
+                    players.first { p -> p.id == players[i].id }
+                }.onSuccess {player ->
+                    this.players[i] = player
+                }
+
+//                this.players[i] = players.stream().filter { p -> p.id == players[i].id }.findFirst().get()
             }
         }
     }
