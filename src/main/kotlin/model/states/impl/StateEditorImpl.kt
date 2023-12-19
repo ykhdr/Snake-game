@@ -251,6 +251,7 @@ internal class StateEditorImpl internal constructor(
 
 
                 this.moveSnakeTaskRequest = MoveSnakeTaskRequest.RUN
+                this.deputyListenTaskRequest = DeputyListenTaskRequest.DISABLE
 
                 logger.info { "Node has become Master node" }
                 // Выходящий игрок

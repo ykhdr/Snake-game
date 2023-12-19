@@ -173,7 +173,7 @@ class MessageManager(
                     val gameState = stateHolder.getGameState()
 
                     val messages = players
-                        .filter { p -> p != master }
+                        .filter { p -> p.role != NodeRole.MASTER }
                         .map { p -> State(p.ip, master.id, p.id, MessageSequence.getNextSequence(), gameState) }
 
                     for (message in messages) {
@@ -181,6 +181,19 @@ class MessageManager(
                         sendMessage(message)
                         logger.info("State sent to ${message.address}")
                     }
+
+                    if (players.find { p -> p.role == NodeRole.DEPUTY } == null &&
+                        players.size > 1) {
+
+                        runCatching {
+                            players.first { p -> p.role != NodeRole.MASTER && p.role != NodeRole.VIEWER }
+                        }.onSuccess { random ->
+                            sendRoleChangeMessage(random.ip, master.id, random.id, NodeRole.MASTER, NodeRole.DEPUTY)
+                        }
+
+
+                    }
+
                 }.onFailure { e ->
                     logger.warn("Error on sending state task", e)
                 }
@@ -380,8 +393,6 @@ class MessageManager(
         val requests = state.getChangeRoleRequests()
         stateHolder.getStateEditor().removeChangeRoleRequests(requests)
 
-
-
         runCatching {
             state.getMasterPlayer()
         }.onSuccess { master ->
@@ -390,7 +401,6 @@ class MessageManager(
                     state.getPlayers().first { p -> p.id == request.receiverId }
                 }.onSuccess { player ->
 
-
                     sendRoleChangeMessage(
                         player.ip,
                         request.senderId,
@@ -398,7 +408,6 @@ class MessageManager(
                         request.senderRole,
                         request.receiverRole
                     )
-
 
                     if (request.receiverRole == NodeRole.VIEWER) {
                         stateHolder.getStateEditor().fullLeavePlayer(player)
@@ -618,6 +627,7 @@ class MessageManager(
                         message.msgSeq,
                         "The requested role is not available to join the game with it"
                     )
+                    return
                 }
 
                 val player = GamePlayer(

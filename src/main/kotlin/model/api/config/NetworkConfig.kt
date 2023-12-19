@@ -12,6 +12,6 @@ data class NetworkConfig(
     companion object Defaults {
         private fun groupAddress(): InetSocketAddress = InetSocketAddress("239.192.0.4", 9192)
         private fun nodeSocket(): DatagramSocket = DatagramSocket()
-        private fun localInterface(): NetworkInterface = NetworkInterface.getByName("wlp3s0")
+        private fun localInterface(): NetworkInterface = NetworkInterface.getByName("en0")
     }
 }

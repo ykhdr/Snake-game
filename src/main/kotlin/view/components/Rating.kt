@@ -73,6 +73,7 @@ fun PlayerRatingItem(player: GamePlayer, selfName: String, expandedInfoEnable: B
         ) {
             Box(Modifier.fillMaxWidth()) {
                 Text(player.name, style = textStyle, modifier = Modifier.align(Alignment.CenterStart))
+                Text(player.role.toString(), style = textStyle, modifier = Modifier.align(Alignment.Center))
                 if (player.role != NodeRole.VIEWER) {
                     Text(
                         player.score.toString(),
