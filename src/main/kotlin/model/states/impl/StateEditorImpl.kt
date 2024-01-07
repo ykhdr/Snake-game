@@ -308,6 +308,11 @@ internal class StateEditorImpl internal constructor(
 
     @Synchronized
     override fun updateSnakeDirection(playerId: Int, direction: Direction) {
+        println("HUIIIII")
+        println(playerId)
+        println(snakes)
+        println("HUIIIII")
+
         val snake = this.snakes.find { snake -> snake.playerId == playerId }
             ?: throw UnknownPlayerError("Unknown player")
 
